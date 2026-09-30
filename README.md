@@ -6,13 +6,13 @@
 
 A modern, automated personal email digest service and annual retrospective built on top of your **TeslaMate** telemetry data.
 
-Inspired by the utility financial clarity of **WeaveGrid**, the travel storytelling of **Google Maps Local Guides**, modular vehicle telemetry monitoring, and the celebratory data badges of **Spotify Wrapped**.
+Delivering utility financial clarity, rich travel storytelling, vehicle telemetry monitoring, and celebratory annual retrospective data badges.
 
 ---
 
 ## ✨ Features & Modules
 
-### 1. ⚡ Electric Spend & Grid Analytics (The WeaveGrid Module)
+### 1. ⚡ Electric Spend & Grid Analytics
 * **$ Spend on Charging**: Detailed financial breakdown by location (**Home Off-Peak**, **Home On-Peak**, **Superchargers**, **Public AC**).
 * **Time-of-Use (TOU) Engine**: Configure your off-peak and on-peak hours/rates; automatically calculates energy drawn hour-by-hour from the `charges` table.
 * **Off-Peak Score**: Shows what percentage of your home charging occurred during optimal overnight grid hours.

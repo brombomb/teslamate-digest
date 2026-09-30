@@ -12,7 +12,8 @@ async def get_year_in_review_analytics(
     db: Database,
     year: int,
     car_id: Optional[int] = None,
-    rates: Optional[RatesSettings] = None
+    rates: Optional[RatesSettings] = None,
+    excluded_locations: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     if rates is None:
         rates = RatesSettings()
@@ -20,7 +21,7 @@ async def get_year_in_review_analytics(
     start_date = datetime(year, 1, 1, 0, 0, 0)
     end_date = datetime(year, 12, 31, 23, 59, 59)
 
-    trips = await get_trip_analytics(db, start_date, end_date, car_id)
+    trips = await get_trip_analytics(db, start_date, end_date, car_id, excluded_locations)
     charging = await get_charging_analytics(db, start_date, end_date, car_id, rates, trips["total_miles"])
     superchargers = await get_supercharger_analytics(db, start_date, end_date, car_id)
     battery = await get_battery_health_analytics(db, end_date, car_id)

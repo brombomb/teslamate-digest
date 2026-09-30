@@ -306,6 +306,8 @@ async def settings_save(
     eia_api_key: str = Form(""),
     openei_api_key: str = Form(""),
     utility_name: str = Form("Public Service Co of Colorado (Xcel Energy)"),
+    dashboard_url: str = Form("http://localhost:8660"),
+    excluded_locations: str = Form("West 87th Terrace, Home"),
     tire_rotation_interval_mi: int = Form(6250),
     schedule_enabled: Optional[str] = Form(None),
     frequency: str = Form("monthly"),
@@ -334,6 +336,9 @@ async def settings_save(
     cfg.smtp.sender_email = smtp_user
     cfg.smtp.recipient_email = recipient_email
     cfg.smtp.sender_name = sender_name
+
+    cfg.dashboard_url = dashboard_url.strip() or "http://localhost:8660"
+    cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
 
     cfg.rates.tariff_preset = tariff_preset
     cfg.rates.average_kwh_cost = average_kwh_cost

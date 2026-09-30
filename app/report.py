@@ -47,7 +47,7 @@ async def build_digest_report(
             config.rates.zip_code, config.rates.gas_price_per_gal
         )
 
-    trips = await get_trip_analytics(db, start_date, end_date, car_id)
+    trips = await get_trip_analytics(db, start_date, end_date, car_id, config.excluded_locations)
     charging = await get_charging_analytics(db, start_date, end_date, car_id, config.rates, trips["total_miles"])
     superchargers = await get_supercharger_analytics(db, start_date, end_date, car_id)
     battery = await get_battery_health_analytics(db, end_date, car_id)
@@ -117,7 +117,7 @@ async def build_digest_report(
             from jinja2 import Template
             tmpl = Template(f.read())
 
-    dashboard_url = f"http://localhost:{os.getenv('PORT', '8660')}"
+    dashboard_url = getattr(config, "dashboard_url", None) or f"http://localhost:{os.getenv('PORT', '8660')}"
 
     html_content = tmpl.render(
         report_title=report_title,
@@ -150,7 +150,7 @@ async def build_wrapped_report(
     """
     Builds the Spotify Wrapped / Year in Review report.
     """
-    wrapped_data = await get_year_in_review_analytics(db, year, car_id, config.rates)
+    wrapped_data = await get_year_in_review_analytics(db, year, car_id, config.rates, config.excluded_locations)
 
     env = get_jinja_env()
     try:

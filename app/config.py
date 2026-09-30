@@ -93,6 +93,8 @@ class AppConfig(BaseModel):
     units: UnitSettings = Field(default_factory=UnitSettings)
     modules: ModuleToggles = Field(default_factory=ModuleToggles)
     tire_rotation_interval_mi: int = 6250
+    dashboard_url: str = Field(default_factory=lambda: os.getenv("DASHBOARD_URL", "http://localhost:8660"))
+    excluded_locations: list[str] = Field(default_factory=lambda: ["West 87th Terrace", "West 87th Drive", "Home"])
 
 
 def load_config() -> AppConfig:

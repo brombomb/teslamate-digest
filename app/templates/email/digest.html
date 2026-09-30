@@ -18,8 +18,8 @@
     .wrapper { width: 100%; table-layout: fixed; background-color: #0b0f19; padding-bottom: 40px; }
     .main-table { width: 100%; max-width: 660px; margin: 0 auto; background-color: #0f172a; border-radius: 14px; overflow: hidden; border: 1px solid #1e293b; }
     .card { background-color: #1e293b; border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; border: 1px solid #334155; }
-    .kpi-box { background-color: #0f172a; border-radius: 8px; padding: 14px; text-align: center; border: 1px solid #334155; }
-    .kpi-val { font-size: 24px; font-weight: 800; color: #f8fafc; margin-bottom: 4px; }
+    .kpi-box { background-color: #0f172a; border-radius: 8px; padding: 12px 6px; text-align: center; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; }
+    .kpi-val { font-size: 24px; font-weight: 800; color: #f8fafc; margin-bottom: 4px; line-height: 1.1; }
     .kpi-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; font-weight: 600; }
     .section-title { font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0 0 14px 0; display: flex; align-items: center; }
     .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
@@ -48,7 +48,11 @@
                       <div style="color: #94a3b8; font-size: 13px;">{{ date_subtitle }} &bull; {{ car_subtitle }}</div>
                     </td>
                     <td align="right" style="vertical-align: middle;">
-                      <span class="badge badge-red">Active Fleet</span>
+                      {% if car_subtitle and car_subtitle != 'Fleet' %}
+                      <span class="badge badge-red">{{ car_subtitle }}</span>
+                      {% else %}
+                      <span class="badge badge-red">All Vehicles</span>
+                      {% endif %}
                     </td>
                   </tr>
                 </table>
@@ -59,29 +63,29 @@
             <tr>
               <td style="padding: 22px 22px 10px 22px;">
 
-                <!-- TOP KPI ROW -->
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                <!-- TOP KPI ROW (EQUAL HEIGHT BOXES) -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px; table-layout: fixed;">
                   <tr>
-                    <td width="23%" style="padding-right: 8px;">
-                      <div class="kpi-box">
+                    <td width="25%" style="padding-right: 6px; vertical-align: top;">
+                      <div class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
                         <div class="kpi-val">{{ "{:,.0f}".format(trips.total_miles) }}</div>
                         <div class="kpi-lbl">Miles Driven</div>
                       </div>
                     </td>
-                    <td width="23%" style="padding: 0 4px;">
-                      <div class="kpi-box">
+                    <td width="25%" style="padding: 0 3px; vertical-align: top;">
+                      <div class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
                         <div class="kpi-val">${{ "{:,.2f}".format(charging.total_spend) }}</div>
                         <div class="kpi-lbl">Electric Spend</div>
                       </div>
                     </td>
-                    <td width="27%" style="padding: 0 4px;">
-                      <div class="kpi-box" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+                    <td width="25%" style="padding: 0 3px; vertical-align: top;">
+                      <div class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
                         <div class="kpi-val" style="color: #34d399;">+${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
                         <div class="kpi-lbl" style="color: #34d399;">Saved vs Gas</div>
                       </div>
                     </td>
-                    <td width="27%" style="padding-left: 8px;">
-                      <div class="kpi-box">
+                    <td width="25%" style="padding-left: 6px; vertical-align: top;">
+                      <div class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
                         <div class="kpi-val">{{ charging.efficiency_pct }}%</div>
                         <div class="kpi-lbl">Charge Efficiency</div>
                       </div>
@@ -89,40 +93,40 @@
                   </tr>
                 </table>
 
-                <!-- SECTION 1: WEAVEGRID CHARGING & SPEND -->
+                <!-- SECTION 1: CHARGING & SPEND -->
                 {% if modules.spend_breakdown %}
                 <div class="card">
                   <div class="section-title">
-                    <span style="margin-right: 8px;">⚡</span> Charging & Electric Spend (WeaveGrid Summary)
+                    <span style="margin-right: 8px;">⚡</span> Charging & Electric Spend Breakdown
                   </div>
                   
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px; table-layout: fixed;">
                     <tr>
-                      <td width="25%" style="padding-right: 4px;">
-                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                      <td width="25%" style="padding-right: 4px; vertical-align: top;">
+                        <div style="background-color: #0f172a; padding: 10px 8px; border-radius: 6px; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
                           <div style="font-size: 11px; color: #34d399; font-weight: 700;">Off-Peak</div>
-                          <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 3px 0;">${{ "{:,.2f}".format(charging.off_peak_spend) }}</div>
+                          <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 2px 0;">${{ "{:,.2f}".format(charging.off_peak_spend) }}</div>
                           <div style="font-size: 10px; color: #64748b;">{{ charging.off_peak_kwh }} kWh</div>
                         </div>
                       </td>
-                      <td width="25%" style="padding: 0 2px;">
-                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                      <td width="25%" style="padding: 0 2px; vertical-align: top;">
+                        <div style="background-color: #0f172a; padding: 10px 8px; border-radius: 6px; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
                           <div style="font-size: 11px; color: #38bdf8; font-weight: 700;">Shoulder</div>
-                          <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 3px 0;">${{ "{:,.2f}".format(charging.shoulder_spend) }}</div>
+                          <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 2px 0;">${{ "{:,.2f}".format(charging.shoulder_spend) }}</div>
                           <div style="font-size: 10px; color: #64748b;">{{ charging.shoulder_kwh }} kWh</div>
                         </div>
                       </td>
-                      <td width="25%" style="padding: 0 2px;">
-                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                      <td width="25%" style="padding: 0 2px; vertical-align: top;">
+                        <div style="background-color: #0f172a; padding: 10px 8px; border-radius: 6px; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
                           <div style="font-size: 11px; color: #e82127; font-weight: 700;">Supercharger</div>
-                          <div style="font-size: 16px; font-weight: 700; color: #e82127; margin: 3px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
+                          <div style="font-size: 16px; font-weight: 700; color: #e82127; margin: 2px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
                           <div style="font-size: 10px; color: #64748b;">{{ charging.supercharger_kwh }} kWh</div>
                         </div>
                       </td>
-                      <td width="25%" style="padding-left: 4px;">
-                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                      <td width="25%" style="padding-left: 4px; vertical-align: top;">
+                        <div style="background-color: #0f172a; padding: 10px 8px; border-radius: 6px; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
                           <div style="font-size: 11px; color: #94a3b8; font-weight: 700;">Off-Peak %</div>
-                          <div style="font-size: 16px; font-weight: 700; color: #34d399; margin: 3px 0;">{{ charging.off_peak_score_pct }}%</div>
+                          <div style="font-size: 16px; font-weight: 700; color: #34d399; margin: 2px 0;">{{ charging.off_peak_score_pct }}%</div>
                           <div style="font-size: 10px; color: #64748b;">Optimal hours</div>
                         </div>
                       </td>
@@ -401,7 +405,7 @@
             <!-- FOOTER -->
             <tr>
               <td style="padding: 18px 24px; background-color: #0b0f19; border-top: 1px solid #1e293b; text-align: center; color: #64748b; font-size: 12px;">
-                Generated by <strong>TeslaMate Digest</strong> &bull; Inspired by WeaveGrid and Google Maps Guides.<br>
+                Generated by <strong>TeslaMate Digest</strong><br>
                 <a href="{{ dashboard_url }}" style="color: #e82127; text-decoration: none; margin-top: 4px; display: inline-block;">Open Local Dashboard</a>
               </td>
             </tr>

@@ -247,7 +247,31 @@
       </div>
     </div>
 
-    <!-- 4. ACTIVE MODULES & SECTIONS -->
+    <!-- 4. DRIVING & DASHBOARD OPTIONS -->
+    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
+      <div class="border-b border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>🗺️</span> Driving & Dashboard Options
+        </h3>
+        <p class="text-xs text-slate-400 mt-0.5">Filter out frequent home locations from Top Destinations and customize your email dashboard link.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Excluded Locations from Top Destinations</label>
+          <input type="text" name="excluded_locations" value="{{ config.excluded_locations | join(', ') }}" placeholder="e.g. West 87th Terrace, Home" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <p class="text-[11px] text-slate-500 mt-1">Comma-separated names/addresses to hide from the Top Places ranking (e.g. hides daily home parking to surface real destinations).</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Local Dashboard URL</label>
+          <input type="text" name="dashboard_url" value="{{ config.dashboard_url }}" placeholder="http://localhost:8660" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <p class="text-[11px] text-slate-500 mt-1">Used for links in email digest footers (e.g. http://192.168.1.50:8660 or https://digest.example.com).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. ACTIVE MODULES & SECTIONS -->
     <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
       <div class="border-b border-slate-800 pb-3">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -259,7 +283,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
           <input type="checkbox" name="mod_spend_breakdown" {% if config.modules.spend_breakdown %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
-          <span>⚡ Charging & Electric Spend (WeaveGrid)</span>
+          <span>⚡ Charging & Electric Spend Breakdown</span>
         </label>
         <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
           <input type="checkbox" name="mod_gas_savings" {% if config.modules.gas_savings %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">

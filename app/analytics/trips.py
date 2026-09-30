@@ -7,7 +7,8 @@ async def get_trip_analytics(
     db: Database,
     start_date: datetime,
     end_date: datetime,
-    car_id: Optional[int] = None
+    car_id: Optional[int] = None,
+    excluded_locations: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     car_filter = "AND d.car_id = $3" if car_id else ""
     args = [start_date, end_date]
@@ -95,17 +96,30 @@ async def get_trip_analytics(
         {car_filter}
         GROUP BY 1, 2
         ORDER BY visit_count DESC
-        LIMIT 5;
+        LIMIT 30;
     """
     top_places_raw = await db.fetch(query_top_places, *args)
-    top_places = [
-        {
-            "name": p["location_name"],
-            "city": p["city"],
+    exclusions = [e.lower().strip() for e in (excluded_locations or []) if e.strip()]
+
+    top_places = []
+    for p in top_places_raw:
+        loc_name = p["location_name"]
+        city = p["city"] or ""
+        if not loc_name or loc_name == "Unknown":
+            continue
+
+        full_loc = f"{loc_name} {city}".lower()
+        if any(exc in full_loc for exc in exclusions):
+            continue
+
+        top_places.append({
+            "name": loc_name,
+            "city": city,
             "visits": int(p["visit_count"])
-        }
-        for p in top_places_raw if p["location_name"] != "Unknown"
-    ]
+        })
+        if len(top_places) == 5:
+            break
+
 
     return {
         "drives_count": drives_count,
