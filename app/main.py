@@ -8,14 +8,19 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Plai
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+import re
+import json
+
 from app.config import (
     load_config,
     save_config,
     load_maintenance_log,
     save_maintenance_log,
     AppConfig,
-    WorkRouteItem
+    WorkRouteItem,
+    ScheduleItem
 )
+from app.themes import EMAIL_THEMES, get_theme
 from app.analytics.work_mileage import get_available_locations_for_work
 from app.db import Database
 from app.scheduler import (
@@ -41,9 +46,9 @@ async def lifespan(app: FastAPI):
     # Startup
     cfg = load_config()
     db = Database(cfg)
+    app.state.db = db
     try:
         await db.connect()
-        app.state.db = db
         print("[App] Connected to TeslaMate PostgreSQL.")
     except Exception as e:
         print(f"[App] Warning: Could not connect to DB at startup: {e}")
@@ -289,6 +294,7 @@ async def preview(
             "period": period,
             "car_id": car_id,
             "selected_theme": theme or cfg.email_theme,
+            "themes": EMAIL_THEMES,
             "subject": subject,
             "rendered_html": rendered_html,
             "send_status": send_status
@@ -343,7 +349,55 @@ async def send_test(
         return RedirectResponse(url=f"/preview?period={period}&car_id={car_id or ''}&theme={theme or ''}&sent=failed&err={err_msg}", status_code=303)
 
 
-# TEMPLATE BUILDER ROUTES
+# TEMPLATE BUILDER ROUTES & STARTER GENERATION
+def generate_theme_starter(theme_name: str) -> str:
+    digest_path = Path(__file__).resolve().parent / "templates" / "email" / "digest.html"
+    if not digest_path.exists():
+        return "<!-- Custom Template -->"
+
+    with open(digest_path, "r") as f:
+        content = f.read()
+
+    theme = get_theme(theme_name)
+    is_cyber = (theme.get("id") == "cybertruck")
+
+    if is_cyber:
+        content = re.sub(
+            r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}([^%]*?)\{%\s*else\s*%\}([^%]*?)\{%\s*endif\s*%\}',
+            r'\1',
+            content
+        )
+        content = re.sub(
+            r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}((?:(?!\{%\s*endif\s*%\})[\s\S])*?)\{%\s*endif\s*%\}',
+            r'\1',
+            content
+        )
+    else:
+        content = re.sub(
+            r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}([^%]*?)\{%\s*else\s*%\}([^%]*?)\{%\s*endif\s*%\}',
+            r'\2',
+            content
+        )
+        content = re.sub(
+            r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}((?:(?!\{%\s*endif\s*%\})[\s\S])*?)\{%\s*endif\s*%\}',
+            '',
+            content
+        )
+
+    for k, v in theme.items():
+        if isinstance(v, str):
+            content = content.replace(f"{{{{ theme.{k} }}}}", v)
+            content = content.replace(f"{{{{theme.{k}}}}}", v)
+
+    content = content.replace(
+        "{{ theme.font_family or '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif' }}",
+        theme.get("font_family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif")
+    )
+    content = content.replace("{{ theme.header_font or 'inherit' }}", theme.get("header_font", "inherit"))
+
+    return content
+
+
 @app.get("/builder", response_class=HTMLResponse)
 async def builder_view(request: Request, saved: Optional[str] = Query(None)):
     cfg = load_config()
@@ -366,7 +420,8 @@ async def builder_view(request: Request, saved: Optional[str] = Query(None)):
             "active_nav": "builder",
             "template_content": content,
             "saved_status": saved_status,
-            "config": cfg
+            "config": cfg,
+            "themes": EMAIL_THEMES
         }
     )
 
@@ -381,12 +436,30 @@ async def builder_save(template_content: str = Form(...)):
 
 
 @app.get("/builder/starter", response_class=PlainTextResponse)
-async def builder_starter():
-    digest_path = Path(__file__).resolve().parent / "templates" / "email" / "digest.html"
-    if digest_path.exists():
-        with open(digest_path, "r") as f:
-            return f.read()
-    return "<!-- Custom Template -->"
+async def builder_starter(theme: Optional[str] = Query(None)):
+    chosen_theme = theme or "pearl_white"
+    return generate_theme_starter(chosen_theme)
+
+
+@app.get("/api/theme-palette")
+async def get_theme_palette(theme: str = Query("pearl_white")):
+    t = get_theme(theme)
+    return JSONResponse(content={
+        "id": t.get("id"),
+        "name": t.get("name"),
+        "body_bg": t.get("body_bg"),
+        "card_bg": t.get("card_bg"),
+        "card_border": t.get("card_border"),
+        "card_inner_bg": t.get("card_inner_bg"),
+        "text_primary": t.get("text_primary"),
+        "text_muted": t.get("text_muted"),
+        "accent_red": t.get("accent_red"),
+        "accent_green": t.get("accent_green"),
+        "accent_blue": t.get("accent_blue"),
+        "badge_bg": t.get("badge_bg"),
+        "badge_text": t.get("badge_text"),
+        "badge_border": t.get("badge_border"),
+    })
 
 
 @app.get("/settings", response_class=HTMLResponse)
@@ -403,6 +476,7 @@ async def settings_view(request: Request):
             "config": cfg,
             "cars": cars,
             "locations": locations,
+            "themes": EMAIL_THEMES,
             "message": None
         }
     )
@@ -418,7 +492,7 @@ async def settings_save(
     smtp_password: str = Form(""),
     recipient_email: str = Form(""),
     sender_name: str = Form("TeslaMate Digest"),
-    email_theme: str = Form("dark_modern"),
+    email_theme: str = Form("pearl_white"),
     tariff_preset: str = Form("standard_tou"),
     average_kwh_cost: float = Form(0.13),
     off_peak_kwh_cost: float = Form(0.10),
@@ -444,6 +518,7 @@ async def settings_save(
     target_car_id: Optional[str] = Form(None),
     send_hour: int = Form(8),
     send_minute: int = Form(0),
+    schedules_json: Optional[str] = Form(None),
     irs_mileage_rate: float = Form(0.67),
     work_routes_json: Optional[str] = Form(None),
     mod_spend_breakdown: Optional[str] = Form(None),
@@ -497,16 +572,47 @@ async def settings_save(
     cfg.rates.utility_name = utility_name.strip()
     cfg.tire_rotation_interval_mi = tire_rotation_interval_mi
 
-    cfg.schedule.enabled = bool(schedule_enabled)
-    cfg.schedule.frequency = frequency
-    cfg.schedule.target_car_id = int(target_car_id) if target_car_id and target_car_id.isdigit() else None
-    cfg.schedule.send_hour = send_hour
-    cfg.schedule.send_minute = send_minute
+    # Multi-schedule configuration
+    if schedules_json:
+        try:
+            parsed_schedules = json.loads(schedules_json)
+            cfg.schedules = [ScheduleItem(**s) for s in parsed_schedules]
+            if cfg.schedules:
+                first_s = cfg.schedules[0]
+                cfg.schedule.enabled = first_s.enabled
+                cfg.schedule.frequency = first_s.frequency
+                cfg.schedule.target_car_id = first_s.target_car_id
+                cfg.schedule.send_day_of_month = first_s.day_of_month
+                cfg.schedule.send_day_of_week = first_s.day_of_week
+                cfg.schedule.send_hour = first_s.send_hour
+                cfg.schedule.send_minute = first_s.send_minute
+                cfg.schedule.theme = first_s.theme
+                cfg.email_theme = first_s.theme
+        except Exception as e:
+            print(f"[Settings] Error parsing schedules JSON: {e}")
+    else:
+        cfg.schedule.enabled = bool(schedule_enabled)
+        cfg.schedule.frequency = frequency
+        cfg.schedule.target_car_id = int(target_car_id) if target_car_id and target_car_id.isdigit() else None
+        cfg.schedule.send_hour = send_hour
+        cfg.schedule.send_minute = send_minute
+        if not cfg.schedules:
+            cfg.schedules = [
+                ScheduleItem(
+                    id="default-sched",
+                    name="Scheduled Digest",
+                    enabled=cfg.schedule.enabled,
+                    frequency=cfg.schedule.frequency,
+                    target_car_id=cfg.schedule.target_car_id,
+                    send_hour=cfg.schedule.send_hour,
+                    send_minute=cfg.schedule.send_minute,
+                    theme=cfg.email_theme
+                )
+            ]
 
     cfg.irs_mileage_rate = irs_mileage_rate
     if work_routes_json:
         try:
-            import json
             parsed = json.loads(work_routes_json)
             cfg.work_routes = [WorkRouteItem(**item) for item in parsed]
         except Exception as e:
@@ -542,6 +648,7 @@ async def settings_save(
             "config": cfg,
             "cars": cars,
             "locations": locations,
+            "themes": EMAIL_THEMES,
             "message": "Settings updated and saved successfully!"
         }
     )

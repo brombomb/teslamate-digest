@@ -4,25 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TeslaMate Digest - {{ report_title }}</title>
+  {% if theme.id == 'cybertruck' %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  {% endif %}
   <style>
     body {
       margin: 0;
       padding: 0;
       background-color: {{ theme.body_bg }};
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: {{ theme.font_family or '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }};
       color: {{ theme.text_primary }};
       -webkit-font-smoothing: antialiased;
     }
     table { border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     td { vertical-align: top; }
     .wrapper { width: 100%; table-layout: fixed; background-color: {{ theme.wrapper_bg }}; padding-bottom: 40px; }
-    .main-table { width: 100%; max-width: 660px; margin: 0 auto; background-color: {{ theme.main_bg }}; border-radius: 14px; overflow: hidden; border: 1px solid {{ theme.card_border }}; }
-    .card { background-color: {{ theme.card_bg }}; border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; border: 1px solid {{ theme.card_border }}; }
-    .kpi-box { background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 12px 6px; text-align: center; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; }
-    .kpi-val { font-size: 24px; font-weight: 800; color: {{ theme.text_primary }}; margin-bottom: 4px; line-height: 1.1; }
+    .main-table { width: 100%; max-width: 660px; margin: 0 auto; background-color: {{ theme.main_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}14px{% endif %}; overflow: hidden; border: 1px solid {{ theme.card_border }}; }
+    .card { background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; padding: 18px 20px; margin-bottom: 18px; border: 1px solid {{ theme.card_border }}; }
+    .kpi-box { background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; padding: 12px 6px; text-align: center; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; }
+    .kpi-val { font-size: 24px; font-weight: 800; color: {{ theme.text_primary }}; margin-bottom: 4px; line-height: 1.1; font-family: {{ theme.header_font or 'inherit' }}; }
     .kpi-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: {{ theme.text_muted }}; font-weight: 600; }
-    .section-title { font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 0 0 14px 0; display: flex; align-items: center; }
-    .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .section-title { font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 0 0 14px 0; display: flex; align-items: center; font-family: {{ theme.header_font or 'inherit' }}; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}6px{% endif %}; font-size: 11px; font-weight: 700; text-transform: uppercase; }
     .badge-theme { background-color: {{ theme.badge_bg }}; color: {{ theme.badge_text }}; border: 1px solid {{ theme.badge_border }}; }
     .badge-green { background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
     .badge-blue { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }

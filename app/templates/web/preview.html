@@ -33,11 +33,9 @@
       <div>
         <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email Theme</label>
         <select name="theme" onchange="this.form.submit()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2 font-semibold">
-          <option value="dark_modern" {% if selected_theme == 'dark_modern' %}selected{% endif %}>🌙 Dark Modern (Default)</option>
-          <option value="clean_white" {% if selected_theme == 'clean_white' %}selected{% endif %}>⚪ Clean White & Red (Tesla Inspired)</option>
-          <option value="clean_black" {% if selected_theme == 'clean_black' %}selected{% endif %}>⚫ Clean Black & Red (Tesla Inspired)</option>
-          <option value="eco_green" {% if selected_theme == 'eco_green' %}selected{% endif %}>🌿 Eco-Green Theme</option>
-          <option value="electric_blue" {% if selected_theme == 'electric_blue' %}selected{% endif %}>⚡ Electric Blue Theme</option>
+          {% for tid, tinfo in themes.items() %}
+          <option value="{{ tid }}" {% if selected_theme == tid %}selected{% endif %}>{{ tinfo.name }}</option>
+          {% endfor %}
           <option value="custom" {% if selected_theme == 'custom' %}selected{% endif %}>🎨 Custom User Template</option>
         </select>
       </div>

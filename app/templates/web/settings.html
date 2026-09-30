@@ -16,16 +16,16 @@
   </div>
   {% endif %}
 
-  <form id="settings-form" method="POST" action="/settings" class="space-y-6" onsubmit="serializeWorkRoutes(); syncExcludedLocations();">
+  <form id="settings-form" method="POST" action="/settings" class="space-y-6" onsubmit="serializeSchedules(); serializeWorkRoutes(); syncExcludedLocations();">
 
-    <!-- 1. EMAIL DELIVERY & THEME -->
+    <!-- 1. EMAIL DELIVERY (SMTP) -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
       <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
         <div>
           <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>✉️</span> Email Delivery & Visual Theme
+            <span>✉️</span> Email Delivery Configuration
           </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Use your Gmail address and 16-character App Password, and choose your preferred email aesthetic.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Configure your SMTP server or Gmail credentials to dispatch digests to your inbox.</p>
         </div>
         <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
           <input type="checkbox" name="smtp_enabled" {% if config.smtp.enabled %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
@@ -35,20 +35,8 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email Template Theme</label>
-          <select name="email_theme" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-semibold">
-            <option value="dark_modern" {% if config.email_theme == 'dark_modern' %}selected{% endif %}>🌙 Dark Modern (Default)</option>
-            <option value="clean_white" {% if config.email_theme == 'clean_white' %}selected{% endif %}>⚪ Clean White & Red (Tesla Inspired)</option>
-            <option value="clean_black" {% if config.email_theme == 'clean_black' %}selected{% endif %}>⚫ Clean Black & Red (Tesla Inspired)</option>
-            <option value="eco_green" {% if config.email_theme == 'eco_green' %}selected{% endif %}>🌿 Eco-Green Theme</option>
-            <option value="electric_blue" {% if config.email_theme == 'electric_blue' %}selected{% endif %}>⚡ Electric Blue Theme</option>
-            <option value="custom" {% if config.email_theme == 'custom' %}selected{% endif %}>🎨 Custom User Template</option>
-          </select>
-          <p class="text-[11px] text-slate-400 mt-1">You can customize the Custom User Template under the <a href="/builder" class="text-tesla underline">Template Builder</a> tab.</p>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Recipient Email</label>
-          <input type="email" name="recipient_email" value="{{ config.smtp.recipient_email }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Primary Recipient Email</label>
+          <input type="email" name="recipient_email" value="{{ config.smtp.recipient_email }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white" placeholder="you@example.com">
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Gmail Address (Username)</label>
@@ -59,6 +47,10 @@
           <input type="password" name="smtp_password" value="{{ config.smtp.password }}" placeholder="16-character app password" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
         <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Sender Name</label>
+          <input type="text" name="sender_name" value="{{ config.smtp.sender_name }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+        </div>
+        <div>
           <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Server</label>
           <input type="text" name="smtp_host" value="{{ config.smtp.host }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
@@ -66,56 +58,119 @@
           <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Port</label>
           <input type="number" name="smtp_port" value="{{ config.smtp.port }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Sender Name</label>
-          <input type="text" name="sender_name" value="{{ config.smtp.sender_name }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
       </div>
     </div>
 
-    <!-- 2. AUTOMATED SCHEDULE & VEHICLE TARGET -->
+    <!-- 2. AUTOMATED SCHEDULES (MULTI-SCHEDULE & THEME CONFIGURATION) -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
-      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 gap-2">
         <div>
           <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>⏰</span> Automated Dispatch Schedule
+            <span>⏰</span> Automated Dispatch Schedules
           </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Control how frequently the service sends your email digest and choose the target vehicle.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Configure multiple independent schedules (e.g. daily summaries for individual cars, monthly fleet retrospectives) with custom delivery days, times, and unique themes per email.</p>
         </div>
-        <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
-          <input type="checkbox" name="schedule_enabled" {% if config.schedule.enabled %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
-          <span class="text-slate-700 dark:text-slate-200">Enable Schedule</span>
-        </label>
+        <button type="button" onclick="addScheduleRow()" class="px-3.5 py-1.5 bg-tesla hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow flex items-center gap-1.5 transition self-start sm:self-auto">
+          <span>➕</span> Add Schedule
+        </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Frequency</label>
-          <select name="frequency" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-            <option value="monthly" {% if config.schedule.frequency == 'monthly' %}selected{% endif %}>Monthly (1st of month)</option>
-            <option value="semi-monthly" {% if config.schedule.frequency == 'semi-monthly' %}selected{% endif %}>1st & 15th (Semi-Monthly)</option>
-            <option value="bi-weekly" {% if config.schedule.frequency == 'bi-weekly' %}selected{% endif %}>Bi-Weekly (Every 2 weeks)</option>
-            <option value="weekly" {% if config.schedule.frequency == 'weekly' %}selected{% endif %}>Weekly (Mondays)</option>
-            <option value="daily" {% if config.schedule.frequency == 'daily' %}selected{% endif %}>Daily (Every morning)</option>
-          </select>
+      <input type="hidden" name="schedules_json" id="schedules_json" value="">
+
+      <!-- SCHEDULE CARDS CONTAINER -->
+      <div id="schedules-container" class="space-y-4">
+        {% for s in config.schedules %}
+        <div class="schedule-card bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3" data-id="{{ s.id }}">
+          <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+            <div class="flex items-center space-x-3 flex-1 mr-4">
+              <label class="flex items-center space-x-1.5 cursor-pointer">
+                <input type="checkbox" class="sched-enabled rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if s.enabled %}checked{% endif %}>
+                <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">Active</span>
+              </label>
+              <input type="text" class="sched-name bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-white flex-1 max-w-sm" placeholder="Schedule Name (e.g. Monthly Fleet Retrospective)" value="{{ s.name }}">
+            </div>
+            <button type="button" onclick="removeScheduleRow(this)" class="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-500/10 transition" title="Delete Schedule">
+              ✕ Remove
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 sm:grid-cols-2 gap-3 text-xs">
+            <!-- Frequency -->
+            <div>
+              <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Frequency</label>
+              <select class="sched-freq w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" onchange="updateFreqVisibility(this)">
+                <option value="monthly" {% if s.frequency == 'monthly' %}selected{% endif %}>Monthly</option>
+                <option value="semi-monthly" {% if s.frequency == 'semi-monthly' %}selected{% endif %}>1st & 15th (Semi-Monthly)</option>
+                <option value="bi-weekly" {% if s.frequency == 'bi-weekly' %}selected{% endif %}>Bi-Weekly (Every 2 wks)</option>
+                <option value="weekly" {% if s.frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+                <option value="daily" {% if s.frequency == 'daily' %}selected{% endif %}>Daily (Every morning)</option>
+              </select>
+            </div>
+
+            <!-- Target Vehicle -->
+            <div>
+              <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Vehicle</label>
+              <select class="sched-target-car w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+                <option value="" {% if not s.target_car_id %}selected{% endif %}>All Cars (Fleet View)</option>
+                {% for c in cars %}
+                <option value="{{ c.id }}" {% if s.target_car_id == c.id %}selected{% endif %}>{{ c.name }} (Model {{ c.model }})</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Visual Theme -->
+            <div>
+              <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Email Theme</label>
+              <select class="sched-theme w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-medium">
+                {% for tid, tinfo in themes.items() %}
+                <option value="{{ tid }}" {% if s.theme == tid %}selected{% endif %}>{{ tinfo.name }}</option>
+                {% endfor %}
+                <option value="custom" {% if s.theme == 'custom' %}selected{% endif %}>🎨 Custom User Template</option>
+              </select>
+            </div>
+
+            <!-- Day of Week / Month -->
+            <div class="sched-timing-cell">
+              <div class="sched-dow-container {% if s.frequency not in ['weekly', 'bi-weekly'] %}hidden{% endif %}">
+                <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Day of Week</label>
+                <select class="sched-dow w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+                  <option value="6" {% if s.day_of_week == 6 %}selected{% endif %}>Sunday</option>
+                  <option value="0" {% if s.day_of_week == 0 %}selected{% endif %}>Monday</option>
+                  <option value="1" {% if s.day_of_week == 1 %}selected{% endif %}>Tuesday</option>
+                  <option value="2" {% if s.day_of_week == 2 %}selected{% endif %}>Wednesday</option>
+                  <option value="3" {% if s.day_of_week == 3 %}selected{% endif %}>Thursday</option>
+                  <option value="4" {% if s.day_of_week == 4 %}selected{% endif %}>Friday</option>
+                  <option value="5" {% if s.day_of_week == 5 %}selected{% endif %}>Saturday</option>
+                </select>
+              </div>
+              <div class="sched-dom-container {% if s.frequency not in ['monthly', 'semi-monthly'] %}hidden{% endif %}">
+                <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Day of Month (1-28)</label>
+                <input type="number" min="1" max="28" class="sched-dom w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" value="{{ s.day_of_month }}">
+              </div>
+              <div class="sched-daily-container {% if s.frequency != 'daily' %}hidden{% endif %}">
+                <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Frequency Info</label>
+                <span class="block px-2.5 py-1.5 text-slate-400 text-xs italic bg-slate-100 dark:bg-slate-900 rounded-lg">Every morning</span>
+              </div>
+            </div>
+
+            <!-- Send Time -->
+            <div>
+              <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Send Time (24h)</label>
+              <div class="flex items-center space-x-1.5">
+                <input type="number" min="0" max="23" class="sched-hour w-16 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white text-center" value="{{ s.send_hour }}" title="Hour (0-23)">
+                <span class="text-slate-400 font-bold">:</span>
+                <input type="number" min="0" max="59" class="sched-minute w-16 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white text-center" value="{{ s.send_minute }}" title="Minute (0-59)">
+              </div>
+            </div>
+
+            <!-- Recipient Override -->
+            <div class="md:col-span-3 sm:col-span-2">
+              <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Recipient Override (Optional)</label>
+              <input type="email" class="sched-recipient w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" placeholder="Leave blank to use primary recipient ({% if config.smtp.recipient_email %}{{ config.smtp.recipient_email }}{% else %}configured above{% endif %})" value="{{ s.recipient_email }}">
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Vehicle</label>
-          <select name="target_car_id" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-            <option value="" {% if not config.schedule.target_car_id %}selected{% endif %}>All Cars (Fleet View)</option>
-            {% for c in cars %}
-            <option value="{{ c.id }}" {% if config.schedule.target_car_id == c.id %}selected{% endif %}>{{ c.name }} (Model {{ c.model }})</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Send Hour (24-hr)</label>
-          <input type="number" min="0" max="23" name="send_hour" value="{{ config.schedule.send_hour }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Send Minute</label>
-          <input type="number" min="0" max="59" name="send_minute" value="{{ config.schedule.send_minute }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
+        {% endfor %}
       </div>
     </div>
 
@@ -349,7 +404,161 @@
   </form>
 </div>
 
+<!-- TEMPLATE FOR DYNAMIC SCHEDULE ROWS -->
+<template id="schedule-row-template">
+  <div class="schedule-card bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3" data-id="">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div class="flex items-center space-x-3 flex-1 mr-4">
+        <label class="flex items-center space-x-1.5 cursor-pointer">
+          <input type="checkbox" checked class="sched-enabled rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+          <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">Active</span>
+        </label>
+        <input type="text" class="sched-name bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-white flex-1 max-w-sm" placeholder="Schedule Name (e.g. Weekly Commute Summary)" value="New Digest Schedule">
+      </div>
+      <button type="button" onclick="removeScheduleRow(this)" class="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-500/10 transition" title="Delete Schedule">
+        ✕ Remove
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 sm:grid-cols-2 gap-3 text-xs">
+      <div>
+        <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Frequency</label>
+        <select class="sched-freq w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" onchange="updateFreqVisibility(this)">
+          <option value="monthly">Monthly</option>
+          <option value="semi-monthly">1st & 15th (Semi-Monthly)</option>
+          <option value="bi-weekly">Bi-Weekly (Every 2 wks)</option>
+          <option value="weekly">Weekly</option>
+          <option value="daily">Daily (Every morning)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Vehicle</label>
+        <select class="sched-target-car w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+          <option value="">All Cars (Fleet View)</option>
+          {% for c in cars %}
+          <option value="{{ c.id }}">{{ c.name }} (Model {{ c.model }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Email Theme</label>
+        <select class="sched-theme w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-medium">
+          {% for tid, tinfo in themes.items() %}
+          <option value="{{ tid }}" {% if tid == 'pearl_white' %}selected{% endif %}>{{ tinfo.name }}</option>
+          {% endfor %}
+          <option value="custom">🎨 Custom User Template</option>
+        </select>
+      </div>
+
+      <div class="sched-timing-cell">
+        <div class="sched-dow-container hidden">
+          <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Day of Week</label>
+          <select class="sched-dow w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+            <option value="6">Sunday</option>
+            <option value="0" selected>Monday</option>
+            <option value="1">Tuesday</option>
+            <option value="2">Wednesday</option>
+            <option value="3">Thursday</option>
+            <option value="4">Friday</option>
+            <option value="5">Saturday</option>
+          </select>
+        </div>
+        <div class="sched-dom-container">
+          <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Day of Month (1-28)</label>
+          <input type="number" min="1" max="28" class="sched-dom w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" value="1">
+        </div>
+        <div class="sched-daily-container hidden">
+          <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Frequency Info</label>
+          <span class="block px-2.5 py-1.5 text-slate-400 text-xs italic bg-slate-100 dark:bg-slate-900 rounded-lg">Every morning</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Send Time (24h)</label>
+        <div class="flex items-center space-x-1.5">
+          <input type="number" min="0" max="23" class="sched-hour w-16 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white text-center" value="8" title="Hour (0-23)">
+          <span class="text-slate-400 font-bold">:</span>
+          <input type="number" min="0" max="59" class="sched-minute w-16 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white text-center" value="0" title="Minute (0-59)">
+        </div>
+      </div>
+
+      <div class="md:col-span-3 sm:col-span-2">
+        <label class="block font-semibold text-slate-500 dark:text-slate-400 mb-1">Recipient Override (Optional)</label>
+        <input type="email" class="sched-recipient w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" placeholder="Leave blank to use primary recipient" value="">
+      </div>
+    </div>
+  </div>
+</template>
+
 <script>
+// --- 0. SCHEDULE ROW MANAGEMENT ---
+function updateFreqVisibility(selectEl) {
+  const card = selectEl.closest('.schedule-card');
+  if (!card) return;
+  const freq = selectEl.value;
+  const dowCont = card.querySelector('.sched-dow-container');
+  const domCont = card.querySelector('.sched-dom-container');
+  const dailyCont = card.querySelector('.sched-daily-container');
+
+  if (dowCont) dowCont.classList.toggle('hidden', !['weekly', 'bi-weekly'].includes(freq));
+  if (domCont) domCont.classList.toggle('hidden', !['monthly', 'semi-monthly'].includes(freq));
+  if (dailyCont) dailyCont.classList.toggle('hidden', freq !== 'daily');
+}
+
+function addScheduleRow() {
+  const tpl = document.getElementById('schedule-row-template');
+  const clone = tpl.content.cloneNode(true);
+  const card = clone.querySelector('.schedule-card');
+  card.dataset.id = 'sched_' + Math.random().toString(36).substring(2, 9);
+  document.getElementById('schedules-container').appendChild(clone);
+}
+
+function removeScheduleRow(btn) {
+  const card = btn.closest('.schedule-card');
+  if (!card) return;
+  const totalCards = document.querySelectorAll('.schedule-card').length;
+  if (totalCards <= 1) {
+    if (!confirm('This is your only schedule. Are you sure you want to remove it?')) return;
+  }
+  card.remove();
+}
+
+function serializeSchedules() {
+  const cards = document.querySelectorAll('.schedule-card');
+  const schedules = [];
+  cards.forEach(card => {
+    const id = card.dataset.id || ('sched_' + Math.random().toString(36).substring(2, 9));
+    const name = card.querySelector('.sched-name')?.value.trim() || 'Scheduled Digest';
+    const enabled = card.querySelector('.sched-enabled')?.checked ?? true;
+    const freq = card.querySelector('.sched-freq')?.value || 'monthly';
+    const carVal = card.querySelector('.sched-target-car')?.value;
+    const targetCarId = (carVal && !isNaN(parseInt(carVal))) ? parseInt(carVal) : null;
+    const theme = card.querySelector('.sched-theme')?.value || 'pearl_white';
+    const dow = parseInt(card.querySelector('.sched-dow')?.value || '0');
+    const dom = parseInt(card.querySelector('.sched-dom')?.value || '1');
+    const hour = parseInt(card.querySelector('.sched-hour')?.value || '8');
+    const minute = parseInt(card.querySelector('.sched-minute')?.value || '0');
+    const recipient = card.querySelector('.sched-recipient')?.value.trim() || '';
+
+    schedules.push({
+      id: id,
+      name: name,
+      enabled: enabled,
+      frequency: freq,
+      target_car_id: targetCarId,
+      day_of_week: dow,
+      day_of_month: dom,
+      send_hour: hour,
+      send_minute: minute,
+      recipient_email: recipient,
+      theme: theme
+    });
+  });
+  document.getElementById('schedules_json').value = JSON.stringify(schedules);
+}
+
 // --- 1. TARIFF PRESET APPLIER ---
 function applyTariffPreset(preset) {
   if (preset === 'standard_tou') {
@@ -697,6 +906,9 @@ function escapeHtml(str) {
 
 // --- 6. INITIALIZATION & GLOBAL CLICK DISMISS ---
 document.addEventListener('DOMContentLoaded', () => {
+  // Init existing schedules frequency visibility
+  document.querySelectorAll('.sched-freq').forEach(updateFreqVisibility);
+
   // Init existing work route typeahead pickers
   document.querySelectorAll('.location-typeahead-container').forEach(initLocationTypeahead);
   

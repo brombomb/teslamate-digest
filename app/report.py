@@ -87,24 +87,29 @@ async def build_digest_report(
     # Battery health is strictly monthly only per user requirement
     show_battery_health = bool(config.modules.battery_health and is_monthly)
 
-    # 2. Charts Generation
+    # 2. Choose Theme & Prepare Chart Styling
+    chosen_theme = theme_override or getattr(config, "email_theme", "dark_modern")
+    theme = get_theme(chosen_theme)
+
+    # 3. Charts Generation
     inline_images: Dict[str, bytes] = {}
     chart_spend_src = ""
     chart_tou_src = ""
     chart_battery_src = ""
 
     if config.modules.embedded_charts:
-        spend_bytes = charts.generate_spend_chart(charging, as_bytes=True)
+        spend_bytes = charts.generate_spend_chart(charging, theme=theme, as_bytes=True)
         tou_bytes = charts.generate_tou_chart(
             charging["hourly_kwh"],
             config.rates.off_peak_start_hour,
             config.rates.off_peak_end_hour,
             config.rates.peak_start_hour,
             config.rates.peak_end_hour,
+            theme=theme,
             as_bytes=True
         )
         if show_battery_health:
-            battery_bytes = charts.generate_battery_trend_chart(battery, as_bytes=True)
+            battery_bytes = charts.generate_battery_trend_chart(battery, theme=theme, as_bytes=True)
         else:
             battery_bytes = b""
 
@@ -122,10 +127,6 @@ async def build_digest_report(
             chart_tou_src = f"data:image/png;base64,{base64.b64encode(tou_bytes).decode('utf-8')}"
             if show_battery_health and battery_bytes:
                 chart_battery_src = f"data:image/png;base64,{base64.b64encode(battery_bytes).decode('utf-8')}"
-
-    # 3. Choose Theme & Render Template
-    chosen_theme = theme_override or getattr(config, "email_theme", "dark_modern")
-    theme = get_theme(chosen_theme)
 
     env = get_jinja_env()
     custom_template_path = CUSTOM_TEMPLATES_DIR / "custom_digest.html"

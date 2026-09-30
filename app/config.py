@@ -1,7 +1,8 @@
 import json
 import os
+import uuid
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 
 DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
@@ -23,6 +24,20 @@ class SMTPSettings(BaseModel):
     use_ssl: bool = False
 
 
+class ScheduleItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
+    name: str = "Digest Schedule"
+    enabled: bool = True
+    frequency: str = "monthly"  # monthly, semi-monthly, bi-weekly, weekly, daily
+    target_car_id: Optional[int] = None  # None for All Cars (Fleet), or integer car_id
+    day_of_week: int = 0  # 0=Monday, 6=Sunday
+    day_of_month: int = 1  # 1 to 28
+    send_hour: int = 8  # 0 to 23
+    send_minute: int = 0  # 0 to 59
+    recipient_email: str = ""  # override or empty for default SMTP recipient
+    theme: str = "pearl_white"
+
+
 class ScheduleSettings(BaseModel):
     enabled: bool = True
     frequency: str = "monthly"  # monthly, semi-monthly, bi-weekly, weekly, daily
@@ -31,6 +46,7 @@ class ScheduleSettings(BaseModel):
     send_hour: int = 8           # 8:00 AM
     send_minute: int = 0
     target_car_id: Optional[int] = None  # None for Fleet (All Cars), or car_id integer
+    theme: str = "pearl_white"
 
 
 class RatesSettings(BaseModel):
@@ -104,6 +120,21 @@ class AppConfig(BaseModel):
     grafana_api_token: str = Field(default_factory=lambda: os.getenv("GRAFANA_API_TOKEN", ""))
 
     smtp: SMTPSettings = Field(default_factory=SMTPSettings)
+    schedules: list[ScheduleItem] = Field(default_factory=lambda: [
+        ScheduleItem(
+            id="default-monthly",
+            name="Monthly Fleet Retrospective",
+            enabled=True,
+            frequency="monthly",
+            target_car_id=None,
+            day_of_week=0,
+            day_of_month=1,
+            send_hour=8,
+            send_minute=0,
+            recipient_email="",
+            theme="pearl_white"
+        )
+    ])
     schedule: ScheduleSettings = Field(default_factory=ScheduleSettings)
     rates: RatesSettings = Field(default_factory=RatesSettings)
     units: UnitSettings = Field(default_factory=UnitSettings)
@@ -111,7 +142,7 @@ class AppConfig(BaseModel):
     tire_rotation_interval_mi: int = 6250
     dashboard_url: str = Field(default_factory=lambda: os.getenv("DASHBOARD_URL", "http://localhost:8660"))
     excluded_locations: list[str] = Field(default_factory=lambda: ["Home"])
-    email_theme: str = "dark_modern"  # dark_modern, clean_white, clean_black, eco_green, electric_blue, custom
+    email_theme: str = "pearl_white"
     work_routes: list[WorkRouteItem] = Field(default_factory=list)
     irs_mileage_rate: float = 0.67
 
@@ -121,6 +152,27 @@ def load_config() -> AppConfig:
         try:
             with open(CONFIG_FILE, "r") as f:
                 data = json.load(f)
+            
+            # Migration from legacy single schedule to multi-schedules list
+            if "schedules" not in data and "schedule" in data:
+                leg = data["schedule"]
+                th = data.get("email_theme", "pearl_white")
+                data["schedules"] = [
+                    {
+                        "id": "migrated-1",
+                        "name": "Scheduled Digest",
+                        "enabled": leg.get("enabled", True),
+                        "frequency": leg.get("frequency", "monthly"),
+                        "target_car_id": leg.get("target_car_id"),
+                        "day_of_week": leg.get("send_day_of_week", 0),
+                        "day_of_month": leg.get("send_day_of_month", 1),
+                        "send_hour": leg.get("send_hour", 8),
+                        "send_minute": leg.get("send_minute", 0),
+                        "recipient_email": "",
+                        "theme": th
+                    }
+                ]
+            
             cfg = AppConfig(**data)
             if not cfg.smtp.password and os.getenv("SMTP_PASSWORD"):
                 cfg.smtp.password = os.getenv("SMTP_PASSWORD")
