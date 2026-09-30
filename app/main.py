@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request, Form, Query
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -13,8 +13,10 @@ from app.config import (
     save_config,
     load_maintenance_log,
     save_maintenance_log,
-    AppConfig
+    AppConfig,
+    WorkRouteItem
 )
+from app.analytics.work_mileage import get_available_locations_for_work
 from app.db import Database
 from app.scheduler import (
     setup_scheduler,
@@ -151,6 +153,7 @@ async def preview(
     request: Request,
     period: str = Query("last_month"),
     car_id: Optional[str] = Query(None),
+    theme: Optional[str] = Query(None),
     sent: Optional[str] = Query(None)
 ):
     cfg = load_config()
@@ -194,7 +197,8 @@ async def preview(
             start_date=start_date,
             end_date=end_date,
             car_id=cid,
-            for_email=False  # Base64 embedded charts for browser iframe
+            for_email=False,
+            theme_override=theme
         )
 
     send_status = None
@@ -213,6 +217,7 @@ async def preview(
             "cars": cars,
             "period": period,
             "car_id": car_id,
+            "selected_theme": theme or cfg.email_theme,
             "subject": subject,
             "rendered_html": rendered_html,
             "send_status": send_status
@@ -224,7 +229,8 @@ async def preview(
 async def send_test(
     request: Request,
     period: str = Form("last_month"),
-    car_id: Optional[str] = Form(None)
+    car_id: Optional[str] = Form(None),
+    theme: Optional[str] = Form("")
 ):
     cfg = load_config()
     db: Database = request.app.state.db
@@ -253,31 +259,83 @@ async def send_test(
                 end_date = first_of_this_month
 
             subject, html, inline_imgs = await build_digest_report(
-                db=db, config=cfg, start_date=start_date, end_date=end_date, car_id=cid, for_email=True
+                db=db, config=cfg, start_date=start_date, end_date=end_date, car_id=cid, for_email=True, theme_override=theme if theme else None
             )
 
         mailer = Mailer(cfg.smtp)
         mailer.send_email(subject=subject, html_content=html, inline_images=inline_imgs)
-        return RedirectResponse(url=f"/preview?period={period}&car_id={car_id or ''}&sent=success", status_code=303)
+        return RedirectResponse(url=f"/preview?period={period}&car_id={car_id or ''}&theme={theme or ''}&sent=success", status_code=303)
     except Exception as e:
         import urllib.parse
         err_msg = urllib.parse.quote(str(e))
         print(f"[API] Error sending test: {e}")
-        return RedirectResponse(url=f"/preview?period={period}&car_id={car_id or ''}&sent=failed&err={err_msg}", status_code=303)
+        return RedirectResponse(url=f"/preview?period={period}&car_id={car_id or ''}&theme={theme or ''}&sent=failed&err={err_msg}", status_code=303)
+
+
+# TEMPLATE BUILDER ROUTES
+@app.get("/builder", response_class=HTMLResponse)
+async def builder_view(request: Request, saved: Optional[str] = Query(None)):
+    cfg = load_config()
+    custom_file = Path("/app/custom_templates/custom_digest.html")
+    if custom_file.exists():
+        with open(custom_file, "r") as f:
+            content = f.read()
+    else:
+        with open(Path(__file__).resolve().parent / "templates" / "email" / "digest.html", "r") as f:
+            content = f.read()
+
+    saved_status = None
+    if saved == "1":
+        saved_status = {"success": True, "message": "Custom template successfully saved to custom_templates/custom_digest.html!"}
+
+    return templates.TemplateResponse(
+        "builder.html",
+        {
+            "request": request,
+            "active_nav": "builder",
+            "template_content": content,
+            "saved_status": saved_status,
+            "config": cfg
+        }
+    )
+
+
+@app.post("/builder/save")
+async def builder_save(template_content: str = Form(...)):
+    custom_dir = Path("/app/custom_templates")
+    custom_dir.mkdir(parents=True, exist_ok=True)
+    with open(custom_dir / "custom_digest.html", "w") as f:
+        f.write(template_content)
+    return RedirectResponse(url="/builder?saved=1", status_code=303)
+
+
+@app.get("/builder/starter", response_class=PlainTextResponse)
+async def builder_starter():
+    digest_path = Path(__file__).resolve().parent / "templates" / "email" / "digest.html"
+    if digest_path.exists():
+        with open(digest_path, "r") as f:
+            return f.read()
+    return "<!-- Custom Template -->"
 
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_view(request: Request):
     cfg = load_config()
+    db: Database = request.app.state.db
+    cars = await db.get_cars()
+    locations = await get_available_locations_for_work(db)
     return templates.TemplateResponse(
         "settings.html",
         {
             "request": request,
             "active_nav": "settings",
             "config": cfg,
+            "cars": cars,
+            "locations": locations,
             "message": None
         }
     )
+
 
 @app.post("/settings", response_class=HTMLResponse)
 async def settings_save(
@@ -289,6 +347,7 @@ async def settings_save(
     smtp_password: str = Form(""),
     recipient_email: str = Form(""),
     sender_name: str = Form("TeslaMate Digest"),
+    email_theme: str = Form("dark_modern"),
     tariff_preset: str = Form("xcel_colorado_tou"),
     average_kwh_cost: float = Form(0.11),
     off_peak_kwh_cost: float = Form(0.09),
@@ -311,10 +370,16 @@ async def settings_save(
     tire_rotation_interval_mi: int = Form(6250),
     schedule_enabled: Optional[str] = Form(None),
     frequency: str = Form("monthly"),
+    target_car_id: Optional[str] = Form(None),
     send_hour: int = Form(8),
     send_minute: int = Form(0),
+    irs_mileage_rate: float = Form(0.67),
+    work_routes_json: Optional[str] = Form(None),
     mod_spend_breakdown: Optional[str] = Form(None),
     mod_gas_savings: Optional[str] = Form(None),
+    mod_driving_efficiency: Optional[str] = Form(None),
+    mod_charge_limit_compliance: Optional[str] = Form(None),
+    mod_work_mileage: Optional[str] = Form(None),
     mod_battery_health: Optional[str] = Form(None),
     mod_supercharger_explorer: Optional[str] = Form(None),
     mod_top_locations: Optional[str] = Form(None),
@@ -337,6 +402,7 @@ async def settings_save(
     cfg.smtp.recipient_email = recipient_email
     cfg.smtp.sender_name = sender_name
 
+    cfg.email_theme = email_theme
     cfg.dashboard_url = dashboard_url.strip() or "http://localhost:8660"
     cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
 
@@ -361,11 +427,24 @@ async def settings_save(
 
     cfg.schedule.enabled = bool(schedule_enabled)
     cfg.schedule.frequency = frequency
+    cfg.schedule.target_car_id = int(target_car_id) if target_car_id and target_car_id.isdigit() else None
     cfg.schedule.send_hour = send_hour
     cfg.schedule.send_minute = send_minute
 
+    cfg.irs_mileage_rate = irs_mileage_rate
+    if work_routes_json:
+        try:
+            import json
+            parsed = json.loads(work_routes_json)
+            cfg.work_routes = [WorkRouteItem(**item) for item in parsed]
+        except Exception as e:
+            print(f"[Settings] Error parsing work routes JSON: {e}")
+
     cfg.modules.spend_breakdown = bool(mod_spend_breakdown)
     cfg.modules.gas_savings = bool(mod_gas_savings)
+    cfg.modules.driving_efficiency = bool(mod_driving_efficiency)
+    cfg.modules.charge_limit_compliance = bool(mod_charge_limit_compliance)
+    cfg.modules.work_mileage = bool(mod_work_mileage)
     cfg.modules.battery_health = bool(mod_battery_health)
     cfg.modules.supercharger_explorer = bool(mod_supercharger_explorer)
     cfg.modules.top_locations = bool(mod_top_locations)
@@ -379,12 +458,18 @@ async def settings_save(
     save_config(cfg)
     setup_scheduler(cfg)
 
+    db: Database = request.app.state.db
+    cars = await db.get_cars()
+    locations = await get_available_locations_for_work(db)
+
     return templates.TemplateResponse(
         "settings.html",
         {
             "request": request,
             "active_nav": "settings",
             "config": cfg,
+            "cars": cars,
+            "locations": locations,
             "message": "Settings updated and saved successfully!"
         }
     )

@@ -8,21 +8,22 @@
     body {
       margin: 0;
       padding: 0;
-      background-color: #0b0f19;
+      background-color: {{ theme.body_bg }};
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #f8fafc;
+      color: {{ theme.text_primary }};
       -webkit-font-smoothing: antialiased;
     }
     table { border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     td { vertical-align: top; }
-    .wrapper { width: 100%; table-layout: fixed; background-color: #0b0f19; padding-bottom: 40px; }
-    .main-table { width: 100%; max-width: 660px; margin: 0 auto; background-color: #0f172a; border-radius: 14px; overflow: hidden; border: 1px solid #1e293b; }
-    .card { background-color: #1e293b; border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; border: 1px solid #334155; }
-    .kpi-box { background-color: #0f172a; border-radius: 8px; padding: 12px 6px; text-align: center; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; }
-    .kpi-val { font-size: 24px; font-weight: 800; color: #f8fafc; margin-bottom: 4px; line-height: 1.1; }
-    .kpi-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; font-weight: 600; }
-    .section-title { font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0 0 14px 0; display: flex; align-items: center; }
+    .wrapper { width: 100%; table-layout: fixed; background-color: {{ theme.wrapper_bg }}; padding-bottom: 40px; }
+    .main-table { width: 100%; max-width: 660px; margin: 0 auto; background-color: {{ theme.main_bg }}; border-radius: 14px; overflow: hidden; border: 1px solid {{ theme.card_border }}; }
+    .card { background-color: {{ theme.card_bg }}; border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; border: 1px solid {{ theme.card_border }}; }
+    .kpi-box { background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 12px 6px; text-align: center; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; }
+    .kpi-val { font-size: 24px; font-weight: 800; color: {{ theme.text_primary }}; margin-bottom: 4px; line-height: 1.1; }
+    .kpi-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: {{ theme.text_muted }}; font-weight: 600; }
+    .section-title { font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 0 0 14px 0; display: flex; align-items: center; }
     .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge-theme { background-color: {{ theme.badge_bg }}; color: {{ theme.badge_text }}; border: 1px solid {{ theme.badge_border }}; }
     .badge-green { background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
     .badge-blue { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
     .badge-red { background-color: rgba(232, 33, 39, 0.2); color: #f87171; border: 1px solid rgba(232, 33, 39, 0.4); }
@@ -39,19 +40,19 @@
             
             <!-- HEADER -->
             <tr>
-              <td style="padding: 28px 24px 20px 24px; background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%); border-bottom: 1px solid #334155;">
+              <td style="padding: 28px 24px 20px 24px; background: {{ theme.header_bg }}; border-bottom: 1px solid {{ theme.header_border }};">
                 <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
                     <td>
-                      <span style="color: #e82127; font-weight: 900; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">TESLAMATE DIGEST</span>
-                      <h1 style="margin: 6px 0 2px 0; font-size: 26px; font-weight: 800; color: #ffffff;">{{ report_title }}</h1>
-                      <div style="color: #94a3b8; font-size: 13px;">{{ date_subtitle }} &bull; {{ car_subtitle }}</div>
+                      <span style="color: {{ theme.accent_red }}; font-weight: 900; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">TESLAMATE DIGEST</span>
+                      <h1 style="margin: 6px 0 2px 0; font-size: 26px; font-weight: 800; color: {{ theme.text_primary }};">{{ report_title }}</h1>
+                      <div style="color: {{ theme.text_muted }}; font-size: 13px;">{{ date_subtitle }} &bull; {{ car_subtitle }}</div>
                     </td>
                     <td align="right" style="vertical-align: middle;">
                       {% if car_subtitle and car_subtitle != 'Fleet' %}
-                      <span class="badge badge-red">{{ car_subtitle }}</span>
+                      <span class="badge badge-theme">{{ car_subtitle }}</span>
                       {% else %}
-                      <span class="badge badge-red">All Vehicles</span>
+                      <span class="badge badge-theme">All Vehicles</span>
                       {% endif %}
                     </td>
                   </tr>
@@ -80,8 +81,8 @@
                     </td>
                     <td width="25%" style="padding: 0 3px; vertical-align: top;">
                       <div class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
-                        <div class="kpi-val" style="color: #34d399;">+${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
-                        <div class="kpi-lbl" style="color: #34d399;">Saved vs Gas</div>
+                        <div class="kpi-val" style="color: {{ theme.accent_green }};">+${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
+                        <div class="kpi-lbl" style="color: {{ theme.accent_green }};">Saved vs Gas</div>
                       </div>
                     </td>
                     <td width="25%" style="padding-left: 6px; vertical-align: top;">
@@ -93,7 +94,7 @@
                   </tr>
                 </table>
 
-                <!-- SECTION 1: CHARGING & SPEND -->
+                <!-- SECTION 1: CHARGING & SPEND BREAKDOWN -->
                 {% if modules.spend_breakdown %}
                 <div class="card">
                   <div class="section-title">
@@ -103,43 +104,49 @@
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px; table-layout: fixed;">
                     <tr>
                       <td width="25%" style="padding-right: 4px; vertical-align: top;">
-                        <div style="background-color: #0f172a; padding: 10px 8px; border-radius: 6px; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
-                          <div style="font-size: 11px; color: #34d399; font-weight: 700;">Off-Peak</div>
-                          <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 2px 0;">${{ "{:,.2f}".format(charging.off_peak_spend) }}</div>
-                          <div style="font-size: 10px; color: #64748b;">{{ charging.off_peak_kwh }} kWh</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 8px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
+                          <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 700;">Off-Peak</div>
+                          <div style="font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.off_peak_spend) }}</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.off_peak_kwh }} kWh</div>
                         </div>
                       </td>
                       <td width="25%" style="padding: 0 2px; vertical-align: top;">
-                        <div style="background-color: #0f172a; padding: 10px 8px; border-radius: 6px; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
-                          <div style="font-size: 11px; color: #38bdf8; font-weight: 700;">Shoulder</div>
-                          <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 2px 0;">${{ "{:,.2f}".format(charging.shoulder_spend) }}</div>
-                          <div style="font-size: 10px; color: #64748b;">{{ charging.shoulder_kwh }} kWh</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 8px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
+                          <div style="font-size: 11px; color: {{ theme.accent_blue }}; font-weight: 700;">Shoulder</div>
+                          <div style="font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.shoulder_spend) }}</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.shoulder_kwh }} kWh</div>
                         </div>
                       </td>
                       <td width="25%" style="padding: 0 2px; vertical-align: top;">
-                        <div style="background-color: #0f172a; padding: 10px 8px; border-radius: 6px; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
-                          <div style="font-size: 11px; color: #e82127; font-weight: 700;">Supercharger</div>
-                          <div style="font-size: 16px; font-weight: 700; color: #e82127; margin: 2px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
-                          <div style="font-size: 10px; color: #64748b;">{{ charging.supercharger_kwh }} kWh</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 8px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
+                          <div style="font-size: 11px; color: {{ theme.accent_red }}; font-weight: 700;">Supercharger</div>
+                          <div style="font-size: 16px; font-weight: 700; color: {{ theme.accent_red }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.supercharger_kwh }} kWh</div>
                         </div>
                       </td>
                       <td width="25%" style="padding-left: 4px; vertical-align: top;">
-                        <div style="background-color: #0f172a; padding: 10px 8px; border-radius: 6px; border: 1px solid #334155; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
-                          <div style="font-size: 11px; color: #94a3b8; font-weight: 700;">Off-Peak %</div>
-                          <div style="font-size: 16px; font-weight: 700; color: #34d399; margin: 2px 0;">{{ charging.off_peak_score_pct }}%</div>
-                          <div style="font-size: 10px; color: #64748b;">Optimal hours</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 8px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 700;">Off-Peak %</div>
+                          <div style="font-size: 16px; font-weight: 700; color: {{ theme.accent_green }}; margin: 2px 0;">{{ charging.off_peak_score_pct }}%</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">Optimal hours</div>
                         </div>
                       </td>
                     </tr>
                   </table>
 
-                  <!-- GAS SAVINGS CALLOUT -->
                   {% if modules.gas_savings %}
-                  <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px;">
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 12px 14px; margin-top: 10px; border: 1px solid {{ theme.card_inner_border }};">
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td style="font-size: 13px; color: #e2e8f0; line-height: 1.4;">
-                          Driving electric saved you <strong style="color: #34d399;">${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</strong> compared to fueling a 26 MPG gas vehicle (at ${{ "{:,.2f}".format(rates.gas_price_per_gal) }}/gal in {{ rates.zip_code }}). You avoided <strong style="color: #f8fafc;">{{ charging.gas_savings.gallons_avoided }} gallons</strong> of gasoline and prevented <strong style="color: #34d399;">{{ "{:,.0f}".format(charging.gas_savings.co2_lbs_prevented) }} lbs of CO₂</strong> emissions.
+                        <td>
+                          <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_primary }};">Gasoline Alternative Comparison</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 2px;">
+                            Equivalent ICE Fuel Cost: ${{ "{:,.2f}".format(charging.gas_savings.gas_spend_equivalent) }} 
+                            <span style="font-size: 11px;">(@ ${{ rates.gas_price_per_gal }}/gal, {{ rates.baseline_ice_mpg }} MPG)</span>
+                          </div>
+                        </td>
+                        <td align="right" style="vertical-align: middle;">
+                          <span style="font-size: 18px; font-weight: 800; color: {{ theme.accent_green }};">+${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</span>
                         </td>
                       </tr>
                     </table>
@@ -156,22 +163,156 @@
                 </div>
                 {% endif %}
 
-                <!-- SECTION 2: BATTERY HEALTH -->
-                {% if modules.battery_health and battery.cars %}
+                <!-- SECTION: DRIVING EFFICIENCY & WH/MI CONSUMPTION -->
+                {% if modules.driving_efficiency and efficiency %}
                 <div class="card">
                   <div class="section-title">
-                    <span style="margin-right: 8px;">🔋</span> Battery Health & Range Degradation
+                    <span style="margin-right: 8px;">📊</span> Driving Efficiency & Consumption
+                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px; table-layout: fixed;">
+                    <tr>
+                      <td width="33%" style="padding-right: 6px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Avg Consumption</div>
+                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ efficiency.avg_wh_per_mile }} <span style="font-size: 12px; font-weight: 500;">Wh/mi</span></div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ efficiency.avg_wh_per_km }} Wh/km</div>
+                        </div>
+                      </td>
+                      <td width="33%" style="padding: 0 3px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Rated vs Actual</div>
+                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">{{ efficiency.efficiency_pct }}%</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ efficiency.grade }} rating</div>
+                        </div>
+                      </td>
+                      <td width="34%" style="padding-left: 6px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Net Driving Energy</div>
+                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ efficiency.net_energy_kwh }} <span style="font-size: 12px; font-weight: 500;">kWh</span></div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ efficiency.total_drives }} recorded drives</div>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  {% if efficiency.cars_breakdown|length > 1 %}
+                  <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_secondary }}; margin: 10px 0 6px 0;">Per-Vehicle Consumption Breakdown:</div>
+                  <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 12px; border-top: 1px solid {{ theme.card_border }};">
+                    {% for c in efficiency.cars_breakdown %}
+                    <tr style="border-bottom: 1px solid {{ theme.card_inner_border }};">
+                      <td style="color: {{ theme.text_primary }}; font-weight: 700;">{{ c.name }} (Model {{ c.model }})</td>
+                      <td align="right" style="color: {{ theme.text_muted }};">{{ c.actual_miles }} mi</td>
+                      <td align="right" style="font-weight: 700; color: {{ theme.text_primary }};">{{ c.wh_per_mile }} Wh/mi</td>
+                      <td align="right" style="font-weight: 700; color: {{ theme.accent_green }};">{{ c.efficiency_pct }}% eff</td>
+                    </tr>
+                    {% endfor %}
+                  </table>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- SECTION: CHARGE LIMIT COMPLIANCE & PACK STRESS -->
+                {% if modules.charge_limit_compliance and compliance %}
+                <div class="card">
+                  <div class="section-title">
+                    <span style="margin-right: 8px;">🛡️</span> Charge Limit Compliance & Pack Stress
+                  </div>
+                  <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 10px;">
+                    Tracks battery dwell time outside the recommended 20% - 80% SoC zone to minimize chemical cell stress and capacity degradation.
+                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px; table-layout: fixed;">
+                    <tr>
+                      <td width="33%" style="padding-right: 6px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
+                          <div style="font-size: 11px; color: #f87171; font-weight: 700;">High Stress (&gt;80%)</div>
+                          <div style="font-size: 18px; font-weight: 800; color: #f87171; margin: 2px 0;">{{ compliance.hours_above_80 }} hrs</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ compliance.pct_above_80 }}% of time</div>
+                        </div>
+                      </td>
+                      <td width="33%" style="padding: 0 3px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center; border-color: rgba(16, 185, 129, 0.4);">
+                          <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 700;">Optimal Zone (20-80%)</div>
+                          <div style="font-size: 18px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">{{ compliance.hours_optimal }} hrs</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ compliance.pct_optimal }}% preserved</div>
+                        </div>
+                      </td>
+                      <td width="34%" style="padding-left: 6px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
+                          <div style="font-size: 11px; color: #fbbf24; font-weight: 700;">Low SoC (&lt;20%)</div>
+                          <div style="font-size: 18px; font-weight: 800; color: #fbbf24; margin: 2px 0;">{{ compliance.hours_below_20 }} hrs</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ compliance.pct_below_20 }}% deep drain</div>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 10px 14px; border: 1px solid {{ theme.card_inner_border }}; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 12px; color: {{ theme.text_secondary }};">
+                      Pack Preservation Score: <strong style="color: {{ theme.accent_green }}; font-size: 14px;">{{ compliance.compliance_score }}%</strong>
+                      <span style="color: {{ theme.text_muted }}; margin-left: 6px;">({{ compliance.compliance_rating }} &bull; {{ compliance.stress_level }} Stress)</span>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+
+                <!-- SECTION: WORK & COMMUTE MILEAGE LOGGING -->
+                {% if modules.work_mileage and work_mileage and work_mileage.has_routes %}
+                <div class="card">
+                  <div class="section-title">
+                    <span style="margin-right: 8px;">💼</span> Work & Commute Mileage Tracker
+                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                    <tr>
+                      <td width="50%" style="padding-right: 6px;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Total Business Miles</div>
+                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ work_mileage.total_miles }} mi</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">{{ work_mileage.total_trips }} matching trips</div>
+                        </div>
+                      </td>
+                      <td width="50%" style="padding-left: 6px;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; border-color: rgba(16, 185, 129, 0.4);">
+                          <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 600;">Est. IRS Mileage Deduction</div>
+                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">${{ "{:,.2f}".format(work_mileage.total_irs_deduction) }}</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">@ ${{ work_mileage.irs_rate }}/mi standard rate</div>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_secondary }}; margin-bottom: 6px;">Tracked Route Pairs:</div>
+                  <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 12px; border-top: 1px solid {{ theme.card_border }};">
+                    {% for r in work_mileage.routes %}
+                    <tr style="border-bottom: 1px solid {{ theme.card_inner_border }};">
+                      <td style="color: {{ theme.text_primary }};">
+                        <strong>{{ r.label }}</strong><br>
+                        <span style="font-size: 11px; color: {{ theme.text_muted }};">{{ r.point_a }} &harr; {{ r.point_b }}</span>
+                      </td>
+                      <td align="right" style="color: {{ theme.text_muted }};">{{ r.trip_count }} trips</td>
+                      <td align="right" style="font-weight: 700; color: {{ theme.text_primary }};">{{ r.total_miles }} mi</td>
+                      <td align="right" style="font-weight: 700; color: {{ theme.accent_green }};">+${{ "{:,.2f}".format(r.irs_deduction) }}</td>
+                    </tr>
+                    {% endfor %}
+                  </table>
+                </div>
+                {% endif %}
+
+                <!-- SECTION 2: BATTERY HEALTH (MONTHLY DIGEST ONLY) -->
+                {% if modules.battery_health and show_battery_health and battery.cars %}
+                <div class="card">
+                  <div class="section-title">
+                    <span style="margin-right: 8px;">🔋</span> Battery Health & Range Degradation (Monthly Review)
                   </div>
 
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                     {% for c in battery.cars %}
                     <tr>
-                      <td style="padding: 10px 0; border-bottom: 1px solid #334155;">
+                      <td style="padding: 10px 0; border-bottom: 1px solid {{ theme.card_border }};">
                         <table width="100%" cellpadding="0" cellspacing="0">
                           <tr>
                             <td>
-                              <span style="font-weight: 700; font-size: 15px; color: #f8fafc;">{{ c.car_name }}</span>
-                              <span style="font-size: 12px; color: #94a3b8; margin-left: 6px;">Model {{ c.model }} &bull; {{ "{:,.0f}".format(c.latest_odometer_mi) }} mi</span>
+                              <span style="font-weight: 700; font-size: 15px; color: {{ theme.text_primary }};">{{ c.car_name }}</span>
+                              <span style="font-size: 12px; color: {{ theme.text_muted }}; margin-left: 6px;">Model {{ c.model }} &bull; {{ "{:,.0f}".format(c.latest_odometer_mi) }} mi</span>
                             </td>
                             <td align="right">
                               <span class="badge" style="background-color: rgba(16, 185, 129, 0.2); color: {{ c.health_color }}; border: 1px solid {{ c.health_color }};">
@@ -181,9 +322,9 @@
                           </tr>
                           <tr>
                             <td colspan="2" style="padding-top: 6px;">
-                              <div style="font-size: 13px; color: #cbd5e1;">
-                                100% Rated Range: <strong style="color: #f8fafc;">{{ c.current_estimated_range_mi }} mi</strong>
-                                <span style="color: #94a3b8; font-size: 12px; margin-left: 8px;">(Original Max: {{ c.factory_baseline_range_mi }} mi &bull; Degradation: -{{ c.degradation_pct }}%)</span>
+                              <div style="font-size: 13px; color: {{ theme.text_secondary }};">
+                                100% Rated Range: <strong style="color: {{ theme.text_primary }};">{{ c.current_estimated_range_mi }} mi</strong>
+                                <span style="color: {{ theme.text_muted }}; font-size: 12px; margin-left: 8px;">(Original Max: {{ c.factory_baseline_range_mi }} mi &bull; Degradation: -{{ c.degradation_pct }}%)</span>
                               </div>
                             </td>
                           </tr>
@@ -199,7 +340,7 @@
                 </div>
                 {% endif %}
 
-                <!-- SECTION 3: GOOGLE MAPS GUIDES TRIPS & PLACES -->
+                <!-- SECTION 3: DRIVING HIGHLIGHTS & TOP DESTINATIONS -->
                 {% if modules.top_locations or modules.driving_milestones %}
                 <div class="card">
                   <div class="section-title">
@@ -209,24 +350,24 @@
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
                     <tr>
                       <td width="33%" style="padding-right: 6px;">
-                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
-                          <div style="font-size: 11px; color: #94a3b8;">Total Drives</div>
-                          <div style="font-size: 17px; font-weight: 700; color: #f8fafc; margin: 3px 0;">{{ trips.drives_count }} trips</div>
-                          <div style="font-size: 11px; color: #64748b;">{{ trips.total_duration_hours }} hrs on road</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Total Drives</div>
+                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.text_primary }}; margin: 3px 0;">{{ trips.drives_count }} trips</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">{{ trips.total_duration_hours }} hrs on road</div>
                         </div>
                       </td>
                       <td width="33%" style="padding: 0 3px;">
-                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
-                          <div style="font-size: 11px; color: #94a3b8;">Average Trip</div>
-                          <div style="font-size: 17px; font-weight: 700; color: #f8fafc; margin: 3px 0;">{{ trips.avg_trip_miles }} mi</div>
-                          <div style="font-size: 11px; color: #64748b;">Top speed: {{ trips.top_speed_mph }} mph</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Average Trip</div>
+                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.text_primary }}; margin: 3px 0;">{{ trips.avg_trip_miles }} mi</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Top speed: {{ trips.top_speed_mph }} mph</div>
                         </div>
                       </td>
                       <td width="34%" style="padding-left: 6px;">
-                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
-                          <div style="font-size: 11px; color: #94a3b8;">Mountain Ascent</div>
-                          <div style="font-size: 17px; font-weight: 700; color: #38bdf8; margin: 3px 0;">{{ "{:,.0f}".format(trips.elevation.ascent_ft) }} ft</div>
-                          <div style="font-size: 11px; color: #34d399;">~{{ trips.elevation.regen_kwh_recaptured }} kWh regen</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Mountain Ascent</div>
+                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.accent_blue }}; margin: 3px 0;">{{ "{:,.0f}".format(trips.elevation.ascent_ft) }} ft</div>
+                          <div style="font-size: 11px; color: {{ theme.accent_green }};">~{{ trips.elevation.regen_kwh_recaptured }} kWh regen</div>
                         </div>
                       </td>
                     </tr>
@@ -234,10 +375,10 @@
 
                   <!-- LONGEST DRIVE -->
                   {% if trips.longest_drive %}
-                  <div style="background-color: #0f172a; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; border: 1px solid #334155;">
-                    <div style="font-size: 12px; text-transform: uppercase; color: #38bdf8; font-weight: 700; margin-bottom: 4px;">Longest Journey of the Month</div>
-                    <div style="font-size: 14px; font-weight: 700; color: #ffffff;">{{ trips.longest_drive.start_location }} &rarr; {{ trips.longest_drive.end_location }}</div>
-                    <div style="font-size: 12px; color: #94a3b8; margin-top: 3px;">
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; border: 1px solid {{ theme.card_inner_border }};">
+                    <div style="font-size: 12px; text-transform: uppercase; color: {{ theme.accent_blue }}; font-weight: 700; margin-bottom: 4px;">Longest Journey of the Month</div>
+                    <div style="font-size: 14px; font-weight: 700; color: {{ theme.text_primary }};">{{ trips.longest_drive.start_location }} &rarr; {{ trips.longest_drive.end_location }}</div>
+                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 3px;">
                       {{ trips.longest_drive.distance_mi }} miles &bull; {{ trips.longest_drive.duration_min }} mins &bull; {{ trips.longest_drive.date }}
                       &bull; Ascent: {{ "{:,.0f}".format(trips.longest_drive.ascent_ft) }} ft
                     </div>
@@ -246,15 +387,15 @@
 
                   <!-- TOP DESTINATIONS -->
                   {% if trips.top_places %}
-                  <div style="font-size: 13px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">Top Visited Places</div>
+                  <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_secondary }}; margin-bottom: 8px;">Top Visited Places</div>
                   <table width="100%" cellpadding="0" cellspacing="0">
                     {% for p in trips.top_places %}
                     <tr>
-                      <td style="padding: 6px 0; font-size: 13px; color: #e2e8f0; border-bottom: 1px solid #273548;">
+                      <td style="padding: 5px 0; font-size: 13px; color: {{ theme.text_primary }};">
                         &bull; <strong>{{ p.name }}</strong>{% if p.city %}, {{ p.city }}{% endif %}
                       </td>
-                      <td align="right" style="padding: 6px 0; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #273548;">
-                        <span class="badge badge-blue">{{ p.visits }} visits</span>
+                      <td align="right" style="padding: 5px 0; font-size: 13px; color: {{ theme.accent_green }}; font-weight: 700;">
+                        {{ p.visits }} visits
                       </td>
                     </tr>
                     {% endfor %}
@@ -270,132 +411,119 @@
                     <span style="margin-right: 8px;">⚡</span> Supercharger Explorer
                   </div>
 
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 10px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                     <tr>
-                      <td>
-                        <span style="font-size: 14px; color: #cbd5e1;">Lifetime Unique Stations:</span>
-                        <strong style="font-size: 18px; color: #f8fafc; margin-left: 6px;">{{ superchargers.all_time_unique_count }}</strong>
+                      <td width="50%" style="padding-right: 6px;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
+                          <div style="font-size: 26px; font-weight: 800; color: {{ theme.accent_red }};">{{ superchargers.lifetime_unique_stations }}</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; text-transform: uppercase;">Lifetime Stations Visited</div>
+                        </div>
                       </td>
-                      <td align="right">
-                        {% if superchargers.new_superchargers_count > 0 %}
-                        <span class="badge badge-green">+{{ superchargers.new_superchargers_count }} New Unlocked!</span>
-                        {% else %}
-                        <span class="badge badge-blue">Consistent Stations</span>
-                        {% endif %}
+                      <td width="50%" style="padding-left: 6px;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
+                          <div style="font-size: 26px; font-weight: 800; color: {{ theme.accent_green }};">{{ superchargers.month_sessions_count }}</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; text-transform: uppercase;">Sessions This Period</div>
+                        </div>
                       </td>
                     </tr>
                   </table>
 
-                  {% if superchargers.recent_visits %}
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    {% for sc in superchargers.recent_visits %}
-                    <tr>
-                      <td style="padding: 7px 0; font-size: 13px; color: #e2e8f0; border-bottom: 1px solid #273548;">
-                        <strong>{{ sc.location_name }}</strong>{% if sc.city %}, {{ sc.city }}{% endif %}
-                        <span style="font-size: 11px; color: #94a3b8; margin-left: 6px;">({{ sc.car_name }} &bull; {{ sc.date }})</span>
-                      </td>
-                      <td align="right" style="padding: 7px 0; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #273548;">
-                        {{ sc.energy_added_kwh }} kWh &bull; {{ sc.peak_kw }} kW
-                        {% if sc.is_new %}<span class="badge badge-green" style="margin-left: 4px;">NEW</span>{% endif %}
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </table>
-                  {% else %}
-                  <div style="font-size: 12px; color: #64748b; font-style: italic;">No Supercharger sessions this period. 100% home/local charging.</div>
+                  {% if superchargers.new_stations_this_month %}
+                  <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_primary }}; margin-bottom: 6px;">🎉 New Supercharger Stations Unlocked:</div>
+                  {% for s in superchargers.new_stations_this_month %}
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid {{ theme.card_inner_border }}; font-size: 12px; color: {{ theme.text_primary }};">
+                    <strong>{{ s.name }}</strong> ({{ s.date }}) &bull; Peak: {{ s.power_kw }} kW &bull; +{{ s.kwh }} kWh
+                  </div>
+                  {% endfor %}
                   {% endif %}
                 </div>
                 {% endif %}
 
-                <!-- SECTION 5: VEHICLE HEALTH & MAINTENANCE -->
+                <!-- SECTION 5: VEHICLE HEALTH, TPMS & TIRE ROTATION -->
                 {% if modules.maintenance_alerts %}
                 <div class="card">
                   <div class="section-title">
-                    <span style="margin-right: 8px;">🛠️</span> Vehicle Health & Maintenance
+                    <span style="margin-right: 8px;">🛠️</span> Vehicle Telemetry & Maintenance Tracker
                   </div>
 
-                  {% for c in health.cars %}
-                  <div style="background-color: #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid #334155;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 6px;">
+                  {% for car_h in health.cars %}
+                  <div style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_border }}; padding-bottom: 14px;">
+                    <div style="font-weight: 700; font-size: 15px; color: {{ theme.text_primary }}; margin-bottom: 8px;">
+                      {{ car_h.car_name }} (Model {{ car_h.model }})
+                    </div>
+
+                    <!-- TPMS GRAPHIC -->
+                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 6px;">Tire Pressure Status (Cold PSI):</div>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                       <tr>
-                        <td>
-                          <span style="font-weight: 700; font-size: 14px; color: #f8fafc;">{{ c.car_name }}</span>
-                          <span style="font-size: 12px; color: #94a3b8; margin-left: 6px;">Odometer: {{ "{:,.0f}".format(c.odometer_mi) }} mi</span>
+                        <td width="48%" style="padding-right: 4px;">
+                          <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
+                            Front Left: <strong>{{ car_h.tpms.front_left }} psi</strong>
+                          </div>
                         </td>
-                        <td align="right">
-                          {% if c.tire_rotation.is_due %}
-                          <span class="badge badge-red">Rotation Due</span>
-                          {% else %}
-                          <span class="badge badge-green">Tires Good</span>
-                          {% endif %}
+                        <td width="48%" style="padding-left: 4px;">
+                          <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
+                            Front Right: <strong>{{ car_h.tpms.front_right }} psi</strong>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr><td colspan="2" style="height: 6px;"></td></tr>
+                      <tr>
+                        <td width="48%" style="padding-right: 4px;">
+                          <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
+                            Rear Left: <strong>{{ car_h.tpms.rear_left }} psi</strong>
+                          </div>
+                        </td>
+                        <td width="48%" style="padding-left: 4px;">
+                          <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
+                            Rear Right: <strong>{{ car_h.tpms.rear_right }} psi</strong>
+                          </div>
                         </td>
                       </tr>
                     </table>
 
-                    <!-- TIRE ROTATION LIFE BAR (100% when freshly rotated) -->
-                    <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                      <span>Tire Rotation Health: <strong style="color: {% if c.tire_rotation.is_due %}#ef4444{% elif c.tire_rotation.life_remaining_pct < 25 %}#f59e0b{% else %}#34d399{% endif %};">{{ c.tire_rotation.life_remaining_pct }}%</strong></span>
-                      <span style="font-size: 11px; color: #64748b;">{{ "{:,.0f}".format(c.tire_rotation.miles_remaining) }} mi until 6,250 mi limit</span>
+                    <!-- TIRE ROTATION PROGRESS -->
+                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                      <span>Tire Rotation Status</span>
+                      <strong style="color: {{ theme.text_primary }};">{{ "{:,.0f}".format(car_h.tire_rotation.miles_driven_since) }} / {{ "{:,.0f}".format(car_h.tire_rotation.interval_mi) }} mi</strong>
                     </div>
-                    <div style="background-color: #1e293b; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 10px; border: 1px solid #334155;">
-                      <div style="background-color: {% if c.tire_rotation.is_due %}#ef4444{% elif c.tire_rotation.life_remaining_pct < 25 %}#f59e0b{% else %}#10b981{% endif %}; width: {{ c.tire_rotation.life_remaining_pct }}%; height: 100%; border-radius: 4px;"></div>
+                    <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; height: 10px; width: 100%; overflow: hidden; margin-bottom: 6px;">
+                      <div style="background-color: {{ car_h.tire_rotation.color }}; width: {{ car_h.tire_rotation.pct_progress }}%; height: 100%; border-radius: 8px;"></div>
                     </div>
-
-                    <!-- SEASONAL SNOW TIRE STATUS & REMINDER -->
-                    {% if modules.snow_tire_reminder and c.snow_tires %}
-                    <div style="background-color: #1e293b; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; border: 1px solid #334155; font-size: 12px;">
-                      <table width="100%" cellpadding="0" cellspacing="0">
-                        <tr>
-                          <td style="color: #cbd5e1;">Active Tires: <strong style="color: #f8fafc;">{{ c.snow_tires.active_set_label }}</strong></td>
-                          <td align="right" style="color: #64748b; font-size: 11px;">Swapped {{ c.snow_tires.last_swap_date }}</td>
-                        </tr>
-                      </table>
+                    <div style="font-size: 11px; color: {{ theme.text_muted }};">
+                      {% if car_h.tire_rotation.is_due %}
+                      <span style="color: #f87171; font-weight: 700;">⚠️ Tire rotation recommended now!</span> ({{ "{:,.0f}".format(car_h.tire_rotation.miles_remaining) }} mi remaining)
+                      {% else %}
+                      {{ "{:,.0f}".format(car_h.tire_rotation.miles_remaining) }} miles remaining until next 6,250 mi interval.
+                      {% endif %}
                     </div>
-                    {% if c.snow_tires.reminder %}
-                    <div style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font-size: 12px; color: #e0f2fe; line-height: 1.4;">
-                      {{ c.snow_tires.reminder.icon }} <strong>{{ c.snow_tires.reminder.title }}</strong>: {{ c.snow_tires.reminder.msg }}
-                    </div>
-                    {% endif %}
-                    {% endif %}
-
-                    <!-- TPMS READOUT -->
-                    {% if c.tpms %}
-                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 12px; text-align: center; margin-top: 6px;">
-                      <tr>
-                        <td style="padding: 4px; background-color: #1e293b; border-radius: 4px; border: 1px solid #334155;">FL: <strong style="color: {{ c.tpms.fl_info.color }};">{{ c.tpms.fl_psi }} PSI</strong></td>
-                        <td style="width: 8px;"></td>
-                        <td style="padding: 4px; background-color: #1e293b; border-radius: 4px; border: 1px solid #334155;">FR: <strong style="color: {{ c.tpms.fr_info.color }};">{{ c.tpms.fr_psi }} PSI</strong></td>
-                        <td style="width: 8px;"></td>
-                        <td style="padding: 4px; background-color: #1e293b; border-radius: 4px; border: 1px solid #334155;">RL: <strong style="color: {{ c.tpms.rl_info.color }};">{{ c.tpms.rl_psi }} PSI</strong></td>
-                        <td style="width: 8px;"></td>
-                        <td style="padding: 4px; background-color: #1e293b; border-radius: 4px; border: 1px solid #334155;">RR: <strong style="color: {{ c.tpms.rr_info.color }};">{{ c.tpms.rr_psi }} PSI</strong></td>
-                      </tr>
-                    </table>
-                    {% endif %}
-
-                    <!-- FIRMWARE UPDATES -->
-                    {% if c.updates %}
-                    <div style="margin-top: 10px; font-size: 12px; color: #38bdf8;">
-                      Installed Firmware Updates:
-                      {% for u in c.updates %}
-                      <span class="badge badge-blue" style="margin-left: 4px;">{{ u.version }} ({{ u.date }})</span>
-                      {% endfor %}
-                    </div>
-                    {% endif %}
                   </div>
                   {% endfor %}
                 </div>
                 {% endif %}
 
-                <!-- SECTION 6: VAMPIRE DRAIN & IDLE STANDBY -->
-                {% if modules.vampire_drain and vampire %}
+                <!-- SECTION 6: VAMPIRE / STANDBY DRAIN -->
+                {% if modules.vampire_drain %}
                 <div class="card">
                   <div class="section-title">
-                    <span style="margin-right: 8px;">🌙</span> Vampire Drain & Standby Analysis
+                    <span style="margin-right: 8px;">🌙</span> Phantom / Standby Loss
                   </div>
-                  <div style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">
-                    Your cars were parked for <strong>{{ vampire.parked_hours }} hours</strong> this month with a sleep efficiency of <strong style="color: #34d399;">{{ vampire.sleep_efficiency_pct }}%</strong> ({{ vampire.asleep_hours }} hrs sleeping). Standby loss (Sentry mode, idle polling) used ~<strong>{{ vampire.estimated_drain_kwh }} kWh</strong> (~${{ "{:,.2f}".format(vampire.estimated_drain_cost) }}).
-                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td width="33%" style="text-align: center;">
+                        <div style="font-size: 18px; font-weight: 700; color: {{ theme.text_primary }};">{{ vampire.total_idle_hours }} hrs</div>
+                        <div style="font-size: 11px; color: {{ theme.text_muted }};">Total Parked Time</div>
+                      </td>
+                      <td width="33%" style="text-align: center;">
+                        <div style="font-size: 18px; font-weight: 700; color: #fbbf24;">{{ vampire.estimated_loss_kwh }} kWh</div>
+                        <div style="font-size: 11px; color: {{ theme.text_muted }};">Estimated Standby Loss</div>
+                      </td>
+                      <td width="34%" style="text-align: center;">
+                        <div style="font-size: 18px; font-weight: 700; color: {{ theme.text_primary }};">${{ "{:,.2f}".format(vampire.estimated_cost) }}</div>
+                        <div style="font-size: 11px; color: {{ theme.text_muted }};">Standby Idle Cost</div>
+                      </td>
+                    </tr>
+                  </table>
                 </div>
                 {% endif %}
 
@@ -404,9 +532,9 @@
 
             <!-- FOOTER -->
             <tr>
-              <td style="padding: 18px 24px; background-color: #0b0f19; border-top: 1px solid #1e293b; text-align: center; color: #64748b; font-size: 12px;">
+              <td style="padding: 18px 24px; background-color: {{ theme.footer_bg }}; border-top: 1px solid {{ theme.footer_border }}; text-align: center; color: {{ theme.footer_text }}; font-size: 12px;">
                 Generated by <strong>TeslaMate Digest</strong><br>
-                <a href="{{ dashboard_url }}" style="color: #e82127; text-decoration: none; margin-top: 4px; display: inline-block;">Open Local Dashboard</a>
+                <a href="{{ dashboard_url }}" style="color: {{ theme.footer_link }}; text-decoration: none; margin-top: 4px; display: inline-block;">Open Local Dashboard</a>
               </td>
             </tr>
 

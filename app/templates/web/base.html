@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,24 +22,102 @@
       }
     }
   </script>
+  <script>
+    // System theme matching by default with manual Light/Dark override
+    function getThemePreference() {
+      return localStorage.getItem('theme') || 'system';
+    }
+
+    function applyTheme() {
+      const pref = getThemePreference();
+      let isDark = false;
+      if (pref === 'dark') {
+        isDark = true;
+      } else if (pref === 'light') {
+        isDark = false;
+      } else {
+        // System preference default
+        isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      updateThemeIcon(pref);
+    }
+
+    function setTheme(pref) {
+      localStorage.setItem('theme', pref);
+      applyTheme();
+    }
+
+    function cycleTheme() {
+      const current = getThemePreference();
+      let next = 'system';
+      if (current === 'system') next = 'light';
+      else if (current === 'light') next = 'dark';
+      else next = 'system';
+      setTheme(next);
+    }
+
+    function updateThemeIcon(pref) {
+      const label = document.getElementById('theme-label');
+      const icon = document.getElementById('theme-icon');
+      if (!icon) return;
+      if (pref === 'light') {
+        icon.textContent = '☀️';
+        if (label) label.textContent = 'Light';
+      } else if (pref === 'dark') {
+        icon.textContent = '🌙';
+        if (label) label.textContent = 'Dark';
+      } else {
+        icon.textContent = '💻';
+        if (label) label.textContent = 'System';
+      }
+    }
+
+    // Run immediately before body paints
+    applyTheme();
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (getThemePreference() === 'system') {
+          applyTheme();
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateThemeIcon(getThemePreference());
+    });
+  </script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
   <!-- NAVBAR -->
-  <nav class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+  <nav class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-colors duration-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <div class="flex items-center space-x-3">
           <span class="text-tesla text-2xl font-black tracking-wider">⚡</span>
-          <span class="font-extrabold text-xl tracking-tight text-white">TeslaMate <span class="text-tesla">Digest</span></span>
+          <span class="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white">TeslaMate <span class="text-tesla">Digest</span></span>
         </div>
-        <div class="flex space-x-1 sm:space-x-4">
-          <a href="/" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'dashboard' %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-850{% endif %}">Dashboard</a>
-          <a href="/preview" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'preview' %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-850{% endif %}">Live Preview</a>
-          <a href="/settings" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'settings' %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-850{% endif %}">Settings</a>
-          <a href="/maintenance" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'maintenance' %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-850{% endif %}">Maintenance</a>
+        <div class="flex items-center space-x-1 sm:space-x-3">
+          <a href="/" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'dashboard' %}bg-slate-100 dark:bg-slate-800 text-tesla font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850{% endif %}">Dashboard</a>
+          <a href="/preview" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'preview' %}bg-slate-100 dark:bg-slate-800 text-tesla font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850{% endif %}">Live Preview</a>
+          <a href="/builder" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'builder' %}bg-slate-100 dark:bg-slate-800 text-tesla font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850{% endif %}">Template Builder</a>
+          <a href="/maintenance" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'maintenance' %}bg-slate-100 dark:bg-slate-800 text-tesla font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850{% endif %}">Maintenance</a>
+          <a href="/settings" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'settings' %}bg-slate-100 dark:bg-slate-800 text-tesla font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850{% endif %}">Settings</a>
+
+          <!-- THEME TOGGLE BUTTON -->
+          <button onclick="cycleTheme()" title="Toggle Theme (System / Light / Dark)" class="ml-2 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+            <span id="theme-icon">💻</span>
+            <span id="theme-label" class="hidden sm:inline text-xs text-slate-700 dark:text-slate-300">System</span>
+          </button>
         </div>
       </div>
     </div>
@@ -51,7 +129,7 @@
   </main>
 
   <!-- FOOTER -->
-  <footer class="bg-slate-900 border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+  <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors duration-200">
     TeslaMate Digest &bull; Built with FastAPI, Jinja2 & Matplotlib &bull; Open Source for the TeslaMate Community
   </footer>
 </body>

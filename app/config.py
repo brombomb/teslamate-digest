@@ -25,11 +25,12 @@ class SMTPSettings(BaseModel):
 
 class ScheduleSettings(BaseModel):
     enabled: bool = True
-    frequency: str = "monthly"  # monthly, weekly, daily
-    send_day_of_month: int = 1   # 1st of month
+    frequency: str = "monthly"  # monthly, semi-monthly, bi-weekly, weekly, daily
+    send_day_of_month: int = 1   # 1st of month (or 1st & 15th for semi-monthly)
     send_day_of_week: int = 0    # Monday (0)
     send_hour: int = 8           # 8:00 AM
     send_minute: int = 0
+    target_car_id: Optional[int] = None  # None for Fleet (All Cars), or car_id integer
 
 
 class RatesSettings(BaseModel):
@@ -63,10 +64,20 @@ class UnitSettings(BaseModel):
     currency: str = "$"
 
 
+class WorkRouteItem(BaseModel):
+    label: str
+    point_a: str
+    point_b: str
+    bidirectional: bool = True
+
+
 class ModuleToggles(BaseModel):
     spend_breakdown: bool = True
     gas_savings: bool = True
     battery_health: bool = True
+    driving_efficiency: bool = True
+    charge_limit_compliance: bool = True
+    work_mileage: bool = True
     supercharger_explorer: bool = True
     top_locations: bool = True
     driving_milestones: bool = True
@@ -95,6 +106,9 @@ class AppConfig(BaseModel):
     tire_rotation_interval_mi: int = 6250
     dashboard_url: str = Field(default_factory=lambda: os.getenv("DASHBOARD_URL", "http://localhost:8660"))
     excluded_locations: list[str] = Field(default_factory=lambda: ["West 87th Terrace", "West 87th Drive", "Home"])
+    email_theme: str = "dark_modern"  # dark_modern, clean_white, clean_black, eco_green, electric_blue, custom
+    work_routes: list[WorkRouteItem] = Field(default_factory=list)
+    irs_mileage_rate: float = 0.67
 
 
 def load_config() -> AppConfig:

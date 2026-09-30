@@ -100,13 +100,19 @@ async def get_health_analytics(
         life_remaining_pct = max(0.0, min(100.0, round(((rotation_interval_mi - miles_since) / rotation_interval_mi) * 100.0, 1))) if rotation_interval_mi > 0 else 100.0
         due = miles_since >= rotation_interval_mi
 
+        color = "#10b981" if life_remaining_pct > 30 else ("#f59e0b" if life_remaining_pct > 15 else "#ef4444")
+
         rotation_data = {
             "last_rotation_odometer": round(last_rot_odo),
             "last_rotation_date": last_rot_date,
             "miles_since_rotation": miles_since,
+            "miles_driven_since": miles_since,
+            "interval_mi": rotation_interval_mi,
             "miles_remaining": round(miles_remaining),
             "pct_used": pct_used,
+            "pct_progress": life_remaining_pct,
             "life_remaining_pct": life_remaining_pct,
+            "color": color,
             "is_due": due,
             "status_text": "Tire Rotation Overdue!" if due else f"{round(miles_remaining):,} mi remaining"
         }

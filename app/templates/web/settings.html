@@ -6,72 +6,185 @@
 <div class="max-w-4xl mx-auto space-y-6">
 
   <div>
-    <h2 class="text-2xl font-black text-white">Settings & Configuration</h2>
-    <p class="text-sm text-slate-400 mt-1">Configure email delivery, time-of-use rates, scheduling, and active modules.</p>
+    <h2 class="text-2xl font-black text-slate-900 dark:text-white">Settings & Configuration</h2>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure email delivery, themes, automated dispatch scheduling, business commute mileage routes, and analytics modules.</p>
   </div>
 
   {% if message %}
-  <div class="p-4 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-sm">
+  <div class="p-4 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 text-sm">
     {{ message }}
   </div>
   {% endif %}
 
-  <form method="POST" action="/settings" class="space-y-6">
+  <form id="settings-form" method="POST" action="/settings" class="space-y-6" onsubmit="serializeWorkRoutes()">
 
-    <!-- 1. EMAIL DELIVERY (SMTP) -->
-    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+    <!-- 1. EMAIL DELIVERY & THEME -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
         <div>
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <span>✉️</span> Email Delivery (Gmail SMTP)
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>✉️</span> Email Delivery & Visual Theme
           </h3>
-          <p class="text-xs text-slate-400 mt-0.5">Use your Gmail address and a 16-character Google App Password.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Use your Gmail address and 16-character App Password, and choose your preferred email aesthetic.</p>
         </div>
         <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
-          <input type="checkbox" name="smtp_enabled" {% if config.smtp.enabled %}checked{% endif %} class="rounded bg-slate-950 border-slate-700 text-tesla focus:ring-0">
-          <span class="text-slate-200">Enable SMTP</span>
+          <input type="checkbox" name="smtp_enabled" {% if config.smtp.enabled %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+          <span class="text-slate-700 dark:text-slate-200">Enable SMTP</span>
         </label>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">SMTP Server</label>
-          <input type="text" name="smtp_host" value="{{ config.smtp.host }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email Template Theme</label>
+          <select name="email_theme" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-semibold">
+            <option value="dark_modern" {% if config.email_theme == 'dark_modern' %}selected{% endif %}>🌙 Dark Modern (Default)</option>
+            <option value="clean_white" {% if config.email_theme == 'clean_white' %}selected{% endif %}>⚪ Clean White & Red (Tesla Inspired)</option>
+            <option value="clean_black" {% if config.email_theme == 'clean_black' %}selected{% endif %}>⚫ Clean Black & Red (Tesla Inspired)</option>
+            <option value="eco_green" {% if config.email_theme == 'eco_green' %}selected{% endif %}>🌿 Eco-Green Theme</option>
+            <option value="electric_blue" {% if config.email_theme == 'electric_blue' %}selected{% endif %}>⚡ Electric Blue Theme</option>
+            <option value="custom" {% if config.email_theme == 'custom' %}selected{% endif %}>🎨 Custom User Template</option>
+          </select>
+          <p class="text-[11px] text-slate-400 mt-1">You can customize the Custom User Template under the <a href="/builder" class="text-tesla underline">Template Builder</a> tab.</p>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">SMTP Port</label>
-          <input type="number" name="smtp_port" value="{{ config.smtp.port }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Recipient Email</label>
+          <input type="email" name="recipient_email" value="{{ config.smtp.recipient_email }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Gmail Address (Username)</label>
-          <input type="email" name="smtp_user" value="{{ config.smtp.user }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Gmail Address (Username)</label>
+          <input type="email" name="smtp_user" value="{{ config.smtp.user }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Google App Password</label>
-          <input type="password" name="smtp_password" value="{{ config.smtp.password }}" placeholder="16-character app password" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Google App Password</label>
+          <input type="password" name="smtp_password" value="{{ config.smtp.password }}" placeholder="16-character app password" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Recipient Email</label>
-          <input type="email" name="recipient_email" value="{{ config.smtp.recipient_email }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Server</label>
+          <input type="text" name="smtp_host" value="{{ config.smtp.host }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Sender Name</label>
-          <input type="text" name="sender_name" value="{{ config.smtp.sender_name }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Port</label>
+          <input type="number" name="smtp_port" value="{{ config.smtp.port }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Sender Name</label>
+          <input type="text" name="sender_name" value="{{ config.smtp.sender_name }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
       </div>
     </div>
 
-    <!-- 2. TIME-OF-USE (TOU) & ELECTRICITY RATES -->
-    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+    <!-- 2. AUTOMATED SCHEDULE & VEHICLE TARGET -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
         <div>
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <span>⚡</span> Time-of-Use (TOU) & Charging Rates
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>⏰</span> Automated Dispatch Schedule
           </h3>
-          <p class="text-xs text-slate-400 mt-0.5">3-tier tariff engine (Off-Peak, Shoulder, Peak) with weekend off-peak rules and live gas pricing.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Control how frequently the service sends your email digest and choose the target vehicle.</p>
+        </div>
+        <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
+          <input type="checkbox" name="schedule_enabled" {% if config.schedule.enabled %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+          <span class="text-slate-700 dark:text-slate-200">Enable Schedule</span>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Frequency</label>
+          <select name="frequency" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+            <option value="monthly" {% if config.schedule.frequency == 'monthly' %}selected{% endif %}>Monthly (1st of month)</option>
+            <option value="semi-monthly" {% if config.schedule.frequency == 'semi-monthly' %}selected{% endif %}>1st & 15th (Semi-Monthly)</option>
+            <option value="bi-weekly" {% if config.schedule.frequency == 'bi-weekly' %}selected{% endif %}>Bi-Weekly (Every 2 weeks)</option>
+            <option value="weekly" {% if config.schedule.frequency == 'weekly' %}selected{% endif %}>Weekly (Mondays)</option>
+            <option value="daily" {% if config.schedule.frequency == 'daily' %}selected{% endif %}>Daily (Every morning)</option>
+          </select>
         </div>
         <div>
-          <select id="tariff-preset-select" name="tariff_preset" onchange="applyTariffPreset(this.value)" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Vehicle</label>
+          <select name="target_car_id" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+            <option value="" {% if not config.schedule.target_car_id %}selected{% endif %}>All Cars (Fleet View)</option>
+            {% for c in cars %}
+            <option value="{{ c.id }}" {% if config.schedule.target_car_id == c.id %}selected{% endif %}>{{ c.name }} (Model {{ c.model }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Send Hour (24-hr)</label>
+          <input type="number" min="0" max="23" name="send_hour" value="{{ config.schedule.send_hour }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Send Minute</label>
+          <input type="number" min="0" max="59" name="send_minute" value="{{ config.schedule.send_minute }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. WORK & COMMUTE MILEAGE TRACKER (BUSINESS LOGGING) -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>💼</span> Work & Commute Mileage Routes
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Define pairs of addresses or geofences to track business/work trips, total miles, and IRS mileage tax deductions.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">IRS Rate ($/mi):</label>
+          <input type="number" step="0.01" name="irs_mileage_rate" value="{{ config.irs_mileage_rate }}" class="w-20 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+        </div>
+      </div>
+
+      <!-- ROUTES CONTAINER -->
+      <div id="work-routes-list" class="space-y-3">
+        {% for r in config.work_routes %}
+        <div class="work-route-row p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+          <div class="sm:col-span-3">
+            <input type="text" placeholder="Route Label (e.g. Office Commute)" value="{{ r.label }}" class="route-label w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+          </div>
+          <div class="sm:col-span-3">
+            <input type="text" list="locations-list" placeholder="Point A (Origin)" value="{{ r.point_a }}" class="route-point-a w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+          </div>
+          <div class="sm:col-span-3">
+            <input type="text" list="locations-list" placeholder="Point B (Destination)" value="{{ r.point_b }}" class="route-point-b w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+          </div>
+          <div class="sm:col-span-2 flex items-center space-x-1.5">
+            <input type="checkbox" class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla" {% if r.bidirectional %}checked{% endif %}>
+            <span class="text-[11px] text-slate-600 dark:text-slate-400">A &harr; B</span>
+          </div>
+          <div class="sm:col-span-1 text-right">
+            <button type="button" onclick="removeRouteRow(this)" class="p-1.5 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="pt-2">
+        <button type="button" onclick="addRouteRow()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5">
+          <span>➕</span> Add Work / Commute Route
+        </button>
+      </div>
+
+      <input type="hidden" name="work_routes_json" id="work_routes_json" value="">
+
+      <!-- DATALIST FOR REUSABLE ADDRESSES/GEOFENCES -->
+      <datalist id="locations-list">
+        {% for loc in locations %}
+        <option value="{{ loc }}">
+        {% endfor %}
+      </datalist>
+    </div>
+
+    <!-- 4. TIME-OF-USE (TOU) & ELECTRICITY RATES -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>⚡</span> Time-of-Use (TOU) & Charging Rates
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">3-tier tariff engine (Off-Peak, Shoulder, Peak) with weekend off-peak rules and live gas pricing.</p>
+        </div>
+        <div>
+          <select id="tariff-preset-select" name="tariff_preset" onchange="applyTariffPreset(this.value)" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
             <option value="xcel_colorado_tou" {% if config.rates.tariff_preset == 'xcel_colorado_tou' %}selected{% endif %}>Preset: Xcel Colorado TOU</option>
             <option value="flat_rate" {% if config.rates.tariff_preset == 'flat_rate' %}selected{% endif %}>Preset: Flat Rate ($0.11)</option>
             <option value="custom" {% if config.rates.tariff_preset == 'custom' %}selected{% endif %}>Custom Tariff</option>
@@ -79,250 +192,145 @@
         </div>
       </div>
 
-      <!-- OPEN API INTEGRATION HUB -->
-      <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3.5">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-              <span>🌐</span> Open API Pricing Integration (OpenEI URDB & U.S. EIA)
-            </h4>
-            <p class="text-[11px] text-slate-400 mt-0.5">Fetch dynamic utility tariffs and retail gas prices automatically via official open public data.</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="syncElectricRates()" id="btn-sync-electric" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-1 shadow-md shadow-indigo-950/40">
-              <span>⚡</span> Fetch Electric TOU
-            </button>
-            <button type="button" onclick="syncGasPrice()" id="btn-sync-gas" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-1 shadow-md shadow-emerald-950/40">
-              <span>⛽</span> Fetch EIA Gas Price
-            </button>
-          </div>
-        </div>
-
-        <!-- Dynamic Status Badges -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-          <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-            <span class="flex items-center gap-2 truncate">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
-              <span class="truncate">Plan: <strong id="lbl-utility" class="text-white">{{ config.rates.utility_name or 'Public Service Co of Colorado (Xcel Energy)' }}</strong></span>
-            </span>
-            <span class="text-[10px] text-slate-400 flex-shrink-0 ml-2">OpenEI / EIA</span>
-          </div>
-          <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-            <span class="flex items-center gap-2 truncate">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
-              <span class="truncate">Gas Area: <strong id="lbl-gas-area" class="text-white">ZIP {{ config.rates.zip_code }} (Denver Metro / Front Range)</strong></span>
-            </span>
-            <span id="lbl-gas-source" class="text-[10px] text-slate-400 flex-shrink-0 ml-2">U.S. EIA Weekly</span>
-          </div>
-        </div>
-
-        <!-- Optional Open API Keys Collapsible -->
-        <details class="text-xs group pt-1">
-          <summary class="text-slate-400 hover:text-slate-200 cursor-pointer flex items-center gap-1 font-semibold select-none">
-            <span>⚙️ Configure Custom Open API Keys & Provider Details (Optional)</span>
-            <span class="text-[10px] group-open:rotate-180 transition-transform">▼</span>
-          </summary>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3">
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">U.S. EIA API Key (Free at eia.gov/opendata)</label>
-              <input type="text" name="eia_api_key" value="{{ config.rates.eia_api_key }}" placeholder="Free key from eia.gov (optional)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">OpenEI / NREL API Key (Free at openei.org)</label>
-              <input type="text" name="openei_api_key" value="{{ config.rates.openei_api_key }}" placeholder="Free key from openei.org (optional)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Electric Utility Name / Plan Override</label>
-              <input type="text" name="utility_name" value="{{ config.rates.utility_name }}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
-            </div>
-          </div>
-        </details>
-      </div>
-
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Off-Peak Rate ($/kWh)</label>
-          <input type="number" step="0.01" id="off_peak_kwh_cost" name="off_peak_kwh_cost" value="{{ config.rates.off_peak_kwh_cost }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Off-Peak Rate ($/kWh)</label>
+          <input type="number" step="0.001" id="off_peak_kwh_cost" name="off_peak_kwh_cost" value="{{ config.rates.off_peak_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Shoulder Rate ($/kWh)</label>
-          <input type="number" step="0.01" id="shoulder_kwh_cost" name="shoulder_kwh_cost" value="{{ config.rates.shoulder_kwh_cost }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Shoulder Rate ($/kWh)</label>
+          <input type="number" step="0.001" id="shoulder_kwh_cost" name="shoulder_kwh_cost" value="{{ config.rates.shoulder_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">On-Peak Rate ($/kWh)</label>
-          <input type="number" step="0.01" id="on_peak_kwh_cost" name="on_peak_kwh_cost" value="{{ config.rates.on_peak_kwh_cost }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">On-Peak Rate ($/kWh)</label>
+          <input type="number" step="0.001" id="on_peak_kwh_cost" name="on_peak_kwh_cost" value="{{ config.rates.on_peak_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
-
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Off-Peak Window Start (Hour)</label>
-          <select id="off_peak_start_hour" name="off_peak_start_hour" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Off-Peak Window Start</label>
+          <select id="off_peak_start_hour" name="off_peak_start_hour" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
             {% for h in range(24) %}
-            <option value="{{ h }}" {% if config.rates.off_peak_start_hour == h %}selected{% endif %}>{{ h }}:00 ({{ '12am' if h==0 else (h|string + 'am' if h<12 else ('12pm' if h==12 else (h-12)|string + 'pm')) }})</option>
+            <option value="{{ h }}" {% if config.rates.off_peak_start_hour == h %}selected{% endif %}>{{ "%02d:00"|format(h) }}</option>
             {% endfor %}
           </select>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Off-Peak Window End (Hour)</label>
-          <select id="off_peak_end_hour" name="off_peak_end_hour" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Off-Peak Window End</label>
+          <select id="off_peak_end_hour" name="off_peak_end_hour" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
             {% for h in range(24) %}
-            <option value="{{ h }}" {% if config.rates.off_peak_end_hour == h %}selected{% endif %}>{{ h }}:00 ({{ '12am' if h==0 else (h|string + 'am' if h<12 else ('12pm' if h==12 else (h-12)|string + 'pm')) }})</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Supercharger Fallback ($/kWh)</label>
-          <input type="number" step="0.01" name="supercharger_fallback_cost" value="{{ config.rates.supercharger_fallback_cost }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Peak Window Start (Hour)</label>
-          <select id="peak_start_hour" name="peak_start_hour" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-            {% for h in range(24) %}
-            <option value="{{ h }}" {% if config.rates.peak_start_hour == h %}selected{% endif %}>{{ h }}:00 ({{ '12am' if h==0 else (h|string + 'am' if h<12 else ('12pm' if h==12 else (h-12)|string + 'pm')) }})</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Peak Window End (Hour)</label>
-          <select id="peak_end_hour" name="peak_end_hour" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-            {% for h in range(24) %}
-            <option value="{{ h }}" {% if config.rates.peak_end_hour == h %}selected{% endif %}>{{ h }}:00 ({{ '12am' if h==0 else (h|string + 'am' if h<12 else ('12pm' if h==12 else (h-12)|string + 'pm')) }})</option>
+            <option value="{{ h }}" {% if config.rates.off_peak_end_hour == h %}selected{% endif %}>{{ "%02d:00"|format(h) }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="flex items-center pt-4">
           <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
-            <input type="checkbox" id="weekends_are_off_peak" name="weekends_are_off_peak" {% if config.rates.weekends_are_off_peak %}checked{% endif %} class="rounded bg-slate-950 border-slate-700 text-tesla focus:ring-0">
-            <span class="text-slate-200">Weekends are 100% Off-Peak</span>
+            <input type="checkbox" id="weekends_are_off_peak" name="weekends_are_off_peak" {% if config.rates.weekends_are_off_peak %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+            <span class="text-slate-700 dark:text-slate-200">Weekends are 100% Off-Peak</span>
           </label>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Local ZIP Code</label>
-          <input type="text" name="zip_code" value="{{ config.rates.zip_code }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Local ZIP Code</label>
+          <input type="text" name="zip_code" value="{{ config.rates.zip_code }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Regular Gas Price ($/gal)</label>
-          <input type="number" step="0.01" name="gas_price_per_gal" value="{{ config.rates.gas_price_per_gal }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Regular Gas Price ($/gal)</label>
+          <input type="number" step="0.01" name="gas_price_per_gal" value="{{ config.rates.gas_price_per_gal }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Baseline Gas Vehicle MPG</label>
-          <input type="number" step="0.1" name="baseline_ice_mpg" value="{{ config.rates.baseline_ice_mpg }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Baseline Gas Vehicle MPG</label>
+          <input type="number" step="0.1" name="baseline_ice_mpg" value="{{ config.rates.baseline_ice_mpg }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
       </div>
     </div>
 
-    <!-- 3. AUTOMATED SCHEDULE -->
-    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div>
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <span>⏰</span> Automated Dispatch Schedule
-          </h3>
-          <p class="text-xs text-slate-400 mt-0.5">Control how frequently the service sends your email digest.</p>
-        </div>
-        <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
-          <input type="checkbox" name="schedule_enabled" {% if config.schedule.enabled %}checked{% endif %} class="rounded bg-slate-950 border-slate-700 text-tesla focus:ring-0">
-          <span class="text-slate-200">Enable Schedule</span>
-        </label>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Frequency</label>
-          <select name="frequency" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-            <option value="monthly" {% if config.schedule.frequency == 'monthly' %}selected{% endif %}>Monthly (1st of month)</option>
-            <option value="weekly" {% if config.schedule.frequency == 'weekly' %}selected{% endif %}>Weekly (Mondays)</option>
-            <option value="daily" {% if config.schedule.frequency == 'daily' %}selected{% endif %}>Daily (Every morning)</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Send Hour (24-hr)</label>
-          <input type="number" min="0" max="23" name="send_hour" value="{{ config.schedule.send_hour }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Send Minute</label>
-          <input type="number" min="0" max="59" name="send_minute" value="{{ config.schedule.send_minute }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-        </div>
-      </div>
-    </div>
-
-    <!-- 4. DRIVING & DASHBOARD OPTIONS -->
-    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
-      <div class="border-b border-slate-800 pb-3">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+    <!-- 5. DRIVING & DASHBOARD OPTIONS -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <span>🗺️</span> Driving & Dashboard Options
         </h3>
-        <p class="text-xs text-slate-400 mt-0.5">Filter out frequent home locations from Top Destinations and customize your email dashboard link.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Filter out frequent home locations from Top Destinations and customize your email dashboard link.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Excluded Locations from Top Destinations</label>
-          <input type="text" name="excluded_locations" value="{{ config.excluded_locations | join(', ') }}" placeholder="e.g. West 87th Terrace, Home" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-          <p class="text-[11px] text-slate-500 mt-1">Comma-separated names/addresses to hide from the Top Places ranking (e.g. hides daily home parking to surface real destinations).</p>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Excluded Locations from Top Destinations</label>
+          <input type="text" name="excluded_locations" value="{{ config.excluded_locations | join(', ') }}" placeholder="e.g. West 87th Terrace, Home" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <p class="text-[11px] text-slate-400 mt-1">Comma-separated names/addresses to hide from the Top Places ranking (e.g. hides daily home parking to surface real destinations).</p>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Local Dashboard URL</label>
-          <input type="text" name="dashboard_url" value="{{ config.dashboard_url }}" placeholder="http://localhost:8660" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-          <p class="text-[11px] text-slate-500 mt-1">Used for links in email digest footers (e.g. http://192.168.1.50:8660 or https://digest.example.com).</p>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Local Dashboard URL</label>
+          <input type="text" name="dashboard_url" value="{{ config.dashboard_url }}" placeholder="http://localhost:8660" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <p class="text-[11px] text-slate-400 mt-1">Used for links in email digest footers (e.g. http://192.168.1.50:8660 or https://digest.example.com).</p>
         </div>
       </div>
     </div>
 
-    <!-- 5. ACTIVE MODULES & SECTIONS -->
-    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
-      <div class="border-b border-slate-800 pb-3">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+    <!-- 6. ACTIVE MODULES & SECTIONS -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <span>🧩</span> Active Modules & Sections
         </h3>
-        <p class="text-xs text-slate-400 mt-0.5">Toggle which cards and analytics are included in your digest.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Toggle which cards and analytics are included in your digest.</p>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_spend_breakdown" {% if config.modules.spend_breakdown %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_spend_breakdown" {% if config.modules.spend_breakdown %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>⚡ Charging & Electric Spend Breakdown</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_gas_savings" {% if config.modules.gas_savings %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_gas_savings" {% if config.modules.gas_savings %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>💰 Gas Savings & CO₂ Avoided</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_battery_health" {% if config.modules.battery_health %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
-          <span>🔋 Battery Health & Degradation</span>
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_driving_efficiency" {% if config.modules.driving_efficiency %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
+          <span>📊 Driving Efficiency & Wh/mi Breakdown</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_supercharger_explorer" {% if config.modules.supercharger_explorer %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_charge_limit_compliance" {% if config.modules.charge_limit_compliance %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
+          <span>🛡️ Charge Limit Compliance (>80% / <20% Pack Stress)</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_work_mileage" {% if config.modules.work_mileage %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
+          <span>💼 Work & Commute Mileage Tracker</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_battery_health" {% if config.modules.battery_health %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
+          <span>🔋 Battery Health & Degradation (Monthly Only)</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_supercharger_explorer" {% if config.modules.supercharger_explorer %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>⚡ Supercharger Explorer & New Pins</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_top_locations" {% if config.modules.top_locations %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_top_locations" {% if config.modules.top_locations %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>📍 Top Destinations & Places Visited</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_driving_milestones" {% if config.modules.driving_milestones %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_driving_milestones" {% if config.modules.driving_milestones %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>🛣️ Driving Milestones & Longest Trip</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_colorado_mountain_regen" {% if config.modules.colorado_mountain_regen %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_colorado_mountain_regen" {% if config.modules.colorado_mountain_regen %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>🏔️ Colorado Mountain Elevation & Regen</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_vampire_drain" {% if config.modules.vampire_drain %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_vampire_drain" {% if config.modules.vampire_drain %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>🌙 Vampire Standby Drain & Sentry Loss</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_maintenance_alerts" {% if config.modules.maintenance_alerts %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_maintenance_alerts" {% if config.modules.maintenance_alerts %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>🛠️ TPMS Pressures & Tire Rotation Alert</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_snow_tire_reminder" {% if config.modules.snow_tire_reminder %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_snow_tire_reminder" {% if config.modules.snow_tire_reminder %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>❄️ Seasonal Snow Tire Swap Alerts</span>
         </label>
-        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
-          <input type="checkbox" name="mod_embedded_charts" {% if config.modules.embedded_charts %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_embedded_charts" {% if config.modules.embedded_charts %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>📊 High-Res Embedded Chart Images</span>
         </label>
       </div>
@@ -346,8 +354,6 @@ function applyTariffPreset(preset) {
     document.getElementById('on_peak_kwh_cost').value = '0.19';
     document.getElementById('off_peak_start_hour').value = '21';
     document.getElementById('off_peak_end_hour').value = '9';
-    document.getElementById('peak_start_hour').value = '13';
-    document.getElementById('peak_end_hour').value = '19';
     document.getElementById('weekends_are_off_peak').checked = true;
   } else if (preset === 'flat_rate') {
     document.getElementById('off_peak_kwh_cost').value = '0.11';
@@ -357,81 +363,54 @@ function applyTariffPreset(preset) {
   }
 }
 
-async function syncGasPrice() {
-  const btn = document.getElementById('btn-sync-gas');
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '<span>⏳</span> Fetching...';
-  btn.disabled = true;
-
-  const zip = document.querySelector('input[name="zip_code"]').value;
-  const eiaKey = document.querySelector('input[name="eia_api_key"]')?.value || '';
-
-  try {
-    const res = await fetch('/api/sync-gas-price', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ zip_code: zip, eia_api_key: eiaKey })
-    });
-    const data = await res.json();
-    if (data.success && data.price) {
-      document.querySelector('input[name="gas_price_per_gal"]').value = data.price;
-      document.getElementById('lbl-gas-area').textContent = `${data.area_name} ($${data.price}/gal)`;
-      document.getElementById('lbl-gas-source').textContent = `${data.source} (${data.period})`;
-      alert(`✅ Updated regular gas price to $${data.price}/gal from ${data.source} for ${data.area_name}!`);
-    } else {
-      alert('Note: Could not retrieve live gas price. Using fallback.');
-    }
-  } catch (err) {
-    console.error(err);
-    alert('Error contacting gas price API endpoint.');
-  } finally {
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-  }
+function addRouteRow() {
+  const container = document.getElementById('work-routes-list');
+  const div = document.createElement('div');
+  div.className = 'work-route-row p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center';
+  div.innerHTML = `
+    <div class="sm:col-span-3">
+      <input type="text" placeholder="Route Label (e.g. Office Commute)" class="route-label w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+    </div>
+    <div class="sm:col-span-3">
+      <input type="text" list="locations-list" placeholder="Point A (Origin)" class="route-point-a w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+    </div>
+    <div class="sm:col-span-3">
+      <input type="text" list="locations-list" placeholder="Point B (Destination)" class="route-point-b w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+    </div>
+    <div class="sm:col-span-2 flex items-center space-x-1.5">
+      <input type="checkbox" checked class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
+      <span class="text-[11px] text-slate-600 dark:text-slate-400">A &harr; B</span>
+    </div>
+    <div class="sm:col-span-1 text-right">
+      <button type="button" onclick="removeRouteRow(this)" class="p-1.5 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
+    </div>
+  `;
+  container.appendChild(div);
 }
 
-async function syncElectricRates() {
-  const btn = document.getElementById('btn-sync-electric');
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '<span>⏳</span> Fetching...';
-  btn.disabled = true;
-
-  const zip = document.querySelector('input[name="zip_code"]').value;
-  const openeiKey = document.querySelector('input[name="openei_api_key"]')?.value || '';
-  const eiaKey = document.querySelector('input[name="eia_api_key"]')?.value || '';
-
-  try {
-    const res = await fetch('/api/sync-electric-rates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ zip_code: zip, openei_api_key: openeiKey, eia_api_key: eiaKey })
-    });
-    const data = await res.json();
-    if (data.success && data.rates) {
-      const r = data.rates;
-      document.getElementById('off_peak_kwh_cost').value = r.off_peak_kwh_cost;
-      document.getElementById('shoulder_kwh_cost').value = r.shoulder_kwh_cost;
-      document.getElementById('on_peak_kwh_cost').value = r.on_peak_kwh_cost;
-      document.getElementById('off_peak_start_hour').value = r.off_peak_start_hour;
-      document.getElementById('off_peak_end_hour').value = r.off_peak_end_hour;
-      document.getElementById('peak_start_hour').value = r.peak_start_hour;
-      document.getElementById('peak_end_hour').value = r.peak_end_hour;
-      document.getElementById('weekends_are_off_peak').checked = r.weekends_are_off_peak;
-      document.getElementById('lbl-utility').textContent = `${r.utility_name} - ${r.plan_name}`;
-      const utilInput = document.querySelector('input[name="utility_name"]');
-      if (utilInput) utilInput.value = r.utility_name;
-      alert(`✅ Updated TOU rates from ${r.source}: Off-Peak $${r.off_peak_kwh_cost}, Shoulder $${r.shoulder_kwh_cost}, Peak $${r.on_peak_kwh_cost}!`);
-    } else {
-      alert('Note: Could not retrieve live electric rates.');
-    }
-  } catch (err) {
-    console.error(err);
-    alert('Error contacting electric rates API endpoint.');
-  } finally {
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-  }
+function removeRouteRow(btn) {
+  const row = btn.closest('.work-route-row');
+  if (row) row.remove();
 }
 
+function serializeWorkRoutes() {
+  const rows = document.querySelectorAll('.work-route-row');
+  const routes = [];
+  rows.forEach(r => {
+    const label = r.querySelector('.route-label')?.value.trim();
+    const ptA = r.querySelector('.route-point-a')?.value.trim();
+    const ptB = r.querySelector('.route-point-b')?.value.trim();
+    const bidi = r.querySelector('.route-bidirectional')?.checked ?? true;
+    if (label && ptA && ptB) {
+      routes.push({
+        label: label,
+        point_a: ptA,
+        point_b: ptB,
+        bidirectional: bidi
+      });
+    }
+  });
+  document.getElementById('work_routes_json').value = JSON.stringify(routes);
+}
 </script>
 {% endblock %}

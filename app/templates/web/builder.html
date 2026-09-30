@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Template Builder - TeslaMate Digest{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- HEADER -->
+  <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors">
+    <div>
+      <h2 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+        <span>🎨</span> Custom Template Builder
+      </h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Design, customize, and save your own personal HTML email digest using Jinja2 syntax and live TeslaMate data.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="/preview?theme=custom" target="_blank" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition">
+        <span>👁️</span> Test Custom in Preview
+      </a>
+      <button onclick="document.getElementById('template-form').submit();" class="px-5 py-2 bg-tesla hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow flex items-center gap-1.5 transition">
+        <span>💾</span> Save Template
+      </button>
+    </div>
+  </div>
+
+  {% if saved_status %}
+  <div class="p-4 rounded-lg {% if saved_status.success %}bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40{% else %}bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/40{% endif %} text-sm">
+    {{ saved_status.message }}
+  </div>
+  {% endif %}
+
+  <!-- WORKSPACE GRID -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- TAGS & BLOCKS REFERENCE CHEAT SHEET (5 COLS) -->
+    <div class="lg:col-span-5 space-y-4">
+      <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 max-h-[820px] overflow-y-auto">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-3 flex justify-between items-center">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <span>🏷️</span> Jinja Tags & Variables
+          </h3>
+          <span class="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Click tag to copy</span>
+        </div>
+
+        <!-- 1. Metadata -->
+        {% raw %}
+        <div class="space-y-1.5">
+          <div class="text-xs font-bold text-tesla uppercase">Report & Header Info</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="copyTag('{{ report_title }}')"><code>{{ report_title }}</code> <span>August 2026 Report</span></div>
+            <div class="tag-row" onclick="copyTag('{{ date_subtitle }}')"><code>{{ date_subtitle }}</code> <span>Aug 01 to Aug 31</span></div>
+            <div class="tag-row" onclick="copyTag('{{ car_subtitle }}')"><code>{{ car_subtitle }}</code> <span>Fleet / Car Name</span></div>
+            <div class="tag-row" onclick="copyTag('{{ dashboard_url }}')"><code>{{ dashboard_url }}</code> <span>Configured web link</span></div>
+          </div>
+        </div>
+
+        <!-- 2. Efficiency & Wh/mi -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-emerald-500 uppercase">Driving Efficiency & Wh/mi</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="copyTag('{{ efficiency.avg_wh_per_mile }}')"><code>{{ efficiency.avg_wh_per_mile }}</code> <span>Avg Wh/mi</span></div>
+            <div class="tag-row" onclick="copyTag('{{ efficiency.avg_wh_per_km }}')"><code>{{ efficiency.avg_wh_per_km }}</code> <span>Avg Wh/km</span></div>
+            <div class="tag-row" onclick="copyTag('{{ efficiency.efficiency_pct }}')"><code>{{ efficiency.efficiency_pct }}</code> <span>Rated vs Actual %</span></div>
+            <div class="tag-row" onclick="copyTag('{{ efficiency.net_energy_kwh }}')"><code>{{ efficiency.net_energy_kwh }}</code> <span>Total kWh used</span></div>
+            <div class="tag-row" onclick="copyTag('{{ efficiency.grade }}')"><code>{{ efficiency.grade }}</code> <span>Excellent / Good</span></div>
+          </div>
+        </div>
+
+        <!-- 3. Pack Stress & Compliance -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-sky-500 uppercase">Charge Limit Compliance</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="copyTag('{{ compliance.hours_above_80 }}')"><code>{{ compliance.hours_above_80 }}</code> <span>Hours &gt; 80% SoC</span></div>
+            <div class="tag-row" onclick="copyTag('{{ compliance.pct_above_80 }}')"><code>{{ compliance.pct_above_80 }}</code> <span>% Time &gt; 80%</span></div>
+            <div class="tag-row" onclick="copyTag('{{ compliance.hours_optimal }}')"><code>{{ compliance.hours_optimal }}</code> <span>Hours 20-80%</span></div>
+            <div class="tag-row" onclick="copyTag('{{ compliance.hours_below_20 }}')"><code>{{ compliance.hours_below_20 }}</code> <span>Hours &lt; 20% SoC</span></div>
+            <div class="tag-row" onclick="copyTag('{{ compliance.compliance_score }}')"><code>{{ compliance.compliance_score }}</code> <span>Score (0-100%)</span></div>
+          </div>
+        </div>
+
+        <!-- 4. Charging & Spend -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-amber-500 uppercase">⚡ Electric Spend & Savings</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="copyTag('{{ charging.total_spend }}')"><code>{{ charging.total_spend }}</code> <span>Total $ Electric</span></div>
+            <div class="tag-row" onclick="copyTag('{{ charging.off_peak_spend }}')"><code>{{ charging.off_peak_spend }}</code> <span>Off-Peak Spend $</span></div>
+            <div class="tag-row" onclick="copyTag('{{ charging.shoulder_spend }}')"><code>{{ charging.shoulder_spend }}</code> <span>Shoulder Spend $</span></div>
+            <div class="tag-row" onclick="copyTag('{{ charging.supercharger_spend }}')"><code>{{ charging.supercharger_spend }}</code> <span>Supercharger $</span></div>
+            <div class="tag-row" onclick="copyTag('{{ charging.off_peak_score_pct }}')"><code>{{ charging.off_peak_score_pct }}</code> <span>Off-Peak % score</span></div>
+            <div class="tag-row" onclick="copyTag('{{ charging.gas_savings.net_savings }}')"><code>{{ charging.gas_savings.net_savings }}</code> <span>$ Saved vs Gas</span></div>
+          </div>
+        </div>
+
+        <!-- 5. Work Mileage -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-indigo-500 uppercase">💼 Work Mileage Logging</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="copyTag('{{ work_mileage.total_miles }}')"><code>{{ work_mileage.total_miles }}</code> <span>Total Business mi</span></div>
+            <div class="tag-row" onclick="copyTag('{{ work_mileage.total_irs_deduction }}')"><code>{{ work_mileage.total_irs_deduction }}</code> <span>IRS Tax Deduction $</span></div>
+            <div class="tag-row" onclick="copyTag('{% for r in work_mileage.routes %}{{ r.label }}: {{ r.total_miles }} mi{% endfor %}')"><code>{% for r in work_mileage.routes %}</code> <span>Loop routes</span></div>
+          </div>
+        </div>
+
+        <!-- 6. Driving Highlights & Loops -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-purple-500 uppercase">📍 Trips & Locations Loops</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="copyTag('{{ trips.total_miles }}')"><code>{{ trips.total_miles }}</code> <span>Total odometer miles</span></div>
+            <div class="tag-row" onclick="copyTag('{{ trips.drives_count }}')"><code>{{ trips.drives_count }}</code> <span>Count of drives</span></div>
+            <div class="tag-row" onclick="copyTag('{% for p in trips.top_places %}{{ p.name }}: {{ p.visits }} visits{% endfor %}')"><code>{% for p in trips.top_places %}</code> <span>Loop top places</span></div>
+            <div class="tag-row" onclick="copyTag('{{ trips.longest_drive.start_location }}')"><code>{{ trips.longest_drive.start_location }}</code> <span>Longest trip start</span></div>
+          </div>
+        </div>
+
+        <!-- 7. Theme Palettes -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-rose-500 uppercase">🎨 Theme Colors</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="copyTag('{{ theme.body_bg }}')"><code>{{ theme.body_bg }}</code> <span>Page background</span></div>
+            <div class="tag-row" onclick="copyTag('{{ theme.card_bg }}')"><code>{{ theme.card_bg }}</code> <span>Card background</span></div>
+            <div class="tag-row" onclick="copyTag('{{ theme.text_primary }}')"><code>{{ theme.text_primary }}</code> <span>Heading text color</span></div>
+            <div class="tag-row" onclick="copyTag('{{ theme.accent_red }}')"><code>{{ theme.accent_red }}</code> <span>Primary accent</span></div>
+          </div>
+        </div>
+        {% endraw %}
+
+      </div>
+    </div>
+
+    <!-- CODE EDITOR (7 COLS) -->
+    <div class="lg:col-span-7 space-y-4">
+      <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full transition-colors">
+        <div class="flex justify-between items-center mb-3">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <span>📝</span> custom_digest.html
+            </h3>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">Saved in <code>custom_templates/custom_digest.html</code></span>
+          </div>
+          <button type="button" onclick="loadStarterTemplate()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold rounded border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition">
+            Load Starter Code
+          </button>
+        </div>
+
+        <form id="template-form" method="POST" action="/builder/save" class="flex-1 flex flex-col">
+          <textarea id="template_content" name="template_content" rows="28" spellcheck="false" class="w-full flex-1 bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-800 dark:text-slate-200 p-4 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-tesla transition leading-relaxed">{{ template_content }}</textarea>
+          
+          <div class="mt-4 flex justify-between items-center pt-2">
+            <span class="text-[11px] text-slate-500">To use this template for scheduled deliveries, select <strong>"Custom User Template"</strong> in Settings.</span>
+            <button type="submit" class="px-5 py-2 bg-tesla hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow transition">
+              Save Custom Template
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<style>
+  .tag-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background-color: rgba(241, 245, 249, 0.7);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .dark .tag-row {
+    background-color: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(51, 65, 85, 0.6);
+  }
+  .tag-row:hover {
+    background-color: rgba(232, 33, 39, 0.1);
+    border-color: rgba(232, 33, 39, 0.3);
+  }
+  .tag-row code {
+    font-size: 11px;
+    font-weight: 700;
+    color: #e82127;
+  }
+  .tag-row span {
+    font-size: 10px;
+    color: #94a3b8;
+  }
+</style>
+
+<script>
+  function copyTag(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Copied to clipboard: ' + text);
+    });
+  }
+
+  function loadStarterTemplate() {
+    if (confirm('Replace current editor contents with the standard starter template?')) {
+      fetch('/builder/starter')
+        .then(res => res.text())
+        .then(code => {
+          document.getElementById('template_content').value = code;
+        });
+    }
+  }
+</script>
+{% endblock %}

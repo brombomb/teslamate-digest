@@ -38,6 +38,22 @@ async def run_scheduled_digest(frequency: Optional[str] = None):
             last_day_of_prev_month = first_of_this_month - timedelta(days=1)
             start_date = datetime(last_day_of_prev_month.year, last_day_of_prev_month.month, 1, 0, 0, 0)
             end_date = datetime(first_of_this_month.year, first_of_this_month.month, 1, 0, 0, 0)
+        elif freq == "semi-monthly":
+            # 1st-15th or 16th-end of month
+            if now.day <= 15:
+                # Dispatched around 15th: 1st through 15th
+                start_date = datetime(now.year, now.month, 1, 0, 0, 0)
+                end_date = datetime(now.year, now.month, 15, 23, 59, 59)
+            else:
+                # Dispatched on 1st: 16th of prev month to 1st of current
+                first_of_this_month = datetime(now.year, now.month, 1)
+                last_day_of_prev_month = first_of_this_month - timedelta(days=1)
+                start_date = datetime(last_day_of_prev_month.year, last_day_of_prev_month.month, 16, 0, 0, 0)
+                end_date = datetime(first_of_this_month.year, first_of_this_month.month, 1, 0, 0, 0)
+        elif freq == "bi-weekly":
+            # Last 14 days
+            end_date = datetime(now.year, now.month, now.day, 0, 0, 0)
+            start_date = end_date - timedelta(days=14)
         elif freq == "weekly":
             # Last 7 days
             end_date = datetime(now.year, now.month, now.day, 0, 0, 0)
@@ -53,7 +69,7 @@ async def run_scheduled_digest(frequency: Optional[str] = None):
             config=config,
             start_date=start_date,
             end_date=end_date,
-            car_id=None,  # Fleet
+            car_id=config.schedule.target_car_id,
             for_email=True
         )
 
@@ -66,7 +82,8 @@ async def run_scheduled_digest(frequency: Optional[str] = None):
 
         if success:
             last_run_info["status"] = "Success"
-            last_run_info["details"] = f"Delivered {freq} digest to {config.smtp.recipient_email}"
+            target_desc = f"Car #{config.schedule.target_car_id}" if config.schedule.target_car_id else "All Cars (Fleet)"
+            last_run_info["details"] = f"Delivered {freq} digest ({target_desc}) to {config.smtp.recipient_email}"
         else:
             last_run_info["status"] = "Skipped"
             last_run_info["details"] = "Delivery skipped (SMTP disabled or password missing)."
@@ -91,6 +108,10 @@ def setup_scheduler(config: AppConfig):
 
     if freq == "monthly":
         trigger = CronTrigger(day=config.schedule.send_day_of_month, hour=hour, minute=minute)
+    elif freq == "semi-monthly":
+        trigger = CronTrigger(day="1,15", hour=hour, minute=minute)
+    elif freq == "bi-weekly":
+        trigger = CronTrigger(day_of_week=config.schedule.send_day_of_week, hour=hour, minute=minute)
     elif freq == "weekly":
         trigger = CronTrigger(day_of_week=config.schedule.send_day_of_week, hour=hour, minute=minute)
     else:  # Daily

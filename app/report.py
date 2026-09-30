@@ -12,7 +12,11 @@ from app.analytics.superchargers import get_supercharger_analytics
 from app.analytics.battery import get_battery_health_analytics
 from app.analytics.health import get_health_analytics
 from app.analytics.vampire import get_vampire_analytics
+from app.analytics.efficiency import get_driving_efficiency_analytics
+from app.analytics.compliance import get_charge_compliance_analytics
+from app.analytics.work_mileage import get_work_mileage_analytics
 from app.analytics.wrapped import get_year_in_review_analytics
+from app.themes import get_theme
 import app.charts as charts
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -34,7 +38,8 @@ async def build_digest_report(
     start_date: datetime,
     end_date: datetime,
     car_id: Optional[int] = None,
-    for_email: bool = False
+    for_email: bool = False,
+    theme_override: Optional[str] = None
 ) -> Tuple[str, str, Dict[str, bytes]]:
     """
     Builds the complete digest HTML and charts.
@@ -53,6 +58,11 @@ async def build_digest_report(
     battery = await get_battery_health_analytics(db, end_date, car_id)
     health = await get_health_analytics(db, start_date, end_date, car_id, config.tire_rotation_interval_mi)
     vampire = await get_vampire_analytics(db, start_date, end_date, car_id, config.rates.average_kwh_cost)
+    efficiency = await get_driving_efficiency_analytics(db, start_date, end_date, car_id)
+    compliance = await get_charge_compliance_analytics(db, start_date, end_date, car_id)
+
+    routes_config = [r.model_dump() if hasattr(r, 'model_dump') else r for r in getattr(config, "work_routes", [])]
+    work_mileage = await get_work_mileage_analytics(db, start_date, end_date, routes_config, car_id, getattr(config, "irs_mileage_rate", 0.67))
 
     cars = await db.get_cars()
     car_name = "Fleet"
@@ -63,7 +73,7 @@ async def build_digest_report(
                 break
 
     # Determine titles
-    is_monthly = (end_date - start_date).days >= 27 and (end_date - start_date).days <= 32
+    is_monthly = (end_date - start_date).days >= 27
     if is_monthly:
         report_title = start_date.strftime("%B %Y") + " Report"
     else:
@@ -73,6 +83,9 @@ async def build_digest_report(
     car_subtitle = car_name
 
     subject = f"⚡ TeslaMate Digest: {report_title} [{car_name}]"
+
+    # Battery health is strictly monthly only per user requirement
+    show_battery_health = bool(config.modules.battery_health and is_monthly)
 
     # 2. Charts Generation
     inline_images: Dict[str, bytes] = {}
@@ -90,32 +103,48 @@ async def build_digest_report(
             config.rates.peak_end_hour,
             as_bytes=True
         )
-        battery_bytes = charts.generate_battery_trend_chart(battery, as_bytes=True)
+        if show_battery_health:
+            battery_bytes = charts.generate_battery_trend_chart(battery, as_bytes=True)
+        else:
+            battery_bytes = b""
 
         if for_email:
             inline_images["chart_spend"] = spend_bytes
             inline_images["chart_tou"] = tou_bytes
-            inline_images["chart_battery"] = battery_bytes
+            if show_battery_health and battery_bytes:
+                inline_images["chart_battery"] = battery_bytes
+                chart_battery_src = "cid:chart_battery"
             chart_spend_src = "cid:chart_spend"
             chart_tou_src = "cid:chart_tou"
-            chart_battery_src = "cid:chart_battery"
         else:
             import base64
             chart_spend_src = f"data:image/png;base64,{base64.b64encode(spend_bytes).decode('utf-8')}"
             chart_tou_src = f"data:image/png;base64,{base64.b64encode(tou_bytes).decode('utf-8')}"
-            chart_battery_src = f"data:image/png;base64,{base64.b64encode(battery_bytes).decode('utf-8')}"
+            if show_battery_health and battery_bytes:
+                chart_battery_src = f"data:image/png;base64,{base64.b64encode(battery_bytes).decode('utf-8')}"
 
-    # 3. Render Template
+    # 3. Choose Theme & Render Template
+    chosen_theme = theme_override or getattr(config, "email_theme", "dark_modern")
+    theme = get_theme(chosen_theme)
+
     env = get_jinja_env()
-    # Check if custom template exists
-    template_name = "digest.html"
-    try:
-        tmpl = env.get_template(template_name)
-    except Exception:
-        # Fallback to direct file loading
-        with open(TEMPLATES_DIR / "digest.html", "r") as f:
-            from jinja2 import Template
-            tmpl = Template(f.read())
+    custom_template_path = CUSTOM_TEMPLATES_DIR / "custom_digest.html"
+
+    if chosen_theme == "custom" and custom_template_path.exists():
+        try:
+            tmpl = env.get_template("custom_digest.html")
+        except Exception:
+            with open(custom_template_path, "r") as f:
+                from jinja2 import Template
+                tmpl = Template(f.read())
+    else:
+        template_name = "digest.html"
+        try:
+            tmpl = env.get_template(template_name)
+        except Exception:
+            with open(TEMPLATES_DIR / "digest.html", "r") as f:
+                from jinja2 import Template
+                tmpl = Template(f.read())
 
     dashboard_url = getattr(config, "dashboard_url", None) or f"http://localhost:{os.getenv('PORT', '8660')}"
 
@@ -129,12 +158,17 @@ async def build_digest_report(
         battery=battery,
         health=health,
         vampire=vampire,
+        efficiency=efficiency,
+        compliance=compliance,
+        work_mileage=work_mileage,
+        show_battery_health=show_battery_health,
         modules=config.modules,
         rates=config.rates,
         chart_spend=chart_spend_src,
         chart_tou=chart_tou_src,
         chart_battery=chart_battery_src,
-        dashboard_url=dashboard_url
+        dashboard_url=dashboard_url,
+        theme=theme
     )
 
     return subject, html_content, inline_images

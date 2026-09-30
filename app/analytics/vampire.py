@@ -55,10 +55,13 @@ async def get_vampire_analytics(
 
     return {
         "parked_hours": round(parked_hours, 1),
+        "total_idle_hours": round(parked_hours, 1),
         "asleep_hours": round(asleep_hours, 1),
         "online_hours": round(online_hours, 1),
         "suspended_hours": round(suspended_hours, 1),
         "sleep_efficiency_pct": round(sleep_efficiency_pct, 1),
         "estimated_drain_kwh": round(estimated_drain_kwh, 1),
-        "estimated_drain_cost": round(estimated_drain_cost, 2)
+        "estimated_loss_kwh": round(estimated_drain_kwh, 1),
+        "estimated_drain_cost": round(estimated_drain_cost, 2),
+        "estimated_cost": round(estimated_drain_cost, 2)
     }

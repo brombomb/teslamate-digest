@@ -1,0 +1,121 @@
+from datetime import datetime
+from typing import Dict, Any, List, Optional
+from app.db import Database
+
+
+async def get_work_mileage_analytics(
+    db: Database,
+    start_date: datetime,
+    end_date: datetime,
+    routes: List[Dict[str, Any]],
+    car_id: Optional[int] = None,
+    irs_rate: float = 0.67
+) -> Dict[str, Any]:
+    """
+    Computes business / work mileage between pairs of configured points
+    (addresses or geofences) for mileage deduction and expense logs.
+    """
+    if not routes:
+        return {
+            "has_routes": False,
+            "total_routes": 0,
+            "total_trips": 0,
+            "total_miles": 0.0,
+            "total_irs_deduction": 0.0,
+            "routes": []
+        }
+
+    car_filter = "AND d.car_id = $3" if car_id else ""
+    args = [start_date, end_date]
+    if car_id:
+        args.append(car_id)
+
+    # Fetch all drives in the window with their resolved start/end names
+    query = f"""
+        SELECT 
+            d.id,
+            d.distance * 0.621371 as distance_mi,
+            coalesce(g_start.name, a_start.name, a_start.road, '') as start_name,
+            coalesce(a_start.city, '') as start_city,
+            coalesce(g_end.name, a_end.name, a_end.road, '') as end_name,
+            coalesce(a_end.city, '') as end_city
+        FROM drives d
+        LEFT JOIN geofences g_start ON d.start_geofence_id = g_start.id
+        LEFT JOIN addresses a_start ON d.start_address_id = a_start.id
+        LEFT JOIN geofences g_end ON d.end_geofence_id = g_end.id
+        LEFT JOIN addresses a_end ON d.end_address_id = a_end.id
+        WHERE d.start_date >= $1 AND d.start_date < $2
+          AND d.distance IS NOT NULL AND d.distance > 0
+          {car_filter};
+    """
+    drives = await db.fetch(query, *args)
+
+    route_results = []
+    overall_trips = 0
+    overall_miles = 0.0
+
+    for r in routes:
+        label = r.get("label", "Commute Route")
+        pt_a = r.get("point_a", "").strip().lower()
+        pt_b = r.get("point_b", "").strip().lower()
+        bidirectional = r.get("bidirectional", True)
+
+        if not pt_a or not pt_b:
+            continue
+
+        matching_trips = 0
+        matching_miles = 0.0
+
+        for d in drives:
+            s_full = f"{d['start_name']} {d['start_city']}".lower()
+            e_full = f"{d['end_name']} {d['end_city']}".lower()
+            dist = float(d["distance_mi"] or 0)
+
+            forward_match = (pt_a in s_full and pt_b in e_full)
+            reverse_match = (bidirectional and (pt_b in s_full and pt_a in e_full))
+
+            if forward_match or reverse_match:
+                matching_trips += 1
+                matching_miles += dist
+
+        deduction = matching_miles * irs_rate
+        overall_trips += matching_trips
+        overall_miles += matching_miles
+
+        route_results.append({
+            "label": label,
+            "point_a": r.get("point_a", ""),
+            "point_b": r.get("point_b", ""),
+            "bidirectional": bidirectional,
+            "trip_count": matching_trips,
+            "total_miles": round(matching_miles, 1),
+            "irs_deduction": round(deduction, 2)
+        })
+
+    total_deduction = overall_miles * irs_rate
+
+    return {
+        "has_routes": len(route_results) > 0,
+        "total_routes": len(route_results),
+        "total_trips": overall_trips,
+        "total_miles": round(overall_miles, 1),
+        "total_irs_deduction": round(total_deduction, 2),
+        "irs_rate": irs_rate,
+        "routes": route_results
+    }
+
+
+async def get_available_locations_for_work(db: Database) -> List[str]:
+    """
+    Returns unique addresses and geofences to populate location pickers.
+    """
+    query = """
+        SELECT DISTINCT loc FROM (
+            SELECT coalesce(name, road) as loc FROM addresses WHERE coalesce(name, road) IS NOT NULL AND coalesce(name, road) != ''
+            UNION
+            SELECT name as loc FROM geofences WHERE name IS NOT NULL AND name != ''
+        ) t
+        ORDER BY loc ASC;
+    """
+    rows = await db.fetch(query)
+    return [r["loc"] for r in rows if r["loc"]]

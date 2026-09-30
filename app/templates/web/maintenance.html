@@ -8,19 +8,19 @@
   <!-- HEADER -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
-      <h2 class="text-2xl font-black text-white flex items-center gap-2">
+      <h2 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
         <span>🛠️</span> Vehicle Maintenance & Fleet Care
       </h2>
-      <p class="text-sm text-slate-400 mt-1">Track tire rotation tread life, seasonal snow tire swaps, and service milestones.</p>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Track tire rotation tread life, seasonal snow tire swaps, and service milestones.</p>
     </div>
-    <div class="flex items-center gap-2 text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg">
+    <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-lg shadow-sm">
       <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
       <span>Live DB Telemetry Synced</span>
     </div>
   </div>
 
   {% if message %}
-  <div class="p-4 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-sm font-semibold flex items-center gap-2 shadow-lg shadow-emerald-950/20">
+  <div class="p-4 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 text-sm font-semibold flex items-center gap-2 shadow-sm">
     <span>✨</span>
     <span>{{ message }}</span>
   </div>
@@ -29,20 +29,20 @@
   <!-- CAR CARDS GRID -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     {% for c in cars %}
-    <div class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden flex flex-col justify-between shadow-xl">
+    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col justify-between shadow-sm transition-colors">
       
       <!-- CARD HEADER -->
-      <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+      <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
         <div>
           <div class="flex items-center gap-2">
-            <h3 class="text-lg font-black text-white">{{ c.name }}</h3>
-            <span class="text-xs px-2 py-0.5 rounded font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+            <h3 class="text-lg font-black text-slate-900 dark:text-white">{{ c.name }}</h3>
+            <span class="text-xs px-2 py-0.5 rounded font-bold bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30">
               Model {{ c.model }}
             </span>
           </div>
-          <p class="text-xs text-slate-400 mt-0.5">Live Odometer: <span class="text-white font-mono font-bold">{{ "{:,}".format(c.current_odometer | int) }} mi</span></p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Live Odometer: <span class="text-slate-900 dark:text-white font-mono font-bold">{{ "{:,}".format(c.current_odometer | int) }} mi</span></p>
         </div>
-        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
           6,250 mi Rotation Interval
         </span>
       </div>
@@ -50,37 +50,37 @@
       <div class="p-5 space-y-6 flex-1">
         
         <!-- 1. TIRE ROTATION LIFE BAR -->
-        <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+        <div class="space-y-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors">
           <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-slate-200 flex items-center gap-1.5">
+            <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
               <span>🔄</span> Tire Tread / Rotation Life
             </span>
             {% if c.is_overdue %}
-            <span class="px-2 py-0.5 rounded font-black text-[11px] bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse">
+            <span class="px-2 py-0.5 rounded font-black text-[11px] bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/40 animate-pulse">
               ROTATION OVERDUE
             </span>
             {% elif c.life_remaining_pct <= 20 %}
-            <span class="px-2 py-0.5 rounded font-bold text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            <span class="px-2 py-0.5 rounded font-bold text-[11px] bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40">
               {{ c.life_remaining_pct }}% Life Remaining
             </span>
             {% else %}
-            <span class="px-2 py-0.5 rounded font-bold text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            <span class="px-2 py-0.5 rounded font-bold text-[11px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40">
               {{ c.life_remaining_pct }}% Life Remaining
             </span>
             {% endif %}
           </div>
 
           <!-- Progress Bar (Fills to 100% on rotation, depletes to 0%) -->
-          <div class="w-full bg-slate-900 rounded-full h-3.5 overflow-hidden p-0.5 border border-slate-800">
+          <div class="w-full bg-slate-200 dark:bg-slate-900 rounded-full h-3.5 overflow-hidden p-0.5 border border-slate-300 dark:border-slate-800">
             <div class="h-full rounded-full transition-all duration-500 {% if c.life_remaining_pct > 30 %}bg-emerald-500 shadow-sm shadow-emerald-500/50{% elif c.life_remaining_pct > 15 %}bg-amber-500 shadow-sm shadow-amber-500/50{% else %}bg-rose-500 shadow-sm shadow-rose-500/50{% endif %}"
                  style="width: {{ c.life_remaining_pct }}%;">
             </div>
           </div>
 
           <!-- Mileage Stats -->
-          <div class="flex justify-between items-center text-xs text-slate-400 pt-1">
-            <span>Driven: <strong class="text-slate-200">{{ "{:,}".format(c.miles_since | int) }} mi</strong></span>
-            <span>Remaining: <strong class="{% if c.is_overdue %}text-rose-400 font-bold{% else %}text-emerald-400 font-bold{% endif %}">{{ "{:,}".format(c.miles_remaining | int) }} mi</strong></span>
+          <div class="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 pt-1">
+            <span>Driven: <strong class="text-slate-800 dark:text-slate-200">{{ "{:,}".format(c.miles_since | int) }} mi</strong></span>
+            <span>Remaining: <strong class="{% if c.is_overdue %}text-rose-600 dark:text-rose-400 font-bold{% else %}text-emerald-600 dark:text-emerald-400 font-bold{% endif %}">{{ "{:,}".format(c.miles_remaining | int) }} mi</strong></span>
           </div>
 
           {% if c.last_tire_rotation_date %}
@@ -92,7 +92,7 @@
           <!-- 1-CLICK QUICK ROTATE BUTTON -->
           <form method="POST" action="/maintenance/quick-rotate" class="pt-2">
             <input type="hidden" name="car_id" value="{{ c.id }}">
-            <button type="submit" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-md shadow-emerald-950/40">
+            <button type="submit" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 shadow-md">
               <span>🔄</span> Mark Tires Rotated Today (Sets to {{ "{:,}".format(c.current_odometer | int) }} mi)
             </button>
             <p class="text-[10px] text-slate-500 text-center mt-1.5">Fills the life remaining bar to 100% using live telemetry.</p>
@@ -100,24 +100,24 @@
         </div>
 
         <!-- 2. SEASONAL SNOW TIRE SWAP TRACKER -->
-        <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+        <div class="space-y-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors">
           <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-slate-200 flex items-center gap-1.5">
+            <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
               <span>❄️</span> Seasonal Tire Setup
             </span>
             {% if c.active_tire_set == 'winter' %}
-            <span class="px-2 py-0.5 rounded font-bold text-[11px] bg-blue-500/20 text-blue-300 border border-blue-500/40 flex items-center gap-1">
+            <span class="px-2 py-0.5 rounded font-bold text-[11px] bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/40 flex items-center gap-1">
               <span>❄️</span> Winter / Snow Tires Active
             </span>
             {% else %}
-            <span class="px-2 py-0.5 rounded font-bold text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+            <span class="px-2 py-0.5 rounded font-bold text-[11px] bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 flex items-center gap-1">
               <span>☀️</span> All-Season / Summer Active
             </span>
             {% endif %}
           </div>
 
-          <div class="text-xs text-slate-400">
-            Current Mounted Set: <strong class="text-white">{{ "Winter / Snow Tires (3PMSF)" if c.active_tire_set == 'winter' else "All-Season Tires" }}</strong>
+          <div class="text-xs text-slate-500 dark:text-slate-400">
+            Current Mounted Set: <strong class="text-slate-900 dark:text-white">{{ "Winter / Snow Tires (3PMSF)" if c.active_tire_set == 'winter' else "All-Season Tires" }}</strong>
             {% if c.last_tire_swap_date %}
             <span class="text-slate-500 text-[11px] block mt-0.5">Last swapped: {{ c.last_tire_swap_date }}</span>
             {% endif %}
@@ -128,66 +128,66 @@
             <input type="hidden" name="car_id" value="{{ c.id }}">
             {% if c.active_tire_set == 'all_season' %}
             <input type="hidden" name="target_set" value="winter">
-            <button type="submit" class="w-full py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-blue-950/30">
+            <button type="submit" class="w-full py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-1.5 shadow-md">
               <span>❄️</span> Swap to Winter Tires (Mark Mounted Today)
             </button>
             {% else %}
             <input type="hidden" name="target_set" value="all_season">
-            <button type="submit" class="w-full py-2 px-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-950/30">
+            <button type="submit" class="w-full py-2 px-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-1.5 shadow-md">
               <span>☀️</span> Swap to All-Season Tires (Mark Mounted Today)
             </button>
             {% endif %}
           </form>
 
-          <div class="p-2 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-400 flex items-center gap-1.5">
+          <div class="p-2 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <span>ℹ️</span>
             <span>Colorado I-70 Traction Law active Sep 1 – May 31 (requires 3PMSF snow tires or AWD with 3/16" tread).</span>
           </div>
         </div>
 
         <!-- 3. MANUAL EDIT COLLAPSIBLE -->
-        <details class="group bg-slate-950/70 border border-slate-800/60 rounded-xl overflow-hidden text-xs">
-          <summary class="p-3.5 font-semibold text-slate-300 cursor-pointer hover:text-white flex justify-between items-center select-none">
+        <details class="group bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/60 rounded-xl overflow-hidden text-xs">
+          <summary class="p-3.5 font-semibold text-slate-700 dark:text-slate-300 cursor-pointer hover:text-slate-900 dark:hover:text-white flex justify-between items-center select-none">
             <span class="flex items-center gap-1.5">
               <span>📝</span> Manual Odometer & Service Notes
             </span>
-            <span class="text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+            <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
           </summary>
 
-          <form method="POST" action="/maintenance" class="p-4 pt-1 space-y-3 border-t border-slate-800/60">
+          <form method="POST" action="/maintenance" class="p-4 pt-1 space-y-3 border-t border-slate-200 dark:border-slate-800/60">
             <input type="hidden" name="car_id" value="{{ c.id }}">
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Rotation Odometer (mi)</label>
-                <input type="number" step="0.1" name="last_tire_rotation_odometer" value="{{ c.last_tire_rotation_odometer }}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Rotation Odometer (mi)</label>
+                <input type="number" step="0.1" name="last_tire_rotation_odometer" value="{{ c.last_tire_rotation_odometer }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
               </div>
               <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Rotation Date</label>
-                <input type="date" name="last_tire_rotation_date" value="{{ c.last_tire_rotation_date }}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Rotation Date</label>
+                <input type="date" name="last_tire_rotation_date" value="{{ c.last_tire_rotation_date }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Active Tire Set</label>
-                <select name="active_tire_set" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Active Tire Set</label>
+                <select name="active_tire_set" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
                   <option value="all_season" {% if c.active_tire_set == 'all_season' %}selected{% endif %}>All-Season / Summer</option>
                   <option value="winter" {% if c.active_tire_set == 'winter' %}selected{% endif %}>Winter / Snow Tires</option>
                 </select>
               </div>
               <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Tire Swap Date</label>
-                <input type="date" name="last_tire_swap_date" value="{{ c.last_tire_swap_date }}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Tire Swap Date</label>
+                <input type="date" name="last_tire_swap_date" value="{{ c.last_tire_swap_date }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
               </div>
             </div>
 
             <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Service Notes</label>
-              <input type="text" name="notes" value="{{ c.notes }}" placeholder="e.g. Discount Tire on 80th & Wadsworth" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Service Notes</label>
+              <input type="text" name="notes" value="{{ c.notes }}" placeholder="e.g. Discount Tire on 80th & Wadsworth" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
             </div>
 
-            <button type="submit" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-xs transition border border-slate-700">
+            <button type="submit" class="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold rounded-lg text-xs transition border border-slate-300 dark:border-slate-700">
               Save Manual Details
             </button>
           </form>
