@@ -49,6 +49,11 @@ class RatesSettings(BaseModel):
     zip_code: str = "80005"
     auto_gas_price: bool = True
     baseline_ice_mpg: float = 26.0
+    eia_api_key: str = ""
+    openei_api_key: str = ""
+    utility_name: str = "Public Service Co of Colorado (Xcel Energy)"
+    gas_price_source: str = "eia"
+    electric_rate_source: str = "openei"
 
 
 class UnitSettings(BaseModel):

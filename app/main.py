@@ -24,6 +24,8 @@ from app.scheduler import (
 )
 from app.report import build_digest_report, build_wrapped_report
 from app.mailer import Mailer
+from app.services.gas_prices import fetch_gas_price_details
+from app.services.electric_rates import fetch_electric_rates
 
 BASE_DIR = Path(__file__).resolve().parent
 WEB_TEMPLATES_DIR = BASE_DIR / "templates" / "web"
@@ -63,6 +65,66 @@ if STATIC_DIR.exists():
 @app.get("/api/health")
 async def health():
     return {"status": "healthy", "service": "teslamate-digest"}
+
+
+@app.post("/api/sync-gas-price")
+async def sync_gas_price(request: Request):
+    cfg = load_config()
+    data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    zip_code = data.get("zip_code") or cfg.rates.zip_code or "80005"
+    eia_key = data.get("eia_api_key") or cfg.rates.eia_api_key
+
+    details = await fetch_gas_price_details(
+        zip_code=zip_code,
+        api_key=eia_key,
+        fallback=cfg.rates.gas_price_per_gal,
+        force_refresh=True
+    )
+    cfg.rates.gas_price_per_gal = float(details.get("price", cfg.rates.gas_price_per_gal))
+    if "area_name" in details:
+        cfg.rates.zip_code = zip_code
+    save_config(cfg)
+
+    return JSONResponse(content={
+        "success": True,
+        "price": details.get("price"),
+        "period": details.get("period"),
+        "area_name": details.get("area_name"),
+        "source": details.get("source"),
+        "is_live": details.get("is_live", True)
+    })
+
+
+@app.post("/api/sync-electric-rates")
+async def sync_electric_rates(request: Request):
+    cfg = load_config()
+    data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    zip_code = data.get("zip_code") or cfg.rates.zip_code or "80005"
+    openei_key = data.get("openei_api_key") or cfg.rates.openei_api_key
+    eia_key = data.get("eia_api_key") or cfg.rates.eia_api_key
+
+    rates = await fetch_electric_rates(
+        zip_code=zip_code,
+        openei_api_key=openei_key,
+        eia_api_key=eia_key,
+        force_refresh=True
+    )
+
+    cfg.rates.off_peak_kwh_cost = float(rates.get("off_peak_kwh_cost", cfg.rates.off_peak_kwh_cost))
+    cfg.rates.shoulder_kwh_cost = float(rates.get("shoulder_kwh_cost", cfg.rates.shoulder_kwh_cost))
+    cfg.rates.on_peak_kwh_cost = float(rates.get("on_peak_kwh_cost", cfg.rates.on_peak_kwh_cost))
+    cfg.rates.off_peak_start_hour = int(rates.get("off_peak_start_hour", cfg.rates.off_peak_start_hour))
+    cfg.rates.off_peak_end_hour = int(rates.get("off_peak_end_hour", cfg.rates.off_peak_end_hour))
+    cfg.rates.peak_start_hour = int(rates.get("peak_start_hour", cfg.rates.peak_start_hour))
+    cfg.rates.peak_end_hour = int(rates.get("peak_end_hour", cfg.rates.peak_end_hour))
+    cfg.rates.weekends_are_off_peak = bool(rates.get("weekends_are_off_peak", True))
+    cfg.rates.utility_name = rates.get("utility_name", cfg.rates.utility_name)
+    save_config(cfg)
+
+    return JSONResponse(content={
+        "success": True,
+        "rates": rates
+    })
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -241,6 +303,9 @@ async def settings_save(
     zip_code: str = Form("80005"),
     gas_price_per_gal: float = Form(4.00),
     baseline_ice_mpg: float = Form(26.0),
+    eia_api_key: str = Form(""),
+    openei_api_key: str = Form(""),
+    utility_name: str = Form("Public Service Co of Colorado (Xcel Energy)"),
     tire_rotation_interval_mi: int = Form(6250),
     schedule_enabled: Optional[str] = Form(None),
     frequency: str = Form("monthly"),
@@ -284,6 +349,9 @@ async def settings_save(
     cfg.rates.zip_code = zip_code
     cfg.rates.gas_price_per_gal = gas_price_per_gal
     cfg.rates.baseline_ice_mpg = baseline_ice_mpg
+    cfg.rates.eia_api_key = eia_api_key.strip()
+    cfg.rates.openei_api_key = openei_api_key.strip()
+    cfg.rates.utility_name = utility_name.strip()
     cfg.tire_rotation_interval_mi = tire_rotation_interval_mi
 
     cfg.schedule.enabled = bool(schedule_enabled)

@@ -79,6 +79,66 @@
         </div>
       </div>
 
+      <!-- OPEN API INTEGRATION HUB -->
+      <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3.5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+              <span>🌐</span> Open API Pricing Integration (OpenEI URDB & U.S. EIA)
+            </h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">Fetch dynamic utility tariffs and retail gas prices automatically via official open public data.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="syncElectricRates()" id="btn-sync-electric" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-1 shadow-md shadow-indigo-950/40">
+              <span>⚡</span> Fetch Electric TOU
+            </button>
+            <button type="button" onclick="syncGasPrice()" id="btn-sync-gas" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-1 shadow-md shadow-emerald-950/40">
+              <span>⛽</span> Fetch EIA Gas Price
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Status Badges -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+          <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+            <span class="flex items-center gap-2 truncate">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="truncate">Plan: <strong id="lbl-utility" class="text-white">{{ config.rates.utility_name or 'Public Service Co of Colorado (Xcel Energy)' }}</strong></span>
+            </span>
+            <span class="text-[10px] text-slate-400 flex-shrink-0 ml-2">OpenEI / EIA</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+            <span class="flex items-center gap-2 truncate">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="truncate">Gas Area: <strong id="lbl-gas-area" class="text-white">ZIP {{ config.rates.zip_code }} (Denver Metro / Front Range)</strong></span>
+            </span>
+            <span id="lbl-gas-source" class="text-[10px] text-slate-400 flex-shrink-0 ml-2">U.S. EIA Weekly</span>
+          </div>
+        </div>
+
+        <!-- Optional Open API Keys Collapsible -->
+        <details class="text-xs group pt-1">
+          <summary class="text-slate-400 hover:text-slate-200 cursor-pointer flex items-center gap-1 font-semibold select-none">
+            <span>⚙️ Configure Custom Open API Keys & Provider Details (Optional)</span>
+            <span class="text-[10px] group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">U.S. EIA API Key (Free at eia.gov/opendata)</label>
+              <input type="text" name="eia_api_key" value="{{ config.rates.eia_api_key }}" placeholder="Free key from eia.gov (optional)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">OpenEI / NREL API Key (Free at openei.org)</label>
+              <input type="text" name="openei_api_key" value="{{ config.rates.openei_api_key }}" placeholder="Free key from openei.org (optional)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Electric Utility Name / Plan Override</label>
+              <input type="text" name="utility_name" value="{{ config.rates.utility_name }}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+            </div>
+          </div>
+        </details>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-xs font-semibold text-slate-400 mb-1">Off-Peak Rate ($/kWh)</label>
@@ -272,5 +332,82 @@ function applyTariffPreset(preset) {
     document.getElementById('weekends_are_off_peak').checked = true;
   }
 }
+
+async function syncGasPrice() {
+  const btn = document.getElementById('btn-sync-gas');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span>⏳</span> Fetching...';
+  btn.disabled = true;
+
+  const zip = document.querySelector('input[name="zip_code"]').value;
+  const eiaKey = document.querySelector('input[name="eia_api_key"]')?.value || '';
+
+  try {
+    const res = await fetch('/api/sync-gas-price', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zip_code: zip, eia_api_key: eiaKey })
+    });
+    const data = await res.json();
+    if (data.success && data.price) {
+      document.querySelector('input[name="gas_price_per_gal"]').value = data.price;
+      document.getElementById('lbl-gas-area').textContent = `${data.area_name} ($${data.price}/gal)`;
+      document.getElementById('lbl-gas-source').textContent = `${data.source} (${data.period})`;
+      alert(`✅ Updated regular gas price to $${data.price}/gal from ${data.source} for ${data.area_name}!`);
+    } else {
+      alert('Note: Could not retrieve live gas price. Using fallback.');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Error contacting gas price API endpoint.');
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
+async function syncElectricRates() {
+  const btn = document.getElementById('btn-sync-electric');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span>⏳</span> Fetching...';
+  btn.disabled = true;
+
+  const zip = document.querySelector('input[name="zip_code"]').value;
+  const openeiKey = document.querySelector('input[name="openei_api_key"]')?.value || '';
+  const eiaKey = document.querySelector('input[name="eia_api_key"]')?.value || '';
+
+  try {
+    const res = await fetch('/api/sync-electric-rates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zip_code: zip, openei_api_key: openeiKey, eia_api_key: eiaKey })
+    });
+    const data = await res.json();
+    if (data.success && data.rates) {
+      const r = data.rates;
+      document.getElementById('off_peak_kwh_cost').value = r.off_peak_kwh_cost;
+      document.getElementById('shoulder_kwh_cost').value = r.shoulder_kwh_cost;
+      document.getElementById('on_peak_kwh_cost').value = r.on_peak_kwh_cost;
+      document.getElementById('off_peak_start_hour').value = r.off_peak_start_hour;
+      document.getElementById('off_peak_end_hour').value = r.off_peak_end_hour;
+      document.getElementById('peak_start_hour').value = r.peak_start_hour;
+      document.getElementById('peak_end_hour').value = r.peak_end_hour;
+      document.getElementById('weekends_are_off_peak').checked = r.weekends_are_off_peak;
+      document.getElementById('lbl-utility').textContent = `${r.utility_name} - ${r.plan_name}`;
+      const utilInput = document.querySelector('input[name="utility_name"]');
+      if (utilInput) utilInput.value = r.utility_name;
+      alert(`✅ Updated TOU rates from ${r.source}: Off-Peak $${r.off_peak_kwh_cost}, Shoulder $${r.shoulder_kwh_cost}, Peak $${r.on_peak_kwh_cost}!`);
+    } else {
+      alert('Note: Could not retrieve live electric rates.');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Error contacting electric rates API endpoint.');
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
 </script>
 {% endblock %}
