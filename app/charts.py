@@ -38,14 +38,19 @@ def generate_spend_chart(charging: Dict[str, Any], as_bytes: bool = False):
 
     if charging.get("off_peak_kwh", 0) > 0:
         categories.append("Home Off-Peak")
-        # Approximate spend portion
-        costs.append(charging.get("off_peak_kwh", 0) * 0.09)
+        costs.append(charging.get("off_peak_spend", charging.get("off_peak_kwh", 0) * 0.09))
         kwhs.append(charging.get("off_peak_kwh", 0))
         colors.append("#10b981")  # Emerald green
 
+    if charging.get("shoulder_kwh", 0) > 0:
+        categories.append("Home Shoulder")
+        costs.append(charging.get("shoulder_spend", charging.get("shoulder_kwh", 0) * 0.13))
+        kwhs.append(charging.get("shoulder_kwh", 0))
+        colors.append("#38bdf8")  # Sky blue
+
     if charging.get("on_peak_kwh", 0) > 0:
         categories.append("Home On-Peak")
-        costs.append(charging.get("on_peak_kwh", 0) * 0.16)
+        costs.append(charging.get("on_peak_spend", charging.get("on_peak_kwh", 0) * 0.19))
         kwhs.append(charging.get("on_peak_kwh", 0))
         colors.append("#f59e0b")  # Amber
 
@@ -61,7 +66,7 @@ def generate_spend_chart(charging: Dict[str, Any], as_bytes: bool = False):
         kwhs = [charging.get("total_energy_used_kwh", 0)]
         colors = ["#3b82f6"]
 
-    fig, ax = plt.subplots(figsize=(6.5, 2.2), facecolor="#0f172a")
+    fig, ax = plt.subplots(figsize=(6.5, 2.4), facecolor="#0f172a")
     ax.set_facecolor("#0f172a")
 
     y_pos = np.arange(len(categories))
@@ -91,23 +96,38 @@ def generate_spend_chart(charging: Dict[str, Any], as_bytes: bool = False):
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
 
 
-def generate_tou_chart(hourly_kwh: List[float], off_peak_start: int = 21, off_peak_end: int = 9, as_bytes: bool = False):
+def generate_tou_chart(
+    hourly_kwh: List[float],
+    off_peak_start: int = 21,
+    off_peak_end: int = 9,
+    peak_start: int = 13,
+    peak_end: int = 19,
+    as_bytes: bool = False
+):
     """
-    24-hour distribution bar chart showing off-peak vs on-peak hours and energy drawn
+    24-hour distribution bar chart showing off-peak, shoulder, and on-peak hours
     """
-    fig, ax = plt.subplots(figsize=(7, 2.4), facecolor="#0f172a")
+    fig, ax = plt.subplots(figsize=(7, 2.5), facecolor="#0f172a")
     ax.set_facecolor("#0f172a")
 
     hours = list(range(24))
     bar_colors = []
 
     for h in hours:
-        is_off_peak = (h >= off_peak_start or h < off_peak_end)
-        bar_colors.append("#10b981" if is_off_peak else "#f59e0b")
+        is_off_peak = (h >= off_peak_start or h < off_peak_end) if off_peak_start > off_peak_end else (off_peak_start <= h < off_peak_end)
+        is_peak = (peak_start <= h < peak_end)
+        if is_off_peak:
+            bar_colors.append("#10b981")  # Green
+        elif is_peak:
+            bar_colors.append("#f59e0b")  # Amber
+        else:
+            bar_colors.append("#38bdf8")  # Sky blue (shoulder)
 
     # Shaded off-peak background region
-    ax.axvspan(-0.5, off_peak_end - 0.5, facecolor="#064e3b", alpha=0.25, label="Off-Peak (Night)")
-    ax.axvspan(off_peak_start - 0.5, 23.5, facecolor="#064e3b", alpha=0.25)
+    ax.axvspan(-0.5, off_peak_end - 0.5, facecolor="#064e3b", alpha=0.3, label="Off-Peak")
+    ax.axvspan(off_peak_start - 0.5, 23.5, facecolor="#064e3b", alpha=0.3)
+    # Shaded on-peak background
+    ax.axvspan(peak_start - 0.5, peak_end - 0.5, facecolor="#78350f", alpha=0.3, label="On-Peak")
 
     ax.bar(hours, hourly_kwh, color=bar_colors, width=0.75, zorder=3)
 

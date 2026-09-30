@@ -96,6 +96,8 @@ async def get_health_analytics(
 
         miles_remaining = max(0.0, rotation_interval_mi - miles_since)
         pct_used = min(100.0, round((miles_since / rotation_interval_mi) * 100.0, 1)) if rotation_interval_mi > 0 else 0.0
+        # Life remaining bar: 100% full when freshly rotated, depleting down to 0%
+        life_remaining_pct = max(0.0, min(100.0, round(((rotation_interval_mi - miles_since) / rotation_interval_mi) * 100.0, 1))) if rotation_interval_mi > 0 else 100.0
         due = miles_since >= rotation_interval_mi
 
         rotation_data = {
@@ -104,11 +106,42 @@ async def get_health_analytics(
             "miles_since_rotation": miles_since,
             "miles_remaining": round(miles_remaining),
             "pct_used": pct_used,
+            "life_remaining_pct": life_remaining_pct,
             "is_due": due,
             "status_text": "Tire Rotation Overdue!" if due else f"{round(miles_remaining):,} mi remaining"
         }
 
-        # 3. Firmware Updates Installed in this period
+        # 3. Seasonal Snow Tire Swap Tracker
+        active_tire_set = m_entry.get("active_tire_set", "all_season")
+        last_swap_date = m_entry.get("last_tire_swap_date", "Unknown")
+        current_month = end_date.month
+        snow_reminder = None
+
+        if current_month in [9, 10, 11] and active_tire_set != "winter":
+            snow_reminder = {
+                "show": True,
+                "type": "winter_prep",
+                "icon": "❄️",
+                "title": "Winter Tire Swap Reminder",
+                "msg": "Fall temperatures are dropping and the Colorado I-70 Traction Law is in effect (Sep 1 – May 31). Consider swapping to your snow tires!"
+            }
+        elif current_month in [4, 5, 6] and active_tire_set == "winter":
+            snow_reminder = {
+                "show": True,
+                "type": "spring_swap",
+                "icon": "☀️",
+                "title": "Spring Tire Swap Reminder",
+                "msg": "Spring temperatures are warming up. Switch back to your all-season set to preserve your soft winter rubber."
+            }
+
+        snow_tire_data = {
+            "active_set": active_tire_set,
+            "active_set_label": "Winter / Snow Tires" if active_tire_set == "winter" else "All-Season / Summer Tires",
+            "last_swap_date": last_swap_date,
+            "reminder": snow_reminder
+        }
+
+        # 4. Firmware Updates Installed in this period
         upd_query = """
             SELECT version, start_date
             FROM updates
@@ -131,6 +164,7 @@ async def get_health_analytics(
             "odometer_mi": current_odometer,
             "tpms": tpms_data,
             "tire_rotation": rotation_data,
+            "snow_tires": snow_tire_data,
             "updates": updates
         })
 

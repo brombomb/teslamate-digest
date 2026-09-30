@@ -34,13 +34,20 @@ class ScheduleSettings(BaseModel):
 
 class RatesSettings(BaseModel):
     rate_mode: str = "tou"  # tou or flat
+    tariff_preset: str = "xcel_colorado_tou"
     average_kwh_cost: float = 0.11
     off_peak_kwh_cost: float = 0.09
+    shoulder_kwh_cost: float = 0.13
+    on_peak_kwh_cost: float = 0.19
     off_peak_start_hour: int = 21  # 9 PM
     off_peak_end_hour: int = 9     # 9 AM
-    on_peak_kwh_cost: float = 0.16
+    peak_start_hour: int = 13      # 1 PM
+    peak_end_hour: int = 19        # 7 PM
+    weekends_are_off_peak: bool = True
     supercharger_fallback_cost: float = 0.36
-    gas_price_per_gal: float = 3.50
+    gas_price_per_gal: float = 4.00
+    zip_code: str = "80005"
+    auto_gas_price: bool = True
     baseline_ice_mpg: float = 26.0
 
 
@@ -61,6 +68,7 @@ class ModuleToggles(BaseModel):
     colorado_mountain_regen: bool = True
     vampire_drain: bool = True
     maintenance_alerts: bool = True
+    snow_tire_reminder: bool = True
     embedded_charts: bool = True
 
 
@@ -121,12 +129,16 @@ def load_maintenance_log() -> Dict[str, Any]:
             "car_name": "Forget Me Not",
             "last_tire_rotation_odometer": 178500,
             "last_tire_rotation_date": "2026-05-10",
+            "active_tire_set": "all_season",
+            "last_tire_swap_date": "2026-04-20",
             "notes": "Rotated at Tesla Service"
         },
         "2": {
             "car_name": "Shadow",
             "last_tire_rotation_odometer": 88000,
             "last_tire_rotation_date": "2026-04-15",
+            "active_tire_set": "all_season",
+            "last_tire_swap_date": "2026-04-15",
             "notes": "Rotated at Discount Tire"
         }
     }

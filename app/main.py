@@ -217,7 +217,6 @@ async def settings_view(request: Request):
         }
     )
 
-
 @app.post("/settings", response_class=HTMLResponse)
 async def settings_save(
     request: Request,
@@ -228,13 +227,19 @@ async def settings_save(
     smtp_password: str = Form(""),
     recipient_email: str = Form(""),
     sender_name: str = Form("TeslaMate Digest"),
+    tariff_preset: str = Form("xcel_colorado_tou"),
     average_kwh_cost: float = Form(0.11),
     off_peak_kwh_cost: float = Form(0.09),
-    on_peak_kwh_cost: float = Form(0.16),
+    shoulder_kwh_cost: float = Form(0.13),
+    on_peak_kwh_cost: float = Form(0.19),
     off_peak_start_hour: int = Form(21),
     off_peak_end_hour: int = Form(9),
+    peak_start_hour: int = Form(13),
+    peak_end_hour: int = Form(19),
+    weekends_are_off_peak: Optional[str] = Form(None),
     supercharger_fallback_cost: float = Form(0.36),
-    gas_price_per_gal: float = Form(3.50),
+    zip_code: str = Form("80005"),
+    gas_price_per_gal: float = Form(4.00),
     baseline_ice_mpg: float = Form(26.0),
     tire_rotation_interval_mi: int = Form(6250),
     schedule_enabled: Optional[str] = Form(None),
@@ -250,6 +255,7 @@ async def settings_save(
     mod_colorado_mountain_regen: Optional[str] = Form(None),
     mod_vampire_drain: Optional[str] = Form(None),
     mod_maintenance_alerts: Optional[str] = Form(None),
+    mod_snow_tire_reminder: Optional[str] = Form(None),
     mod_embedded_charts: Optional[str] = Form(None),
 ):
     cfg = load_config()
@@ -264,12 +270,18 @@ async def settings_save(
     cfg.smtp.recipient_email = recipient_email
     cfg.smtp.sender_name = sender_name
 
+    cfg.rates.tariff_preset = tariff_preset
     cfg.rates.average_kwh_cost = average_kwh_cost
     cfg.rates.off_peak_kwh_cost = off_peak_kwh_cost
+    cfg.rates.shoulder_kwh_cost = shoulder_kwh_cost
     cfg.rates.on_peak_kwh_cost = on_peak_kwh_cost
     cfg.rates.off_peak_start_hour = off_peak_start_hour
     cfg.rates.off_peak_end_hour = off_peak_end_hour
+    cfg.rates.peak_start_hour = peak_start_hour
+    cfg.rates.peak_end_hour = peak_end_hour
+    cfg.rates.weekends_are_off_peak = bool(weekends_are_off_peak)
     cfg.rates.supercharger_fallback_cost = supercharger_fallback_cost
+    cfg.rates.zip_code = zip_code
     cfg.rates.gas_price_per_gal = gas_price_per_gal
     cfg.rates.baseline_ice_mpg = baseline_ice_mpg
     cfg.tire_rotation_interval_mi = tire_rotation_interval_mi
@@ -288,6 +300,7 @@ async def settings_save(
     cfg.modules.colorado_mountain_regen = bool(mod_colorado_mountain_regen)
     cfg.modules.vampire_drain = bool(mod_vampire_drain)
     cfg.modules.maintenance_alerts = bool(mod_maintenance_alerts)
+    cfg.modules.snow_tire_reminder = bool(mod_snow_tire_reminder)
     cfg.modules.embedded_charts = bool(mod_embedded_charts)
 
     save_config(cfg)
@@ -305,21 +318,95 @@ async def settings_save(
 
 
 @app.get("/maintenance", response_class=HTMLResponse)
-async def maintenance_view(request: Request):
+async def maintenance_view(request: Request, msg: Optional[str] = Query(None)):
     db: Database = request.app.state.db
     cars = await db.get_cars()
     log = load_maintenance_log()
+    cfg = load_config()
+
+    car_statuses = []
+    for c in cars:
+        cid = c["id"]
+        latest_pos = await db.fetchrow(
+            "SELECT coalesce(odometer, 0) * 0.621371 as odometer_mi FROM positions WHERE car_id = $1 ORDER BY date DESC LIMIT 1;",
+            cid
+        )
+        curr_odo = round(float(latest_pos["odometer_mi"]), 1) if latest_pos else 0.0
+        m = log.get(str(cid), {})
+        last_rot_odo = float(m.get("last_tire_rotation_odometer", 0))
+        last_rot_date = m.get("last_tire_rotation_date", "")
+        active_set = m.get("active_tire_set", "all_season")
+        last_swap_date = m.get("last_tire_swap_date", "")
+        notes = m.get("notes", "")
+
+        miles_since = round(max(0.0, curr_odo - last_rot_odo), 1) if last_rot_odo > 0 else 0.0
+        interval = cfg.tire_rotation_interval_mi
+        miles_remaining = max(0.0, interval - miles_since)
+        life_remaining_pct = max(0.0, min(100.0, round(((interval - miles_since) / interval) * 100.0, 1))) if interval > 0 else 100.0
+        is_overdue = miles_since >= interval
+
+        car_statuses.append({
+            "id": cid,
+            "name": c["name"],
+            "model": c["model"],
+            "current_odometer": curr_odo,
+            "last_tire_rotation_odometer": last_rot_odo,
+            "last_tire_rotation_date": last_rot_date,
+            "miles_since": miles_since,
+            "miles_remaining": miles_remaining,
+            "life_remaining_pct": life_remaining_pct,
+            "is_overdue": is_overdue,
+            "active_tire_set": active_set,
+            "last_tire_swap_date": last_swap_date,
+            "notes": notes,
+        })
+
+    flash_message = None
+    if msg == "rotated":
+        flash_message = "✅ Tires marked as rotated today! Tread life reset to 100%."
+    elif msg == "swapped":
+        flash_message = "✅ Seasonal tire set updated successfully!"
 
     return templates.TemplateResponse(
         "maintenance.html",
         {
             "request": request,
             "active_nav": "maintenance",
-            "cars": cars,
+            "cars": car_statuses,
             "log": log,
-            "message": None
+            "message": flash_message
         }
     )
+
+
+@app.post("/maintenance/quick-rotate")
+async def quick_rotate(request: Request, car_id: str = Form(...)):
+    db: Database = request.app.state.db
+    latest_pos = await db.fetchrow(
+        "SELECT coalesce(odometer, 0) * 0.621371 as odometer_mi FROM positions WHERE car_id = $1 ORDER BY date DESC LIMIT 1;",
+        int(car_id)
+    )
+    curr_odo = round(float(latest_pos["odometer_mi"]), 1) if latest_pos else 0.0
+    log = load_maintenance_log()
+    cid_str = str(car_id)
+    if cid_str not in log:
+        log[cid_str] = {}
+    log[cid_str]["last_tire_rotation_odometer"] = curr_odo
+    log[cid_str]["last_tire_rotation_date"] = datetime.now().strftime("%Y-%m-%d")
+    save_maintenance_log(log)
+    return RedirectResponse(url="/maintenance?msg=rotated", status_code=303)
+
+
+@app.post("/maintenance/swap-tires")
+async def swap_tires(request: Request, car_id: str = Form(...), target_set: str = Form(...)):
+    log = load_maintenance_log()
+    cid_str = str(car_id)
+    if cid_str not in log:
+        log[cid_str] = {}
+    log[cid_str]["active_tire_set"] = target_set
+    log[cid_str]["last_tire_swap_date"] = datetime.now().strftime("%Y-%m-%d")
+    save_maintenance_log(log)
+    return RedirectResponse(url="/maintenance?msg=swapped", status_code=303)
 
 
 @app.post("/maintenance", response_class=HTMLResponse)
@@ -328,26 +415,22 @@ async def maintenance_save(
     car_id: str = Form(...),
     last_tire_rotation_odometer: float = Form(0),
     last_tire_rotation_date: str = Form(""),
+    active_tire_set: str = Form("all_season"),
+    last_tire_swap_date: str = Form(""),
     notes: str = Form("")
 ):
     db: Database = request.app.state.db
-    cars = await db.get_cars()
     log = load_maintenance_log()
+    cid_str = str(car_id)
+    if cid_str not in log:
+        log[cid_str] = {}
 
-    log[str(car_id)] = {
-        "last_tire_rotation_odometer": last_tire_rotation_odometer,
-        "last_tire_rotation_date": last_tire_rotation_date,
-        "notes": notes
-    }
+    log[cid_str]["last_tire_rotation_odometer"] = last_tire_rotation_odometer
+    log[cid_str]["last_tire_rotation_date"] = last_tire_rotation_date
+    log[cid_str]["active_tire_set"] = active_tire_set
+    log[cid_str]["last_tire_swap_date"] = last_tire_swap_date
+    log[cid_str]["notes"] = notes
     save_maintenance_log(log)
 
-    return templates.TemplateResponse(
-        "maintenance.html",
-        {
-            "request": request,
-            "active_nav": "maintenance",
-            "cars": cars,
-            "log": log,
-            "message": "Maintenance log updated successfully!"
-        }
-    )
+    return RedirectResponse(url="/maintenance?msg=saved", status_code=303)
+

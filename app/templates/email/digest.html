@@ -98,25 +98,32 @@
                   
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                     <tr>
-                      <td width="33%" style="padding-right: 6px;">
+                      <td width="25%" style="padding-right: 4px;">
                         <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
-                          <div style="font-size: 11px; color: #94a3b8;">Home Charging</div>
-                          <div style="font-size: 17px; font-weight: 700; color: #f8fafc; margin: 3px 0;">${{ "{:,.2f}".format(charging.home_spend) }}</div>
-                          <div style="font-size: 11px; color: #64748b;">{{ charging.home_kwh }} kWh</div>
+                          <div style="font-size: 11px; color: #34d399; font-weight: 700;">Off-Peak</div>
+                          <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 3px 0;">${{ "{:,.2f}".format(charging.off_peak_spend) }}</div>
+                          <div style="font-size: 10px; color: #64748b;">{{ charging.off_peak_kwh }} kWh</div>
                         </div>
                       </td>
-                      <td width="33%" style="padding: 0 3px;">
+                      <td width="25%" style="padding: 0 2px;">
                         <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
-                          <div style="font-size: 11px; color: #94a3b8;">Superchargers</div>
-                          <div style="font-size: 17px; font-weight: 700; color: #e82127; margin: 3px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
-                          <div style="font-size: 11px; color: #64748b;">{{ charging.supercharger_kwh }} kWh ({{ charging.supercharger_sessions }} ses)</div>
+                          <div style="font-size: 11px; color: #38bdf8; font-weight: 700;">Shoulder</div>
+                          <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 3px 0;">${{ "{:,.2f}".format(charging.shoulder_spend) }}</div>
+                          <div style="font-size: 10px; color: #64748b;">{{ charging.shoulder_kwh }} kWh</div>
                         </div>
                       </td>
-                      <td width="34%" style="padding-left: 6px;">
+                      <td width="25%" style="padding: 0 2px;">
                         <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
-                          <div style="font-size: 11px; color: #94a3b8;">Off-Peak Score</div>
-                          <div style="font-size: 17px; font-weight: 700; color: #34d399; margin: 3px 0;">{{ charging.off_peak_score_pct }}%</div>
-                          <div style="font-size: 11px; color: #64748b;">Optimal grid hours</div>
+                          <div style="font-size: 11px; color: #e82127; font-weight: 700;">Supercharger</div>
+                          <div style="font-size: 16px; font-weight: 700; color: #e82127; margin: 3px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
+                          <div style="font-size: 10px; color: #64748b;">{{ charging.supercharger_kwh }} kWh</div>
+                        </div>
+                      </td>
+                      <td width="25%" style="padding-left: 4px;">
+                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                          <div style="font-size: 11px; color: #94a3b8; font-weight: 700;">Off-Peak %</div>
+                          <div style="font-size: 16px; font-weight: 700; color: #34d399; margin: 3px 0;">{{ charging.off_peak_score_pct }}%</div>
+                          <div style="font-size: 10px; color: #64748b;">Optimal hours</div>
                         </div>
                       </td>
                     </tr>
@@ -128,7 +135,7 @@
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="font-size: 13px; color: #e2e8f0; line-height: 1.4;">
-                          Driving electric saved you <strong style="color: #34d399;">${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</strong> compared to fueling a 26 MPG gas vehicle. You avoided <strong style="color: #f8fafc;">{{ charging.gas_savings.gallons_avoided }} gallons</strong> of gasoline and prevented <strong style="color: #34d399;">{{ "{:,.0f}".format(charging.gas_savings.co2_lbs_prevented) }} lbs of CO₂</strong> emissions.
+                          Driving electric saved you <strong style="color: #34d399;">${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</strong> compared to fueling a 26 MPG gas vehicle (at ${{ "{:,.2f}".format(rates.gas_price_per_gal) }}/gal in {{ rates.zip_code }}). You avoided <strong style="color: #f8fafc;">{{ charging.gas_savings.gallons_avoided }} gallons</strong> of gasoline and prevented <strong style="color: #34d399;">{{ "{:,.0f}".format(charging.gas_savings.co2_lbs_prevented) }} lbs of CO₂</strong> emissions.
                         </td>
                       </tr>
                     </table>
@@ -296,11 +303,11 @@
                 </div>
                 {% endif %}
 
-                <!-- SECTION 5: TAUTULLI HEALTH, TPMS & MAINTENANCE -->
+                <!-- SECTION 5: VEHICLE HEALTH & MAINTENANCE -->
                 {% if modules.maintenance_alerts %}
                 <div class="card">
                   <div class="section-title">
-                    <span style="margin-right: 8px;">🛠️</span> Vehicle Health & Maintenance (Tautulli)
+                    <span style="margin-right: 8px;">🛠️</span> Vehicle Health & Maintenance
                   </div>
 
                   {% for c in health.cars %}
@@ -321,13 +328,31 @@
                       </tr>
                     </table>
 
-                    <!-- TIRE ROTATION BAR -->
-                    <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">
-                      Tire Rotation Interval: <strong>{{ c.tire_rotation.miles_since_rotation }} / 6,250 mi</strong> ({{ c.tire_rotation.status_text }})
+                    <!-- TIRE ROTATION LIFE BAR (100% when freshly rotated) -->
+                    <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                      <span>Tire Rotation Health: <strong style="color: {% if c.tire_rotation.is_due %}#ef4444{% elif c.tire_rotation.life_remaining_pct < 25 %}#f59e0b{% else %}#34d399{% endif %};">{{ c.tire_rotation.life_remaining_pct }}%</strong></span>
+                      <span style="font-size: 11px; color: #64748b;">{{ "{:,.0f}".format(c.tire_rotation.miles_remaining) }} mi until 6,250 mi limit</span>
                     </div>
-                    <div style="background-color: #1e293b; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 10px;">
-                      <div style="background-color: {% if c.tire_rotation.is_due %}#ef4444{% else %}#10b981{% endif %}; width: {{ c.tire_rotation.pct_used }}%; height: 100%;"></div>
+                    <div style="background-color: #1e293b; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 10px; border: 1px solid #334155;">
+                      <div style="background-color: {% if c.tire_rotation.is_due %}#ef4444{% elif c.tire_rotation.life_remaining_pct < 25 %}#f59e0b{% else %}#10b981{% endif %}; width: {{ c.tire_rotation.life_remaining_pct }}%; height: 100%; border-radius: 4px;"></div>
                     </div>
+
+                    <!-- SEASONAL SNOW TIRE STATUS & REMINDER -->
+                    {% if modules.snow_tire_reminder and c.snow_tires %}
+                    <div style="background-color: #1e293b; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; border: 1px solid #334155; font-size: 12px;">
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="color: #cbd5e1;">Active Tires: <strong style="color: #f8fafc;">{{ c.snow_tires.active_set_label }}</strong></td>
+                          <td align="right" style="color: #64748b; font-size: 11px;">Swapped {{ c.snow_tires.last_swap_date }}</td>
+                        </tr>
+                      </table>
+                    </div>
+                    {% if c.snow_tires.reminder %}
+                    <div style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font-size: 12px; color: #e0f2fe; line-height: 1.4;">
+                      {{ c.snow_tires.reminder.icon }} <strong>{{ c.snow_tires.reminder.title }}</strong>: {{ c.snow_tires.reminder.msg }}
+                    </div>
+                    {% endif %}
+                    {% endif %}
 
                     <!-- TPMS READOUT -->
                     {% if c.tpms %}
@@ -376,7 +401,7 @@
             <!-- FOOTER -->
             <tr>
               <td style="padding: 18px 24px; background-color: #0b0f19; border-top: 1px solid #1e293b; text-align: center; color: #64748b; font-size: 12px;">
-                Generated by <strong>TeslaMate Digest</strong> &bull; Inspired by WeaveGrid, Google Maps Guides, and Tautulli.<br>
+                Generated by <strong>TeslaMate Digest</strong> &bull; Inspired by WeaveGrid and Google Maps Guides.<br>
                 <a href="{{ dashboard_url }}" style="color: #e82127; text-decoration: none; margin-top: 4px; display: inline-block;">Open Local Dashboard</a>
               </td>
             </tr>

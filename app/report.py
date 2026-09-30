@@ -40,7 +40,13 @@ async def build_digest_report(
     Builds the complete digest HTML and charts.
     Returns: (subject, html_content, inline_image_dict)
     """
-    # 1. Fetch data
+    # 1. Fetch data & check live gas price
+    from app.services.gas_prices import fetch_live_gas_price
+    if config.rates.auto_gas_price:
+        config.rates.gas_price_per_gal = await fetch_live_gas_price(
+            config.rates.zip_code, config.rates.gas_price_per_gal
+        )
+
     trips = await get_trip_analytics(db, start_date, end_date, car_id)
     charging = await get_charging_analytics(db, start_date, end_date, car_id, config.rates, trips["total_miles"])
     superchargers = await get_supercharger_analytics(db, start_date, end_date, car_id)
@@ -80,6 +86,8 @@ async def build_digest_report(
             charging["hourly_kwh"],
             config.rates.off_peak_start_hour,
             config.rates.off_peak_end_hour,
+            config.rates.peak_start_hour,
+            config.rates.peak_end_hour,
             as_bytes=True
         )
         battery_bytes = charts.generate_battery_trend_chart(battery, as_bytes=True)

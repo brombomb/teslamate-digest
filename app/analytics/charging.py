@@ -55,7 +55,11 @@ async def get_charging_analytics(
     home_kwh = 0.0
     home_spend = 0.0
     off_peak_kwh = 0.0
+    off_peak_spend = 0.0
+    shoulder_kwh = 0.0
+    shoulder_spend = 0.0
     on_peak_kwh = 0.0
+    on_peak_spend = 0.0
 
     supercharger_kwh = 0.0
     supercharger_spend = 0.0
@@ -102,27 +106,40 @@ async def get_charging_analytics(
             else:
                 other_spend += kwh_used * rates.supercharger_fallback_cost
         else:
-            # AC Charging (Home vs Public)
-            # Check TOU time
-            is_off_peak = False
-            if rates.off_peak_start_hour > rates.off_peak_end_hour:
-                # Overnight e.g. 21 to 9
-                is_off_peak = (start_hour >= rates.off_peak_start_hour or start_hour < rates.off_peak_end_hour)
-            else:
-                is_off_peak = (rates.off_peak_start_hour <= start_hour < rates.off_peak_end_hour)
+            # AC Charging (Home / Destination)
+            from app.services.tou import determine_tou_tier
+            tier = determine_tou_tier(
+                dt=s_date,
+                off_peak_start=rates.off_peak_start_hour,
+                off_peak_end=rates.off_peak_end_hour,
+                peak_start=rates.peak_start_hour,
+                peak_end=rates.peak_end_hour,
+                weekends_are_off_peak=rates.weekends_are_off_peak
+            )
 
-            rate = rates.off_peak_kwh_cost if is_off_peak else rates.on_peak_kwh_cost
             if rates.rate_mode == "flat":
                 rate = rates.average_kwh_cost
+                cost = kwh_used * rate
+                off_peak_kwh += kwh_used
+                off_peak_spend += cost
+            elif tier == "off_peak":
+                rate = rates.off_peak_kwh_cost
+                cost = kwh_used * rate
+                off_peak_kwh += kwh_used
+                off_peak_spend += cost
+            elif tier == "shoulder":
+                rate = rates.shoulder_kwh_cost
+                cost = kwh_used * rate
+                shoulder_kwh += kwh_used
+                shoulder_spend += cost
+            else:  # on_peak
+                rate = rates.on_peak_kwh_cost
+                cost = kwh_used * rate
+                on_peak_kwh += kwh_used
+                on_peak_spend += cost
 
-            cost = kwh_used * rate
             home_kwh += kwh_used
             home_spend += cost
-
-            if is_off_peak:
-                off_peak_kwh += kwh_used
-            else:
-                on_peak_kwh += kwh_used
 
     total_spend = home_spend + supercharger_spend + other_spend
     efficiency_pct = (total_energy_added / total_energy_used * 100.0) if total_energy_used > 0 else 0.0
@@ -145,7 +162,11 @@ async def get_charging_analytics(
         "home_kwh": round(home_kwh, 2),
         "home_spend": round(home_spend, 2),
         "off_peak_kwh": round(off_peak_kwh, 2),
+        "off_peak_spend": round(off_peak_spend, 2),
+        "shoulder_kwh": round(shoulder_kwh, 2),
+        "shoulder_spend": round(shoulder_spend, 2),
         "on_peak_kwh": round(on_peak_kwh, 2),
+        "on_peak_spend": round(on_peak_spend, 2),
         "off_peak_score_pct": round(off_peak_score_pct, 1),
         "supercharger_sessions": supercharger_sessions,
         "supercharger_kwh": round(supercharger_kwh, 2),

@@ -6,7 +6,7 @@
 
 A modern, automated personal email digest service and annual retrospective built on top of your **TeslaMate** telemetry data.
 
-Inspired by the utility financial clarity of **WeaveGrid**, the travel storytelling of **Google Maps Local Guides**, the modular health monitoring of **Tautulli**, and the celebratory data badges of **Spotify Wrapped**.
+Inspired by the utility financial clarity of **WeaveGrid**, the travel storytelling of **Google Maps Local Guides**, modular vehicle telemetry monitoring, and the celebratory data badges of **Spotify Wrapped**.
 
 ---
 
@@ -32,7 +32,7 @@ Inspired by the utility financial clarity of **WeaveGrid**, the travel storytell
 * **Lifetime Unique Stations Counter**: Keeps track of every distinct Supercharger station you have ever plugged into.
 * **New Superchargers Unlocked**: Badges any new station visited during the reporting period with date, peak kW power, and energy added.
 
-### 5. 🛠️ Vehicle Telemetry & Maintenance (The Tautulli Module)
+### 5. 🛠️ Vehicle Telemetry & Maintenance Tracker
 * **4-Corner TPMS Graphic**: Visual tire pressure card (FL, FR, RL, RR in PSI or Bar) with color-coded status (Normal vs. Low vs. Left/Right Imbalance).
 * **Tire Rotation Reminder**: Counts miles driven since your last recorded rotation against Tesla's recommended 6,250-mile (10,000 km) interval with a visual progress bar.
 * **Firmware Updates**: Logs any new software releases installed on your vehicles during the period.
