@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - TeslaMate Digest{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <div>
+    <h2 class="text-2xl font-black text-white">Settings & Configuration</h2>
+    <p class="text-sm text-slate-400 mt-1">Configure email delivery, time-of-use rates, scheduling, and active modules.</p>
+  </div>
+
+  {% if message %}
+  <div class="p-4 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-sm">
+    {{ message }}
+  </div>
+  {% endif %}
+
+  <form method="POST" action="/settings" class="space-y-6">
+
+    <!-- 1. EMAIL DELIVERY (SMTP) -->
+    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>✉️</span> Email Delivery (Gmail SMTP)
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Use your Gmail address and a 16-character Google App Password.</p>
+        </div>
+        <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
+          <input type="checkbox" name="smtp_enabled" {% if config.smtp.enabled %}checked{% endif %} class="rounded bg-slate-950 border-slate-700 text-tesla focus:ring-0">
+          <span class="text-slate-200">Enable SMTP</span>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">SMTP Server</label>
+          <input type="text" name="smtp_host" value="{{ config.smtp.host }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">SMTP Port</label>
+          <input type="number" name="smtp_port" value="{{ config.smtp.port }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Gmail Address (Username)</label>
+          <input type="email" name="smtp_user" value="{{ config.smtp.user }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Google App Password</label>
+          <input type="password" name="smtp_password" value="{{ config.smtp.password }}" placeholder="16-character app password" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Recipient Email</label>
+          <input type="email" name="recipient_email" value="{{ config.smtp.recipient_email }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Sender Name</label>
+          <input type="text" name="sender_name" value="{{ config.smtp.sender_name }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. TIME-OF-USE (TOU) & ELECTRICITY RATES -->
+    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
+      <div class="border-b border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>⚡</span> Time-of-Use (TOU) & Charging Rates
+        </h3>
+        <p class="text-xs text-slate-400 mt-0.5">Calculates precise charging spend and gas savings.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Average Home Rate ($/kWh)</label>
+          <input type="number" step="0.01" name="average_kwh_cost" value="{{ config.rates.average_kwh_cost }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Off-Peak Rate ($/kWh)</label>
+          <input type="number" step="0.01" name="off_peak_kwh_cost" value="{{ config.rates.off_peak_kwh_cost }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">On-Peak Rate ($/kWh)</label>
+          <input type="number" step="0.01" name="on_peak_kwh_cost" value="{{ config.rates.on_peak_kwh_cost }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Off-Peak Window Start (Hour)</label>
+          <select name="off_peak_start_hour" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+            {% for h in range(24) %}
+            <option value="{{ h }}" {% if config.rates.off_peak_start_hour == h %}selected{% endif %}>{{ h }}:00 ({{ '12am' if h==0 else (h|string + 'am' if h<12 else ('12pm' if h==12 else (h-12)|string + 'pm')) }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Off-Peak Window End (Hour)</label>
+          <select name="off_peak_end_hour" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+            {% for h in range(24) %}
+            <option value="{{ h }}" {% if config.rates.off_peak_end_hour == h %}selected{% endif %}>{{ h }}:00 ({{ '12am' if h==0 else (h|string + 'am' if h<12 else ('12pm' if h==12 else (h-12)|string + 'pm')) }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Supercharger Fallback ($/kWh)</label>
+          <input type="number" step="0.01" name="supercharger_fallback_cost" value="{{ config.rates.supercharger_fallback_cost }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Baseline Gas Price ($/gal)</label>
+          <input type="number" step="0.01" name="gas_price_per_gal" value="{{ config.rates.gas_price_per_gal }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Baseline Gas Vehicle MPG</label>
+          <input type="number" step="0.1" name="baseline_ice_mpg" value="{{ config.rates.baseline_ice_mpg }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Tire Rotation Interval (Miles)</label>
+          <input type="number" name="tire_rotation_interval_mi" value="{{ config.tire_rotation_interval_mi }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. AUTOMATED SCHEDULE -->
+    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>⏰</span> Automated Dispatch Schedule
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Control how frequently the service sends your email digest.</p>
+        </div>
+        <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
+          <input type="checkbox" name="schedule_enabled" {% if config.schedule.enabled %}checked{% endif %} class="rounded bg-slate-950 border-slate-700 text-tesla focus:ring-0">
+          <span class="text-slate-200">Enable Schedule</span>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Frequency</label>
+          <select name="frequency" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+            <option value="monthly" {% if config.schedule.frequency == 'monthly' %}selected{% endif %}>Monthly (1st of month)</option>
+            <option value="weekly" {% if config.schedule.frequency == 'weekly' %}selected{% endif %}>Weekly (Mondays)</option>
+            <option value="daily" {% if config.schedule.frequency == 'daily' %}selected{% endif %}>Daily (Every morning)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Send Hour (24-hr)</label>
+          <input type="number" min="0" max="23" name="send_hour" value="{{ config.schedule.send_hour }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Send Minute</label>
+          <input type="number" min="0" max="59" name="send_minute" value="{{ config.schedule.send_minute }}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. ACTIVE MODULES & SECTIONS -->
+    <div class="bg-slate-900 rounded-xl p-6 border border-slate-800 space-y-4">
+      <div class="border-b border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>🧩</span> Active Modules & Sections
+        </h3>
+        <p class="text-xs text-slate-400 mt-0.5">Toggle which cards and analytics are included in your digest.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_spend_breakdown" {% if config.modules.spend_breakdown %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>⚡ Charging & Electric Spend (WeaveGrid)</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_gas_savings" {% if config.modules.gas_savings %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>💰 Gas Savings & CO₂ Avoided</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_battery_health" {% if config.modules.battery_health %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>🔋 Battery Health & Degradation</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_supercharger_explorer" {% if config.modules.supercharger_explorer %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>⚡ Supercharger Explorer & New Pins</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_top_locations" {% if config.modules.top_locations %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>📍 Top Destinations & Places Visited</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_driving_milestones" {% if config.modules.driving_milestones %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>🛣️ Driving Milestones & Longest Trip</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_colorado_mountain_regen" {% if config.modules.colorado_mountain_regen %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>🏔️ Colorado Mountain Elevation & Regen</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_vampire_drain" {% if config.modules.vampire_drain %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>🌙 Vampire Standby Drain & Sentry Loss</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_maintenance_alerts" {% if config.modules.maintenance_alerts %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>🛠️ TPMS Pressures & Tire Rotation Alert</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-950 rounded-lg border border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_embedded_charts" {% if config.modules.embedded_charts %}checked{% endif %} class="rounded bg-slate-900 border-slate-700 text-tesla">
+          <span>📊 High-Res Embedded Chart Images</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- SAVE BUTTON -->
+    <div class="flex justify-end space-x-4">
+      <button type="submit" class="px-6 py-2.5 bg-tesla hover:bg-red-700 text-white font-bold rounded-lg text-sm transition shadow-lg shadow-red-950/40">
+        Save Settings
+      </button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

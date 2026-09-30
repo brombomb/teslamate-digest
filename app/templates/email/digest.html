@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeslaMate Digest - {{ report_title }}</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0b0f19;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f8fafc;
+      -webkit-font-smoothing: antialiased;
+    }
+    table { border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    td { vertical-align: top; }
+    .wrapper { width: 100%; table-layout: fixed; background-color: #0b0f19; padding-bottom: 40px; }
+    .main-table { width: 100%; max-width: 660px; margin: 0 auto; background-color: #0f172a; border-radius: 14px; overflow: hidden; border: 1px solid #1e293b; }
+    .card { background-color: #1e293b; border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; border: 1px solid #334155; }
+    .kpi-box { background-color: #0f172a; border-radius: 8px; padding: 14px; text-align: center; border: 1px solid #334155; }
+    .kpi-val { font-size: 24px; font-weight: 800; color: #f8fafc; margin-bottom: 4px; }
+    .kpi-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; font-weight: 600; }
+    .section-title { font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0 0 14px 0; display: flex; align-items: center; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge-green { background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-blue { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .badge-red { background-color: rgba(232, 33, 39, 0.2); color: #f87171; border: 1px solid rgba(232, 33, 39, 0.4); }
+    .badge-amber { background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .chart-img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; display: block; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <center class="wrapper">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" class="main-table" cellpadding="0" cellspacing="0">
+            
+            <!-- HEADER -->
+            <tr>
+              <td style="padding: 28px 24px 20px 24px; background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%); border-bottom: 1px solid #334155;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td>
+                      <span style="color: #e82127; font-weight: 900; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">TESLAMATE DIGEST</span>
+                      <h1 style="margin: 6px 0 2px 0; font-size: 26px; font-weight: 800; color: #ffffff;">{{ report_title }}</h1>
+                      <div style="color: #94a3b8; font-size: 13px;">{{ date_subtitle }} &bull; {{ car_subtitle }}</div>
+                    </td>
+                    <td align="right" style="vertical-align: middle;">
+                      <span class="badge badge-red">Active Fleet</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- CONTENT BODY -->
+            <tr>
+              <td style="padding: 22px 22px 10px 22px;">
+
+                <!-- TOP KPI ROW -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                  <tr>
+                    <td width="23%" style="padding-right: 8px;">
+                      <div class="kpi-box">
+                        <div class="kpi-val">{{ "{:,.0f}".format(trips.total_miles) }}</div>
+                        <div class="kpi-lbl">Miles Driven</div>
+                      </div>
+                    </td>
+                    <td width="23%" style="padding: 0 4px;">
+                      <div class="kpi-box">
+                        <div class="kpi-val">${{ "{:,.2f}".format(charging.total_spend) }}</div>
+                        <div class="kpi-lbl">Electric Spend</div>
+                      </div>
+                    </td>
+                    <td width="27%" style="padding: 0 4px;">
+                      <div class="kpi-box" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+                        <div class="kpi-val" style="color: #34d399;">+${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
+                        <div class="kpi-lbl" style="color: #34d399;">Saved vs Gas</div>
+                      </div>
+                    </td>
+                    <td width="27%" style="padding-left: 8px;">
+                      <div class="kpi-box">
+                        <div class="kpi-val">{{ charging.efficiency_pct }}%</div>
+                        <div class="kpi-lbl">Charge Efficiency</div>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- SECTION 1: WEAVEGRID CHARGING & SPEND -->
+                {% if modules.spend_breakdown %}
+                <div class="card">
+                  <div class="section-title">
+                    <span style="margin-right: 8px;">⚡</span> Charging & Electric Spend (WeaveGrid Summary)
+                  </div>
+                  
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                    <tr>
+                      <td width="33%" style="padding-right: 6px;">
+                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                          <div style="font-size: 11px; color: #94a3b8;">Home Charging</div>
+                          <div style="font-size: 17px; font-weight: 700; color: #f8fafc; margin: 3px 0;">${{ "{:,.2f}".format(charging.home_spend) }}</div>
+                          <div style="font-size: 11px; color: #64748b;">{{ charging.home_kwh }} kWh</div>
+                        </div>
+                      </td>
+                      <td width="33%" style="padding: 0 3px;">
+                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                          <div style="font-size: 11px; color: #94a3b8;">Superchargers</div>
+                          <div style="font-size: 17px; font-weight: 700; color: #e82127; margin: 3px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
+                          <div style="font-size: 11px; color: #64748b;">{{ charging.supercharger_kwh }} kWh ({{ charging.supercharger_sessions }} ses)</div>
+                        </div>
+                      </td>
+                      <td width="34%" style="padding-left: 6px;">
+                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                          <div style="font-size: 11px; color: #94a3b8;">Off-Peak Score</div>
+                          <div style="font-size: 17px; font-weight: 700; color: #34d399; margin: 3px 0;">{{ charging.off_peak_score_pct }}%</div>
+                          <div style="font-size: 11px; color: #64748b;">Optimal grid hours</div>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- GAS SAVINGS CALLOUT -->
+                  {% if modules.gas_savings %}
+                  <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size: 13px; color: #e2e8f0; line-height: 1.4;">
+                          Driving electric saved you <strong style="color: #34d399;">${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</strong> compared to fueling a 26 MPG gas vehicle. You avoided <strong style="color: #f8fafc;">{{ charging.gas_savings.gallons_avoided }} gallons</strong> of gasoline and prevented <strong style="color: #34d399;">{{ "{:,.0f}".format(charging.gas_savings.co2_lbs_prevented) }} lbs of CO₂</strong> emissions.
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  {% endif %}
+
+                  {% if chart_spend %}
+                  <img src="{{ chart_spend }}" alt="Spend Breakdown" class="chart-img" />
+                  {% endif %}
+
+                  {% if chart_tou %}
+                  <img src="{{ chart_tou }}" alt="24-Hour TOU Distribution" class="chart-img" />
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- SECTION 2: BATTERY HEALTH -->
+                {% if modules.battery_health and battery.cars %}
+                <div class="card">
+                  <div class="section-title">
+                    <span style="margin-right: 8px;">🔋</span> Battery Health & Range Degradation
+                  </div>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                    {% for c in battery.cars %}
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #334155;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td>
+                              <span style="font-weight: 700; font-size: 15px; color: #f8fafc;">{{ c.car_name }}</span>
+                              <span style="font-size: 12px; color: #94a3b8; margin-left: 6px;">Model {{ c.model }} &bull; {{ "{:,.0f}".format(c.latest_odometer_mi) }} mi</span>
+                            </td>
+                            <td align="right">
+                              <span class="badge" style="background-color: rgba(16, 185, 129, 0.2); color: {{ c.health_color }}; border: 1px solid {{ c.health_color }};">
+                                {{ c.capacity_retained_pct }}% Capacity &bull; {{ c.health_grade }}
+                              </span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td colspan="2" style="padding-top: 6px;">
+                              <div style="font-size: 13px; color: #cbd5e1;">
+                                100% Rated Range: <strong style="color: #f8fafc;">{{ c.current_estimated_range_mi }} mi</strong>
+                                <span style="color: #94a3b8; font-size: 12px; margin-left: 8px;">(Original Max: {{ c.factory_baseline_range_mi }} mi &bull; Degradation: -{{ c.degradation_pct }}%)</span>
+                              </div>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </table>
+
+                  {% if chart_battery %}
+                  <img src="{{ chart_battery }}" alt="Battery Range Trend" class="chart-img" />
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- SECTION 3: GOOGLE MAPS GUIDES TRIPS & PLACES -->
+                {% if modules.top_locations or modules.driving_milestones %}
+                <div class="card">
+                  <div class="section-title">
+                    <span style="margin-right: 8px;">📍</span> Driving Highlights & Top Destinations
+                  </div>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td width="33%" style="padding-right: 6px;">
+                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                          <div style="font-size: 11px; color: #94a3b8;">Total Drives</div>
+                          <div style="font-size: 17px; font-weight: 700; color: #f8fafc; margin: 3px 0;">{{ trips.drives_count }} trips</div>
+                          <div style="font-size: 11px; color: #64748b;">{{ trips.total_duration_hours }} hrs on road</div>
+                        </div>
+                      </td>
+                      <td width="33%" style="padding: 0 3px;">
+                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                          <div style="font-size: 11px; color: #94a3b8;">Average Trip</div>
+                          <div style="font-size: 17px; font-weight: 700; color: #f8fafc; margin: 3px 0;">{{ trips.avg_trip_miles }} mi</div>
+                          <div style="font-size: 11px; color: #64748b;">Top speed: {{ trips.top_speed_mph }} mph</div>
+                        </div>
+                      </td>
+                      <td width="34%" style="padding-left: 6px;">
+                        <div style="background-color: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                          <div style="font-size: 11px; color: #94a3b8;">Mountain Ascent</div>
+                          <div style="font-size: 17px; font-weight: 700; color: #38bdf8; margin: 3px 0;">{{ "{:,.0f}".format(trips.elevation.ascent_ft) }} ft</div>
+                          <div style="font-size: 11px; color: #34d399;">~{{ trips.elevation.regen_kwh_recaptured }} kWh regen</div>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- LONGEST DRIVE -->
+                  {% if trips.longest_drive %}
+                  <div style="background-color: #0f172a; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; border: 1px solid #334155;">
+                    <div style="font-size: 12px; text-transform: uppercase; color: #38bdf8; font-weight: 700; margin-bottom: 4px;">Longest Journey of the Month</div>
+                    <div style="font-size: 14px; font-weight: 700; color: #ffffff;">{{ trips.longest_drive.start_location }} &rarr; {{ trips.longest_drive.end_location }}</div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 3px;">
+                      {{ trips.longest_drive.distance_mi }} miles &bull; {{ trips.longest_drive.duration_min }} mins &bull; {{ trips.longest_drive.date }}
+                      &bull; Ascent: {{ "{:,.0f}".format(trips.longest_drive.ascent_ft) }} ft
+                    </div>
+                  </div>
+                  {% endif %}
+
+                  <!-- TOP DESTINATIONS -->
+                  {% if trips.top_places %}
+                  <div style="font-size: 13px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">Top Visited Places</div>
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    {% for p in trips.top_places %}
+                    <tr>
+                      <td style="padding: 6px 0; font-size: 13px; color: #e2e8f0; border-bottom: 1px solid #273548;">
+                        &bull; <strong>{{ p.name }}</strong>{% if p.city %}, {{ p.city }}{% endif %}
+                      </td>
+                      <td align="right" style="padding: 6px 0; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #273548;">
+                        <span class="badge badge-blue">{{ p.visits }} visits</span>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </table>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- SECTION 4: SUPERCHARGER EXPLORER -->
+                {% if modules.supercharger_explorer %}
+                <div class="card">
+                  <div class="section-title">
+                    <span style="margin-right: 8px;">⚡</span> Supercharger Explorer
+                  </div>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 10px;">
+                    <tr>
+                      <td>
+                        <span style="font-size: 14px; color: #cbd5e1;">Lifetime Unique Stations:</span>
+                        <strong style="font-size: 18px; color: #f8fafc; margin-left: 6px;">{{ superchargers.all_time_unique_count }}</strong>
+                      </td>
+                      <td align="right">
+                        {% if superchargers.new_superchargers_count > 0 %}
+                        <span class="badge badge-green">+{{ superchargers.new_superchargers_count }} New Unlocked!</span>
+                        {% else %}
+                        <span class="badge badge-blue">Consistent Stations</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  </table>
+
+                  {% if superchargers.recent_visits %}
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    {% for sc in superchargers.recent_visits %}
+                    <tr>
+                      <td style="padding: 7px 0; font-size: 13px; color: #e2e8f0; border-bottom: 1px solid #273548;">
+                        <strong>{{ sc.location_name }}</strong>{% if sc.city %}, {{ sc.city }}{% endif %}
+                        <span style="font-size: 11px; color: #94a3b8; margin-left: 6px;">({{ sc.car_name }} &bull; {{ sc.date }})</span>
+                      </td>
+                      <td align="right" style="padding: 7px 0; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #273548;">
+                        {{ sc.energy_added_kwh }} kWh &bull; {{ sc.peak_kw }} kW
+                        {% if sc.is_new %}<span class="badge badge-green" style="margin-left: 4px;">NEW</span>{% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </table>
+                  {% else %}
+                  <div style="font-size: 12px; color: #64748b; font-style: italic;">No Supercharger sessions this period. 100% home/local charging.</div>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- SECTION 5: TAUTULLI HEALTH, TPMS & MAINTENANCE -->
+                {% if modules.maintenance_alerts %}
+                <div class="card">
+                  <div class="section-title">
+                    <span style="margin-right: 8px;">🛠️</span> Vehicle Health & Maintenance (Tautulli)
+                  </div>
+
+                  {% for c in health.cars %}
+                  <div style="background-color: #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid #334155;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 6px;">
+                      <tr>
+                        <td>
+                          <span style="font-weight: 700; font-size: 14px; color: #f8fafc;">{{ c.car_name }}</span>
+                          <span style="font-size: 12px; color: #94a3b8; margin-left: 6px;">Odometer: {{ "{:,.0f}".format(c.odometer_mi) }} mi</span>
+                        </td>
+                        <td align="right">
+                          {% if c.tire_rotation.is_due %}
+                          <span class="badge badge-red">Rotation Due</span>
+                          {% else %}
+                          <span class="badge badge-green">Tires Good</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- TIRE ROTATION BAR -->
+                    <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">
+                      Tire Rotation Interval: <strong>{{ c.tire_rotation.miles_since_rotation }} / 6,250 mi</strong> ({{ c.tire_rotation.status_text }})
+                    </div>
+                    <div style="background-color: #1e293b; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 10px;">
+                      <div style="background-color: {% if c.tire_rotation.is_due %}#ef4444{% else %}#10b981{% endif %}; width: {{ c.tire_rotation.pct_used }}%; height: 100%;"></div>
+                    </div>
+
+                    <!-- TPMS READOUT -->
+                    {% if c.tpms %}
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 12px; text-align: center; margin-top: 6px;">
+                      <tr>
+                        <td style="padding: 4px; background-color: #1e293b; border-radius: 4px; border: 1px solid #334155;">FL: <strong style="color: {{ c.tpms.fl_info.color }};">{{ c.tpms.fl_psi }} PSI</strong></td>
+                        <td style="width: 8px;"></td>
+                        <td style="padding: 4px; background-color: #1e293b; border-radius: 4px; border: 1px solid #334155;">FR: <strong style="color: {{ c.tpms.fr_info.color }};">{{ c.tpms.fr_psi }} PSI</strong></td>
+                        <td style="width: 8px;"></td>
+                        <td style="padding: 4px; background-color: #1e293b; border-radius: 4px; border: 1px solid #334155;">RL: <strong style="color: {{ c.tpms.rl_info.color }};">{{ c.tpms.rl_psi }} PSI</strong></td>
+                        <td style="width: 8px;"></td>
+                        <td style="padding: 4px; background-color: #1e293b; border-radius: 4px; border: 1px solid #334155;">RR: <strong style="color: {{ c.tpms.rr_info.color }};">{{ c.tpms.rr_psi }} PSI</strong></td>
+                      </tr>
+                    </table>
+                    {% endif %}
+
+                    <!-- FIRMWARE UPDATES -->
+                    {% if c.updates %}
+                    <div style="margin-top: 10px; font-size: 12px; color: #38bdf8;">
+                      Installed Firmware Updates:
+                      {% for u in c.updates %}
+                      <span class="badge badge-blue" style="margin-left: 4px;">{{ u.version }} ({{ u.date }})</span>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- SECTION 6: VAMPIRE DRAIN & IDLE STANDBY -->
+                {% if modules.vampire_drain and vampire %}
+                <div class="card">
+                  <div class="section-title">
+                    <span style="margin-right: 8px;">🌙</span> Vampire Drain & Standby Analysis
+                  </div>
+                  <div style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+                    Your cars were parked for <strong>{{ vampire.parked_hours }} hours</strong> this month with a sleep efficiency of <strong style="color: #34d399;">{{ vampire.sleep_efficiency_pct }}%</strong> ({{ vampire.asleep_hours }} hrs sleeping). Standby loss (Sentry mode, idle polling) used ~<strong>{{ vampire.estimated_drain_kwh }} kWh</strong> (~${{ "{:,.2f}".format(vampire.estimated_drain_cost) }}).
+                  </div>
+                </div>
+                {% endif %}
+
+              </td>
+            </tr>
+
+            <!-- FOOTER -->
+            <tr>
+              <td style="padding: 18px 24px; background-color: #0b0f19; border-top: 1px solid #1e293b; text-align: center; color: #64748b; font-size: 12px;">
+                Generated by <strong>TeslaMate Digest</strong> &bull; Inspired by WeaveGrid, Google Maps Guides, and Tautulli.<br>
+                <a href="{{ dashboard_url }}" style="color: #e82127; text-decoration: none; margin-top: 4px; display: inline-block;">Open Local Dashboard</a>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </center>
+</body>
+</html>

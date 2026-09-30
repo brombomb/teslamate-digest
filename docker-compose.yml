@@ -1,0 +1,25 @@
+services:
+  teslamate-digest:
+    container_name: teslamate-digest
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8660}:8660"
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - DATABASE_HOST=${DATABASE_HOST:-database}
+      - DATABASE_PORT=${DATABASE_PORT:-5432}
+      - DATABASE_USER=${DATABASE_USER:-teslamate}
+      - DATABASE_PASS=${DATABASE_PASS:-Curtly-Silty-7Strung-4Flesh-sinh2-ssss}
+      - DATABASE_NAME=${DATABASE_NAME:-teslamate}
+      - GRAFANA_URL=${GRAFANA_URL:-http://grafana:3000}
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data
+      - ./custom_templates:/app/custom_templates
+    networks:
+      - teslamate_default
+
+networks:
+  teslamate_default:
+    external: true

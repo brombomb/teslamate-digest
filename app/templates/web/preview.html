@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Live Preview - TeslaMate Digest{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- CONTROLS BAR -->
+  <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+    <!-- FILTERS FORM -->
+    <form method="GET" action="/preview" class="flex flex-wrap items-center gap-3">
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1">Timeframe</label>
+        <select name="period" onchange="this.form.submit()" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-3 py-2">
+          <option value="last_month" {% if period == 'last_month' %}selected{% endif %}>Last Full Month (Default)</option>
+          <option value="this_month" {% if period == 'this_month' %}selected{% endif %}>Current Month to Date</option>
+          <option value="last_week" {% if period == 'last_week' %}selected{% endif %}>Last 7 Days (Weekly)</option>
+          <option value="yesterday" {% if period == 'yesterday' %}selected{% endif %}>Yesterday (Daily)</option>
+          <option value="wrapped" {% if period == 'wrapped' %}selected{% endif %}>🎉 Year in Review (Wrapped)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1">Vehicle</label>
+        <select name="car_id" onchange="this.form.submit()" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-3 py-2">
+          <option value="" {% if not car_id %}selected{% endif %}>All Cars (Fleet View)</option>
+          {% for c in cars %}
+          <option value="{{ c.id }}" {% if car_id == c.id|string %}selected{% endif %}>{{ c.name }} (Model {{ c.model }})</option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+
+    <!-- ACTIONS -->
+    <div class="flex items-center space-x-3">
+      <!-- VIEW WIDTH SWITCHER -->
+      <div class="bg-slate-950 p-1 rounded-lg border border-slate-800 flex space-x-1">
+        <button id="view-desktop" onclick="setDeviceView('desktop')" class="px-2.5 py-1 text-xs font-semibold rounded bg-slate-800 text-white">Desktop</button>
+        <button id="view-mobile" onclick="setDeviceView('mobile')" class="px-2.5 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white">Mobile</button>
+      </div>
+
+      <!-- DISPATCH TEST -->
+      <form method="POST" action="/api/send-test" onsubmit="return confirm('Send this digest to {{ config.smtp.recipient_email }}?');">
+        <input type="hidden" name="period" value="{{ period }}">
+        <input type="hidden" name="car_id" value="{{ car_id or '' }}">
+        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow">
+          <span>✉️</span> Send Test to Inbox
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% if send_status %}
+  <div class="p-4 rounded-lg {% if send_status.success %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/40{% else %}bg-red-500/20 text-red-300 border border-red-500/40{% endif %} text-sm">
+    {{ send_status.message }}
+  </div>
+  {% endif %}
+
+  <!-- PREVIEW FRAME -->
+  <div class="flex justify-center bg-slate-950 p-4 rounded-2xl border border-slate-800 overflow-hidden">
+    <div id="preview-container" class="w-full transition-all duration-300" style="max-width: 720px;">
+      <iframe id="preview-iframe" class="w-full bg-[#0b0f19] rounded-xl border border-slate-800" style="min-height: 850px; height: 100vh;"></iframe>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Populate iframe
+  const iframe = document.getElementById('preview-iframe');
+  const rawHtml = {{ rendered_html | tojson }};
+  iframe.srcdoc = rawHtml;
+
+  function setDeviceView(mode) {
+    const container = document.getElementById('preview-container');
+    const btnDesktop = document.getElementById('view-desktop');
+    const btnMobile = document.getElementById('view-mobile');
+
+    if (mode === 'mobile') {
+      container.style.maxWidth = '420px';
+      btnMobile.className = 'px-2.5 py-1 text-xs font-semibold rounded bg-slate-800 text-white';
+      btnDesktop.className = 'px-2.5 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white';
+    } else {
+      container.style.maxWidth = '720px';
+      btnDesktop.className = 'px-2.5 py-1 text-xs font-semibold rounded bg-slate-800 text-white';
+      btnMobile.className = 'px-2.5 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white';
+    }
+  }
+</script>
+{% endblock %}

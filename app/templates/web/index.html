@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - TeslaMate Digest{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- TOP HERO -->
+  <div class="bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 rounded-2xl p-6 border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+      <span class="text-xs font-bold uppercase tracking-wider text-tesla">Telemetry & Email Service</span>
+      <h2 class="text-2xl font-black text-white mt-1">TeslaMate Personal Email Digest</h2>
+      <p class="text-sm text-slate-400 mt-1">Automated digests inspired by WeaveGrid, Google Maps Local Guides, and Tautulli.</p>
+    </div>
+    <div class="flex items-center space-x-3">
+      <a href="/preview" class="px-4 py-2 bg-tesla hover:bg-red-700 text-white font-bold rounded-lg text-sm transition shadow-lg shadow-red-950/40">
+        Live Email Preview
+      </a>
+      <a href="/preview?period=wrapped" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm transition">
+        🎉 Year in Review
+      </a>
+    </div>
+  </div>
+
+  <!-- STATUS CARDS -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- SCHEDULER STATUS -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+      <div class="text-xs font-semibold uppercase text-slate-400">Automated Schedule</div>
+      <div class="text-lg font-bold text-white mt-2 capitalize flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full {% if scheduler_status.is_running %}bg-emerald-500 animate-pulse{% else %}bg-amber-500{% endif %}"></span>
+        {{ config.schedule.frequency }} Dispatch
+      </div>
+      <div class="text-xs text-slate-400 mt-2">
+        Next scheduled send: <span class="text-slate-200 font-mono">{{ scheduler_status.next_run }}</span>
+      </div>
+    </div>
+
+    <!-- LAST RUN STATUS -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+      <div class="text-xs font-semibold uppercase text-slate-400">Last Dispatch Status</div>
+      <div class="text-lg font-bold text-white mt-2 flex items-center gap-2">
+        <span class="px-2 py-0.5 text-xs rounded font-bold {% if scheduler_status.last_run.status == 'Success' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/40{% elif scheduler_status.last_run.status == 'Running' %}bg-blue-500/20 text-blue-400{% else %}bg-slate-800 text-slate-300{% endif %}">
+          {{ scheduler_status.last_run.status }}
+        </span>
+      </div>
+      <div class="text-xs text-slate-400 mt-2 truncate" title="{{ scheduler_status.last_run.details }}">
+        {{ scheduler_status.last_run.details }}
+      </div>
+    </div>
+
+    <!-- SMTP STATUS -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+      <div class="text-xs font-semibold uppercase text-slate-400">Delivery Channel</div>
+      <div class="text-lg font-bold text-white mt-2">
+        {% if config.smtp.enabled %}
+        <span class="text-emerald-400">Gmail SMTP Ready</span>
+        {% else %}
+        <span class="text-amber-400">SMTP Disabled</span>
+        {% endif %}
+      </div>
+      <div class="text-xs text-slate-400 mt-2">
+        Recipient: <span class="text-slate-200">{{ config.smtp.recipient_email }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLEET OVERVIEW -->
+  <div class="bg-slate-900 rounded-xl p-6 border border-slate-800">
+    <h3 class="text-lg font-bold text-white mb-4">Detected Tesla Fleet</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for c in cars %}
+      <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 flex justify-between items-center">
+        <div>
+          <div class="text-base font-bold text-white">{{ c.name }}</div>
+          <div class="text-xs text-slate-400">Model {{ c.model }} &bull; VIN: {{ c.vin[:8] }}...{{ c.vin[-4:] }}</div>
+        </div>
+        <a href="/preview?car_id={{ c.id }}" class="text-xs text-tesla hover:underline font-semibold">
+          Preview Car Digest &rarr;
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
