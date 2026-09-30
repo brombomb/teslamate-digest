@@ -18,12 +18,10 @@ class Mailer:
         recipient: Optional[str] = None
     ) -> bool:
         if not self.smtp.enabled:
-            print("[Mailer] SMTP delivery is disabled in config.")
-            return False
+            raise ValueError("SMTP delivery is disabled in Settings.")
 
         if not self.smtp.password:
-            print("[Mailer] SMTP password is empty. Cannot send email.")
-            return False
+            raise ValueError("SMTP password is empty. Please enter your Gmail App Password in Settings.")
 
         to_email = recipient or self.smtp.recipient_email
         msg = MIMEMultipart("related")

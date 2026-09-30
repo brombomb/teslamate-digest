@@ -139,7 +139,8 @@ async def preview(
     if sent == "success":
         send_status = {"success": True, "message": f"Test digest dispatched to {cfg.smtp.recipient_email}!"}
     elif sent == "failed":
-        send_status = {"success": False, "message": "Failed to send email. Check SMTP settings and app password."}
+        err_text = request.query_params.get("err", "Check SMTP settings and app password.")
+        send_status = {"success": False, "message": f"Failed to send email: {err_text}"}
 
     return templates.TemplateResponse(
         "preview.html",
@@ -197,8 +198,10 @@ async def send_test(
         mailer.send_email(subject=subject, html_content=html, inline_images=inline_imgs)
         return RedirectResponse(url=f"/preview?period={period}&car_id={car_id or ''}&sent=success", status_code=303)
     except Exception as e:
+        import urllib.parse
+        err_msg = urllib.parse.quote(str(e))
         print(f"[API] Error sending test: {e}")
-        return RedirectResponse(url=f"/preview?period={period}&car_id={car_id or ''}&sent=failed", status_code=303)
+        return RedirectResponse(url=f"/preview?period={period}&car_id={car_id or ''}&sent=failed&err={err_msg}", status_code=303)
 
 
 @app.get("/settings", response_class=HTMLResponse)

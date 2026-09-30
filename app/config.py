@@ -15,7 +15,7 @@ class SMTPSettings(BaseModel):
     host: str = "smtp.gmail.com"
     port: int = 587
     user: str = "brombomb@gmail.com"
-    password: str = ""  # Gmail App Password
+    password: str = Field(default_factory=lambda: os.getenv("SMTP_PASSWORD", ""))
     sender_email: str = "brombomb@gmail.com"
     sender_name: str = "TeslaMate Digest"
     recipient_email: str = "brombomb@gmail.com"
@@ -87,7 +87,10 @@ def load_config() -> AppConfig:
         try:
             with open(CONFIG_FILE, "r") as f:
                 data = json.load(f)
-            return AppConfig(**data)
+            cfg = AppConfig(**data)
+            if not cfg.smtp.password and os.getenv("SMTP_PASSWORD"):
+                cfg.smtp.password = os.getenv("SMTP_PASSWORD")
+            return cfg
         except Exception as e:
             print(f"[Config] Error loading {CONFIG_FILE}: {e}. Using defaults.")
     
