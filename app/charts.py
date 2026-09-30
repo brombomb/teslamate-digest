@@ -56,23 +56,49 @@ def generate_spend_chart(charging: Dict[str, Any], theme: Optional[Dict[str, Any
     kwhs = []
     colors = []
 
-    if charging.get("off_peak_kwh", 0) > 0:
-        categories.append("Home Off-Peak")
-        costs.append(charging.get("off_peak_spend", charging.get("off_peak_kwh", 0) * 0.10))
-        kwhs.append(charging.get("off_peak_kwh", 0))
-        colors.append(c["off_peak"])
+    rate_mode = charging.get("rate_mode", "tou")
+    if rate_mode == "tiered":
+        if charging.get("tier1_kwh", 0) > 0:
+            categories.append("Home Tier 1 (Base)")
+            costs.append(charging.get("tier1_spend", 0))
+            kwhs.append(charging.get("tier1_kwh", 0))
+            colors.append(c["off_peak"])
 
-    if charging.get("shoulder_kwh", 0) > 0:
-        categories.append("Home Shoulder")
-        costs.append(charging.get("shoulder_spend", charging.get("shoulder_kwh", 0) * 0.14))
-        kwhs.append(charging.get("shoulder_kwh", 0))
-        colors.append(c["shoulder"])
+        if charging.get("tier2_kwh", 0) > 0:
+            categories.append("Home Tier 2")
+            costs.append(charging.get("tier2_spend", 0))
+            kwhs.append(charging.get("tier2_kwh", 0))
+            colors.append(c["shoulder"])
 
-    if charging.get("on_peak_kwh", 0) > 0:
-        categories.append("Home On-Peak")
-        costs.append(charging.get("on_peak_spend", charging.get("on_peak_kwh", 0) * 0.20))
-        kwhs.append(charging.get("on_peak_kwh", 0))
-        colors.append(c["on_peak"])
+        if charging.get("tier3_kwh", 0) > 0:
+            categories.append("Home Tier 3")
+            costs.append(charging.get("tier3_spend", 0))
+            kwhs.append(charging.get("tier3_kwh", 0))
+            colors.append(c["on_peak"])
+    elif rate_mode == "flat":
+        if charging.get("home_kwh", 0) > 0:
+            categories.append("Home AC Charging")
+            costs.append(charging.get("home_spend", 0))
+            kwhs.append(charging.get("home_kwh", 0))
+            colors.append(c["primary"])
+    else:  # tou
+        if charging.get("off_peak_kwh", 0) > 0:
+            categories.append("Home Off-Peak")
+            costs.append(charging.get("off_peak_spend", charging.get("off_peak_kwh", 0) * 0.10))
+            kwhs.append(charging.get("off_peak_kwh", 0))
+            colors.append(c["off_peak"])
+
+        if charging.get("shoulder_kwh", 0) > 0:
+            categories.append("Home Shoulder")
+            costs.append(charging.get("shoulder_spend", charging.get("shoulder_kwh", 0) * 0.14))
+            kwhs.append(charging.get("shoulder_kwh", 0))
+            colors.append(c["shoulder"])
+
+        if charging.get("on_peak_kwh", 0) > 0:
+            categories.append("Home On-Peak")
+            costs.append(charging.get("on_peak_spend", charging.get("on_peak_kwh", 0) * 0.20))
+            kwhs.append(charging.get("on_peak_kwh", 0))
+            colors.append(c["on_peak"])
 
     if charging.get("supercharger_kwh", 0) > 0:
         categories.append("Supercharging")

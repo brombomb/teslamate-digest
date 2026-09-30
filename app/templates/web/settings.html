@@ -224,158 +224,357 @@
       <input type="hidden" name="work_routes_json" id="work_routes_json" value="">
     </div>
 
-    <!-- 4. TIME-OF-USE (TOU) & ELECTRICITY RATES -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
-      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div>
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>⚡</span> Time-of-Use (TOU) & Charging Rates
-          </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">3-tier tariff engine (Off-Peak, Shoulder, Peak) with weekend off-peak rules and live gas pricing.</p>
+    <!-- 4. ELECTRICITY RATES & FUEL PRICING -->
+    <div class="space-y-6">
+      
+      <!-- SUBSECTION 4A: RATE STRUCTURE & TARIFFS -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors">
+        
+        <!-- Header & Preset Selector -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+          <div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+              <span>⚡</span> Electricity Rates & Plan Structure
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Select whether your electric utility bills by Time-of-Day, monthly usage threshold tiers, or a flat rate.
+            </p>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Preset:</span>
+            <select id="tariff-preset-select" name="tariff_preset" onchange="applyTariffPreset(this.value)" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-white shadow-sm focus:ring-2 focus:ring-tesla/30 focus:border-tesla transition">
+              <optgroup label="Time-of-Use (TOU)">
+                <option value="standard_tou" {% if config.rates.tariff_preset == 'standard_tou' %}selected{% endif %}>Standard TOU ($0.10 / $0.14 / $0.20)</option>
+                <option value="xcel_colorado_tou" {% if config.rates.tariff_preset == 'xcel_colorado_tou' %}selected{% endif %}>Xcel Colorado Schedule RE-TOU</option>
+              </optgroup>
+              <optgroup label="Tiered Usage Thresholds">
+                <option value="standard_tiered" {% if config.rates.tariff_preset == 'standard_tiered' %}selected{% endif %}>Standard 2-Tier Baseline (500 kWh @ $0.11 / $0.18)</option>
+                <option value="california_tiered" {% if config.rates.tariff_preset == 'california_tiered' %}selected{% endif %}>California Tiered Baseline (PG&E / SCE)</option>
+              </optgroup>
+              <optgroup label="Flat / Other">
+                <option value="flat_rate" {% if config.rates.tariff_preset == 'flat_rate' %}selected{% endif %}>Flat Rate ($0.13/kWh)</option>
+                <option value="custom" {% if config.rates.tariff_preset == 'custom' %}selected{% endif %}>Custom Plan</option>
+              </optgroup>
+            </select>
+          </div>
         </div>
-        <div>
-          <select id="tariff-preset-select" name="tariff_preset" onchange="applyTariffPreset(this.value)" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
-            <option value="standard_tou" {% if config.rates.tariff_preset == 'standard_tou' %}selected{% endif %}>Preset: Standard Time-of-Use (Generic)</option>
-            <option value="flat_rate" {% if config.rates.tariff_preset == 'flat_rate' %}selected{% endif %}>Preset: Flat Rate ($0.13)</option>
-            <option value="xcel_colorado_tou" {% if config.rates.tariff_preset == 'xcel_colorado_tou' %}selected{% endif %}>Preset: Xcel Colorado TOU</option>
-            <option value="custom" {% if config.rates.tariff_preset == 'custom' %}selected{% endif %}>Custom Tariff</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Mode Pill Switcher -->
         <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Off-Peak Rate ($/kWh)</label>
-          <input type="number" step="0.001" id="off_peak_kwh_cost" name="off_peak_kwh_cost" value="{{ config.rates.off_peak_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Shoulder Rate ($/kWh)</label>
-          <input type="number" step="0.001" id="shoulder_kwh_cost" name="shoulder_kwh_cost" value="{{ config.rates.shoulder_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">On-Peak Rate ($/kWh)</label>
-          <input type="number" step="0.001" id="on_peak_kwh_cost" name="on_peak_kwh_cost" value="{{ config.rates.on_peak_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Supercharger Fallback ($/kWh)</label>
-          <input type="number" step="0.01" id="supercharger_fallback_cost" name="supercharger_fallback_cost" value="{{ config.rates.supercharger_fallback_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-      </div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Rate Structure Model</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button type="button" onclick="switchRateMode('tou')" id="btn-mode-tou" class="rate-mode-btn p-3.5 rounded-xl border text-left transition flex items-start gap-3 cursor-pointer {% if config.rates.rate_mode == 'tou' or not config.rates.rate_mode %}border-tesla bg-red-50/40 dark:bg-red-950/20 text-slate-900 dark:text-white ring-1 ring-tesla{% else %}border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700{% endif %}">
+              <span class="text-xl mt-0.5">⚡</span>
+              <div>
+                <div class="font-bold text-sm">Time-of-Use (TOU)</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">Rates change by hour (Off-Peak, Shoulder, On-Peak)</div>
+              </div>
+            </button>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Off-Peak Window Start</label>
-          <select id="off_peak_start_hour" name="off_peak_start_hour" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-            {% for h in range(24) %}
-            <option value="{{ h }}" {% if config.rates.off_peak_start_hour == h %}selected{% endif %}>{{ "%02d:00"|format(h) }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Off-Peak Window End</label>
-          <select id="off_peak_end_hour" name="off_peak_end_hour" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-            {% for h in range(24) %}
-            <option value="{{ h }}" {% if config.rates.off_peak_end_hour == h %}selected{% endif %}>{{ "%02d:00"|format(h) }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Peak Window Start</label>
-          <select id="peak_start_hour" name="peak_start_hour" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-            {% for h in range(24) %}
-            <option value="{{ h }}" {% if config.rates.peak_start_hour == h %}selected{% endif %}>{{ "%02d:00"|format(h) }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Peak Window End</label>
-          <select id="peak_end_hour" name="peak_end_hour" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-            {% for h in range(24) %}
-            <option value="{{ h }}" {% if config.rates.peak_end_hour == h %}selected{% endif %}>{{ "%02d:00"|format(h) }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
+            <button type="button" onclick="switchRateMode('tiered')" id="btn-mode-tiered" class="rate-mode-btn p-3.5 rounded-xl border text-left transition flex items-start gap-3 cursor-pointer {% if config.rates.rate_mode == 'tiered' %}border-tesla bg-red-50/40 dark:bg-red-950/20 text-slate-900 dark:text-white ring-1 ring-tesla{% else %}border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700{% endif %}">
+              <span class="text-xl mt-0.5">📊</span>
+              <div>
+                <div class="font-bold text-sm">Tiered Usage Thresholds</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">Rates step up as monthly kWh crosses baseline tiers</div>
+              </div>
+            </button>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Average Flat Rate ($/kWh)</label>
-          <input type="number" step="0.001" id="average_kwh_cost" name="average_kwh_cost" value="{{ config.rates.average_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+            <button type="button" onclick="switchRateMode('flat')" id="btn-mode-flat" class="rate-mode-btn p-3.5 rounded-xl border text-left transition flex items-start gap-3 cursor-pointer {% if config.rates.rate_mode == 'flat' %}border-tesla bg-red-50/40 dark:bg-red-950/20 text-slate-900 dark:text-white ring-1 ring-tesla{% else %}border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700{% endif %}">
+              <span class="text-xl mt-0.5">🏷️</span>
+              <div>
+                <div class="font-bold text-sm">Flat Rate</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">Fixed $/kWh across all hours, days, and consumption</div>
+              </div>
+            </button>
+          </div>
+          <input type="hidden" name="rate_mode" id="rate_mode_input" value="{{ config.rates.rate_mode }}">
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Regular Gas Price ($/gal)</label>
-          <input type="number" step="0.01" id="gas_price_per_gal" name="gas_price_per_gal" value="{{ config.rates.gas_price_per_gal }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Baseline Gas Vehicle MPG</label>
-          <input type="number" step="0.1" name="baseline_ice_mpg" value="{{ config.rates.baseline_ice_mpg }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-        <div class="pt-4">
-          <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
-            <input type="checkbox" id="weekends_are_off_peak" name="weekends_are_off_peak" {% if config.rates.weekends_are_off_peak %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
-            <span class="text-slate-700 dark:text-slate-200">Weekends are 100% Off-Peak</span>
-          </label>
-        </div>
-      </div>
 
-      <!-- LIVE OPEN APIS CARD -->
-      <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-        <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>🌐</span> Automated Open Rates & Gas APIs
-              </h4>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Automatically fetch live regional gasoline prices from <strong>U.S. EIA</strong> and TOU electric tariffs from <strong>OpenEI / NREL</strong> by ZIP code.
-              </p>
+        <!-- 1. TIME-OF-USE PANEL -->
+        <div id="rate-mode-tou-panel" class="space-y-6 pt-2 {% if config.rates.rate_mode != 'tou' and config.rates.rate_mode %}hidden{% endif %}">
+          <!-- TOU Rates Grid -->
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+              <span>Tariff Price per kWh</span>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <button type="button" onclick="syncEiaGasPrice()" id="btn-sync-gas" class="px-3 py-1.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
-                <span>⛽</span> Fetch EIA Gas Price
-              </button>
-              <button type="button" onclick="syncOpenEiElectricRates()" id="btn-sync-electric" class="px-3 py-1.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
-                <span>⚡</span> Fetch Electric TOU Rates
-              </button>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Off-Peak Rate</label>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">Cheapest</span>
+                </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="off_peak_kwh_cost" name="off_peak_kwh_cost" value="{{ config.rates.off_peak_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+                <p class="text-[11px] text-slate-400">Overnight & weekend baseline charging</p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wide">Shoulder / Mid-Peak Rate</label>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300">Moderate</span>
+                </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="shoulder_kwh_cost" name="shoulder_kwh_cost" value="{{ config.rates.shoulder_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+                <p class="text-[11px] text-slate-400">Daytime hours outside peak window</p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">On-Peak Rate</label>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">Highest</span>
+                </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="on_peak_kwh_cost" name="on_peak_kwh_cost" value="{{ config.rates.on_peak_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+                <p class="text-[11px] text-slate-400">Peak grid stress hours (afternoon/evening)</p>
+              </div>
             </div>
           </div>
 
-          <!-- Status / Feedback Toast inside the panel -->
-          <div id="rates-api-status-msg" class="hidden px-3 py-2 rounded-lg text-xs flex items-center justify-between"></div>
-
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-            <div>
-              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Local ZIP Code</label>
-              <input type="text" id="rates_zip_code" name="zip_code" value="{{ config.rates.zip_code }}" placeholder="e.g. 80005" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
-              <span class="text-[10px] text-slate-400 mt-0.5 block">Used to identify your regional energy market.</span>
+          <!-- TOU Windows & Weekend Rules -->
+          <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+              <span>Time Windows & Weekend Schedule</span>
+              <span class="text-[11px] font-normal text-slate-500 lowercase">24-hour clock (0-23)</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Off-Peak Window Start</label>
+                <select id="off_peak_start_hour" name="off_peak_start_hour" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+                  {% for h in range(24) %}
+                  <option value="{{ h }}" {% if config.rates.off_peak_start_hour == h %}selected{% endif %}>{{ "%02d:00 (%d %s)"|format(h, 12 if h in [0, 12] else h % 12, "AM" if h < 12 else "PM") }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Off-Peak Window End</label>
+                <select id="off_peak_end_hour" name="off_peak_end_hour" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+                  {% for h in range(24) %}
+                  <option value="{{ h }}" {% if config.rates.off_peak_end_hour == h %}selected{% endif %}>{{ "%02d:00 (%d %s)"|format(h, 12 if h in [0, 12] else h % 12, "AM" if h < 12 else "PM") }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Peak Window Start</label>
+                <select id="peak_start_hour" name="peak_start_hour" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+                  {% for h in range(24) %}
+                  <option value="{{ h }}" {% if config.rates.peak_start_hour == h %}selected{% endif %}>{{ "%02d:00 (%d %s)"|format(h, 12 if h in [0, 12] else h % 12, "AM" if h < 12 else "PM") }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Peak Window End</label>
+                <select id="peak_end_hour" name="peak_end_hour" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+                  {% for h in range(24) %}
+                  <option value="{{ h }}" {% if config.rates.peak_end_hour == h %}selected{% endif %}>{{ "%02d:00 (%d %s)"|format(h, 12 if h in [0, 12] else h % 12, "AM" if h < 12 else "PM") }}</option>
+                  {% endfor %}
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                EIA API Key (Optional)
-                <a href="https://www.eia.gov/opendata/register.php" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
+            <div class="pt-2 border-t border-slate-200 dark:border-slate-800">
+              <label class="flex items-center space-x-2.5 text-xs font-semibold cursor-pointer">
+                <input type="checkbox" id="weekends_are_off_peak" name="weekends_are_off_peak" {% if config.rates.weekends_are_off_peak %}checked{% endif %} class="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+                <span class="text-slate-800 dark:text-slate-200">Weekends are 100% Off-Peak (Saturday & Sunday never incur peak or shoulder charges)</span>
               </label>
-              <input type="text" id="eia_api_key" name="eia_api_key" value="{{ config.rates.eia_api_key }}" placeholder="Free EIA v2 API Key" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
-              <span class="text-[10px] text-slate-400 mt-0.5 block">U.S. Energy Information Administration key.</span>
-            </div>
-
-            <div>
-              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                OpenEI API Key (Optional)
-                <a href="https://openei.org/services/api/signup/" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
-              </label>
-              <input type="text" id="openei_api_key" name="openei_api_key" value="{{ config.rates.openei_api_key }}" placeholder="Free OpenEI / NREL Key" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
-              <span class="text-[10px] text-slate-400 mt-0.5 block">National Renewable Energy Lab database key.</span>
-            </div>
-
-            <div>
-              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Detected Utility / Tariff Name</label>
-              <input type="text" id="utility_name" name="utility_name" value="{{ config.rates.utility_name }}" placeholder="e.g. Xcel Energy / Public Service Co" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
-              <span class="text-[10px] text-slate-400 mt-0.5 block">Utility rate provider name or custom identifier.</span>
             </div>
           </div>
         </div>
+
+        <!-- 2. TIERED USAGE PANEL -->
+        <div id="rate-mode-tiered-panel" class="space-y-5 pt-2 {% if config.rates.rate_mode != 'tiered' %}hidden{% endif %}">
+          <div class="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-3">
+            <span class="text-base mt-0.5">ℹ️</span>
+            <div>
+              <strong>Cumulative Monthly Usage Tiers:</strong> Your charging energy is calculated progressively across the month. Energy up to the Tier 1 threshold is billed at Tier 1; subsequent consumption steps up to Tier 2 and Tier 3 rates.
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Tier 1 -->
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Tier 1: Baseline</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">Base</span>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Max Threshold (kWh/mo)</label>
+                <div class="relative">
+                  <input type="number" step="10" id="tier1_max_kwh" name="tier1_max_kwh" value="{{ config.rates.tier1_max_kwh }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">kWh</span>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Tier 1 Rate ($/kWh)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="tier1_kwh_cost" name="tier1_kwh_cost" value="{{ config.rates.tier1_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+              </div>
+            </div>
+
+            <!-- Tier 2 -->
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <span class="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider">Tier 2: Mid-Usage</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">Step Up</span>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Max Threshold (kWh/mo)</label>
+                <div class="relative">
+                  <input type="number" step="10" id="tier2_max_kwh" name="tier2_max_kwh" value="{{ config.rates.tier2_max_kwh }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">kWh</span>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Tier 2 Rate ($/kWh)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="tier2_kwh_cost" name="tier2_kwh_cost" value="{{ config.rates.tier2_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+              </div>
+            </div>
+
+            <!-- Tier 3 -->
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <span class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Tier 3: High Usage</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">Excess</span>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Threshold Range</label>
+                <div class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-500 italic">
+                  All usage > Tier 2 limit
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Tier 3 Rate ($/kWh)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="tier3_kwh_cost" name="tier3_kwh_cost" value="{{ config.rates.tier3_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. FLAT RATE PANEL -->
+        <div id="rate-mode-flat-panel" class="space-y-4 pt-2 {% if config.rates.rate_mode != 'flat' %}hidden{% endif %}">
+          <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 max-w-md space-y-2">
+            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Flat Electricity Cost ($/kWh)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+              <input type="number" step="0.001" id="average_kwh_cost" name="average_kwh_cost" value="{{ config.rates.average_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+            </div>
+            <p class="text-[11px] text-slate-400">All home AC charging is calculated at this fixed rate regardless of time of day.</p>
+          </div>
+        </div>
+
       </div>
+
+      <!-- SUBSECTION 4B: FAST CHARGING & GAS COMPARISON -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+          <h4 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>⛽</span> Supercharging Fallback & Gasoline Comparison
+          </h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Parameters for Supercharger fallback rates (when direct costs aren't recorded in TeslaMate) and ICE fuel savings calculations.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Supercharger Fallback Rate ($/kWh)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+              <input type="number" step="0.01" id="supercharger_fallback_cost" name="supercharger_fallback_cost" value="{{ config.rates.supercharger_fallback_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm text-slate-900 dark:text-white">
+            </div>
+            <span class="text-[11px] text-slate-400 block">Used when direct charging price is missing.</span>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Regular Gas Price ($/gal)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+              <input type="number" step="0.01" id="gas_price_per_gal" name="gas_price_per_gal" value="{{ config.rates.gas_price_per_gal }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm text-slate-900 dark:text-white">
+            </div>
+            <span class="text-[11px] text-slate-400 block">Baseline price for gasoline savings comparison.</span>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Baseline Gas Vehicle MPG</label>
+            <div class="relative">
+              <input type="number" step="0.1" name="baseline_ice_mpg" value="{{ config.rates.baseline_ice_mpg }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+              <span class="absolute right-3 top-2.5 text-xs text-slate-400">MPG</span>
+            </div>
+            <span class="text-[11px] text-slate-400 block">Estimated fuel economy of an equivalent ICE vehicle.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBSECTION 4C: AUTOMATED OPEN RATES & GAS APIS -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div>
+            <h4 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>🌐</span> Automated Open Rates & Gas APIs
+            </h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Sync live regional gasoline prices from the <strong>U.S. EIA</strong> and electric tariffs from <strong>OpenEI / NREL</strong> by ZIP code.
+            </p>
+          </div>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <button type="button" onclick="syncEiaGasPrice()" id="btn-sync-gas" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+              <span>⛽</span> Fetch EIA Gas Price
+            </button>
+            <button type="button" onclick="syncOpenEiElectricRates()" id="btn-sync-electric" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+              <span>⚡</span> Fetch Electric Rates
+            </button>
+          </div>
+        </div>
+
+        <!-- Status / Feedback Toast inside the panel -->
+        <div id="rates-api-status-msg" class="hidden px-4 py-3 rounded-xl text-xs flex items-center justify-between font-medium"></div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Local ZIP Code</label>
+            <input type="text" id="rates_zip_code" name="zip_code" value="{{ config.rates.zip_code }}" placeholder="e.g. 80005" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
+            <span class="text-[10px] text-slate-400 mt-1 block">Identifies your local energy market.</span>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+              EIA API Key (Optional)
+              <a href="https://www.eia.gov/opendata/register.php" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
+            </label>
+            <input type="text" id="eia_api_key" name="eia_api_key" value="{{ config.rates.eia_api_key }}" placeholder="Free EIA v2 API Key" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white font-mono">
+            <span class="text-[10px] text-slate-400 mt-1 block">U.S. Energy Information Administration API key.</span>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+              OpenEI API Key (Optional)
+              <a href="https://openei.org/services/api/signup/" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
+            </label>
+            <input type="text" id="openei_api_key" name="openei_api_key" value="{{ config.rates.openei_api_key }}" placeholder="Free OpenEI / NREL Key" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white font-mono">
+            <span class="text-[10px] text-slate-400 mt-1 block">NREL Utility Rate Database API key.</span>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Detected Utility / Tariff Name</label>
+            <input type="text" id="utility_name" name="utility_name" value="{{ config.rates.utility_name }}" placeholder="e.g. Xcel Energy / Public Service Co" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
+            <span class="text-[10px] text-slate-400 mt-1 block">Utility rate provider name or custom identifier.</span>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- 5. DRIVING & DASHBOARD OPTIONS -->
@@ -644,7 +843,31 @@ function serializeSchedules() {
   document.getElementById('schedules_json').value = JSON.stringify(schedules);
 }
 
-// --- 1. TARIFF PRESET APPLIER & LIVE ENERGY APIS ---
+// --- 1. RATE STRUCTURE & TARIFF PRESET APPLIER ---
+function switchRateMode(mode) {
+  const modeInput = document.getElementById('rate_mode_input');
+  if (modeInput) modeInput.value = mode;
+
+  const modes = ['tou', 'tiered', 'flat'];
+  modes.forEach(m => {
+    const btn = document.getElementById('btn-mode-' + m);
+    const panel = document.getElementById('rate-mode-' + m + '-panel');
+    if (m === mode) {
+      if (btn) {
+        btn.classList.add('border-tesla', 'bg-red-50/40', 'dark:bg-red-950/20', 'text-slate-900', 'dark:text-white', 'ring-1', 'ring-tesla');
+        btn.classList.remove('border-slate-200', 'dark:border-slate-800', 'bg-slate-50', 'dark:bg-slate-950', 'text-slate-700', 'dark:text-slate-300');
+      }
+      if (panel) panel.classList.remove('hidden');
+    } else {
+      if (btn) {
+        btn.classList.remove('border-tesla', 'bg-red-50/40', 'dark:bg-red-950/20', 'text-slate-900', 'dark:text-white', 'ring-1', 'ring-tesla');
+        btn.classList.add('border-slate-200', 'dark:border-slate-800', 'bg-slate-50', 'dark:bg-slate-950', 'text-slate-700', 'dark:text-slate-300');
+      }
+      if (panel) panel.classList.add('hidden');
+    }
+  });
+}
+
 function applyTariffPreset(preset) {
   const setVal = (id, val) => {
     const el = document.getElementById(id);
@@ -656,6 +879,7 @@ function applyTariffPreset(preset) {
   };
 
   if (preset === 'standard_tou') {
+    switchRateMode('tou');
     setVal('off_peak_kwh_cost', '0.10');
     setVal('shoulder_kwh_cost', '0.14');
     setVal('on_peak_kwh_cost', '0.20');
@@ -666,21 +890,33 @@ function applyTariffPreset(preset) {
     setVal('peak_end_hour', '19');
     setChecked('weekends_are_off_peak', true);
   } else if (preset === 'xcel_colorado_tou') {
+    switchRateMode('tou');
     setVal('off_peak_kwh_cost', '0.09');
     setVal('shoulder_kwh_cost', '0.13');
     setVal('on_peak_kwh_cost', '0.19');
-    setVal('average_kwh_cost', '0.12');
+    setVal('average_kwh_cost', '0.11');
     setVal('off_peak_start_hour', '21');
     setVal('off_peak_end_hour', '9');
     setVal('peak_start_hour', '13');
     setVal('peak_end_hour', '19');
     setChecked('weekends_are_off_peak', true);
+  } else if (preset === 'standard_tiered') {
+    switchRateMode('tiered');
+    setVal('tier1_max_kwh', '500');
+    setVal('tier1_kwh_cost', '0.11');
+    setVal('tier2_max_kwh', '1000');
+    setVal('tier2_kwh_cost', '0.18');
+    setVal('tier3_kwh_cost', '0.25');
+  } else if (preset === 'california_tiered') {
+    switchRateMode('tiered');
+    setVal('tier1_max_kwh', '350');
+    setVal('tier1_kwh_cost', '0.32');
+    setVal('tier2_max_kwh', '800');
+    setVal('tier2_kwh_cost', '0.41');
+    setVal('tier3_kwh_cost', '0.50');
   } else if (preset === 'flat_rate') {
-    setVal('off_peak_kwh_cost', '0.13');
-    setVal('shoulder_kwh_cost', '0.13');
-    setVal('on_peak_kwh_cost', '0.13');
+    switchRateMode('flat');
     setVal('average_kwh_cost', '0.13');
-    setChecked('weekends_are_off_peak', true);
   }
 }
 
@@ -760,6 +996,11 @@ async function syncOpenEiElectricRates() {
         if (w) w.checked = Boolean(r.weekends_are_off_peak);
       }
       if (r.utility_name) setVal('utility_name', r.utility_name);
+      if (r.tier1_max_kwh !== undefined) setVal('tier1_max_kwh', r.tier1_max_kwh);
+      if (r.tier1_kwh_cost !== undefined) setVal('tier1_kwh_cost', r.tier1_kwh_cost);
+      if (r.tier2_max_kwh !== undefined) setVal('tier2_max_kwh', r.tier2_max_kwh);
+      if (r.tier2_kwh_cost !== undefined) setVal('tier2_kwh_cost', r.tier2_kwh_cost);
+      if (r.tier3_kwh_cost !== undefined) setVal('tier3_kwh_cost', r.tier3_kwh_cost);
 
       const presetSelect = document.getElementById('tariff-preset-select');
       if (presetSelect) presetSelect.value = 'custom';

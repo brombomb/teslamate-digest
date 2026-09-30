@@ -40,6 +40,28 @@ TARIFF_PRESETS: Dict[str, Dict[str, Any]] = {
         "peak_start_hour": 13,
         "peak_end_hour": 19,
         "weekends_are_off_peak": True
+    },
+    "standard_tiered": {
+        "name": "Standard 2-Tier Baseline (Threshold)",
+        "description": "Tier 1 baseline up to 500 kWh/mo @ $0.11/kWh. Tier 2 above 500 kWh/mo @ $0.18/kWh.",
+        "rate_mode": "tiered",
+        "tier1_max_kwh": 500.0,
+        "tier1_kwh_cost": 0.11,
+        "tier2_max_kwh": 1000.0,
+        "tier2_kwh_cost": 0.18,
+        "tier3_kwh_cost": 0.25,
+        "average_kwh_cost": 0.14
+    },
+    "california_tiered": {
+        "name": "California Tiered Baseline (PG&E / SCE)",
+        "description": "Tier 1 baseline up to 350 kWh @ $0.32/kWh. Tier 2 up to 800 kWh @ $0.41/kWh. Tier 3 excess @ $0.50/kWh.",
+        "rate_mode": "tiered",
+        "tier1_max_kwh": 350.0,
+        "tier1_kwh_cost": 0.32,
+        "tier2_max_kwh": 800.0,
+        "tier2_kwh_cost": 0.41,
+        "tier3_kwh_cost": 0.50,
+        "average_kwh_cost": 0.36
     }
 }
 

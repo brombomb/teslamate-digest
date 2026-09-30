@@ -197,6 +197,16 @@ async def sync_electric_rates(request: Request):
     cfg.rates.peak_end_hour = int(rates.get("peak_end_hour", cfg.rates.peak_end_hour))
     cfg.rates.weekends_are_off_peak = bool(rates.get("weekends_are_off_peak", True))
     cfg.rates.utility_name = rates.get("utility_name", cfg.rates.utility_name)
+    if "tier1_max_kwh" in rates:
+        cfg.rates.tier1_max_kwh = float(rates["tier1_max_kwh"])
+    if "tier1_kwh_cost" in rates:
+        cfg.rates.tier1_kwh_cost = float(rates["tier1_kwh_cost"])
+    if "tier2_max_kwh" in rates:
+        cfg.rates.tier2_max_kwh = float(rates["tier2_max_kwh"])
+    if "tier2_kwh_cost" in rates:
+        cfg.rates.tier2_kwh_cost = float(rates["tier2_kwh_cost"])
+    if "tier3_kwh_cost" in rates:
+        cfg.rates.tier3_kwh_cost = float(rates["tier3_kwh_cost"])
     save_config(cfg)
 
     return JSONResponse(content={
@@ -493,6 +503,7 @@ async def settings_save(
     recipient_email: str = Form(""),
     sender_name: str = Form("TeslaMate Digest"),
     email_theme: str = Form("pearl_white"),
+    rate_mode: str = Form("tou"),
     tariff_preset: str = Form("standard_tou"),
     average_kwh_cost: float = Form(0.13),
     off_peak_kwh_cost: float = Form(0.10),
@@ -503,6 +514,11 @@ async def settings_save(
     peak_start_hour: int = Form(13),
     peak_end_hour: int = Form(19),
     weekends_are_off_peak: Optional[str] = Form(None),
+    tier1_max_kwh: float = Form(500.0),
+    tier1_kwh_cost: float = Form(0.11),
+    tier2_max_kwh: float = Form(1000.0),
+    tier2_kwh_cost: float = Form(0.17),
+    tier3_kwh_cost: float = Form(0.26),
     supercharger_fallback_cost: float = Form(0.36),
     zip_code: str = Form(""),
     gas_price_per_gal: float = Form(3.50),
@@ -554,6 +570,7 @@ async def settings_save(
     cfg.dashboard_url = dashboard_url.strip() or "http://localhost:8660"
     cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
 
+    cfg.rates.rate_mode = rate_mode.strip().lower() or "tou"
     cfg.rates.tariff_preset = tariff_preset
     cfg.rates.average_kwh_cost = average_kwh_cost
     cfg.rates.off_peak_kwh_cost = off_peak_kwh_cost
@@ -564,6 +581,11 @@ async def settings_save(
     cfg.rates.peak_start_hour = peak_start_hour
     cfg.rates.peak_end_hour = peak_end_hour
     cfg.rates.weekends_are_off_peak = bool(weekends_are_off_peak)
+    cfg.rates.tier1_max_kwh = tier1_max_kwh
+    cfg.rates.tier1_kwh_cost = tier1_kwh_cost
+    cfg.rates.tier2_max_kwh = tier2_max_kwh
+    cfg.rates.tier2_kwh_cost = tier2_kwh_cost
+    cfg.rates.tier3_kwh_cost = tier3_kwh_cost
     cfg.rates.supercharger_fallback_cost = supercharger_fallback_cost
     cfg.rates.zip_code = zip_code
     cfg.rates.gas_price_per_gal = gas_price_per_gal

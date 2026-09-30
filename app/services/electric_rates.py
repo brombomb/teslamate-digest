@@ -25,6 +25,11 @@ XCEL_COLORADO_RE_TOU = {
     "peak_start_hour": 13,      # 1:00 PM
     "peak_end_hour": 19,        # 7:00 PM
     "weekends_are_off_peak": True,
+    "tier1_max_kwh": 500.0,
+    "tier1_kwh_cost": 0.11,
+    "tier2_max_kwh": 1000.0,
+    "tier2_kwh_cost": 0.17,
+    "tier3_kwh_cost": 0.26,
     "effective_year": 2026,
     "notes": "Schedule RE-TOU: Summer on-peak 1-7 PM weekdays; shoulder 9 AM-1 PM & 7-9 PM; off-peak 9 PM-9 AM; weekends 100% off-peak."
 }
@@ -42,6 +47,11 @@ DEFAULT_NATIONAL_AVERAGE = {
     "peak_start_hour": 13,
     "peak_end_hour": 19,
     "weekends_are_off_peak": True,
+    "tier1_max_kwh": 500.0,
+    "tier1_kwh_cost": 0.12,
+    "tier2_max_kwh": 1000.0,
+    "tier2_kwh_cost": 0.16,
+    "tier3_kwh_cost": 0.22,
     "effective_year": 2026,
     "notes": "National baseline residential electric rates"
 }

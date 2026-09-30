@@ -69,6 +69,13 @@ class RatesSettings(BaseModel):
     eia_api_key: str = ""
     openei_api_key: str = ""
     utility_name: str = ""
+    # Tiered / Threshold Usage Rates
+    tier1_max_kwh: float = 500.0
+    tier1_kwh_cost: float = 0.11
+    tier2_max_kwh: float = 1000.0
+    tier2_kwh_cost: float = 0.17
+    tier3_kwh_cost: float = 0.26
+
     gas_price_source: str = "eia"
     electric_rate_source: str = "openei"
 
