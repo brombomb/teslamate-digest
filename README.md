@@ -26,8 +26,8 @@ Delivering utility financial clarity, rich travel storytelling, vehicle telemetr
 ### 3. 📍 Driving Highlights & Places (The Google Maps Module)
 * **Top Destinations**: Ranks your most frequently visited spots (using reverse-geocoded addresses and geofences) with visit counts.
 * **Longest Journey of the Month**: Highlights your biggest road trip (origin, destination, distance, duration, elevation profile).
-* **🏔️ Colorado Mountain Elevation & Regen**: Tracks total vertical feet climbed and descended, plus estimates kWh recaptured via regenerative braking on mountain descents.
-
+* **🏔️ Mountain Elevation & Regen**: Tracks total vertical feet climbed and descended, plus estimates kWh recaptured via regenerative braking on mountain descents.
+ 
 ### 4. ⚡ Supercharger Explorer
 * **Lifetime Unique Stations Counter**: Keeps track of every distinct Supercharger station you have ever plugged into.
 * **New Superchargers Unlocked**: Badges any new station visited during the reporting period with date, peak kW power, and energy added.
@@ -43,7 +43,7 @@ Delivering utility financial clarity, rich travel storytelling, vehicle telemetr
 
 ### 7. 🎉 Spotify Wrapped "Year in Review" (Annual Retrospective)
 * Available on-demand or dispatched on New Year's Day.
-* Celebrates your year with driver archetype badges (e.g. *The Night Owl Charger*, *The Colorado Peak Bagger*, *The Road Warrior*, *The Wallet Defender*), total miles driven vs. Earth circumnavigations, and yearly top destinations.
+* Celebrates your year with driver archetype badges (e.g. *The Night Owl Charger*, *The Peak Bagger*, *The Road Warrior*, *The Wallet Defender*), total miles driven vs. Earth circumnavigations, and yearly top destinations.
 
 ### 8. 💻 Interactive Web Dashboard & Live Previewer
 * Local web UI running on port **`8660`**.
@@ -73,7 +73,7 @@ services:
     ports:
       - "8660:8660"
     environment:
-      - TZ=America/Denver
+      - TZ=UTC
       - DATABASE_HOST=database
       - DATABASE_PORT=5432
       - DATABASE_USER=teslamate

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request, Form, Query
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, PlainTextResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -62,6 +62,77 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="TeslaMate Digest", version="1.0.0", lifespan=lifespan)
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
+async def favicon():
+    fav_svg = STATIC_DIR / "favicon.svg"
+    if fav_svg.exists():
+        return FileResponse(fav_svg, media_type="image/svg+xml")
+    return HTMLResponse(status_code=404)
+
+
+@app.get("/api/locations/search")
+async def search_locations(request: Request, q: str = Query("", alias="q"), limit: int = Query(15, le=50)):
+    """
+    Server-side typeahead search for geofences and recorded drive addresses.
+    """
+    db: Database = request.app.state.db
+    q_str = q.strip()
+    try:
+        if q_str:
+            param = f"%{q_str}%"
+            query = """
+                SELECT loc, city, loc_type FROM (
+                    SELECT DISTINCT loc, city, loc_type FROM (
+                        SELECT name AS loc, '' AS city, 'geofence' AS loc_type 
+                        FROM geofences 
+                        WHERE name ILIKE $1
+                        UNION ALL
+                        SELECT coalesce(name, road) AS loc, coalesce(city, '') AS city, 'address' AS loc_type 
+                        FROM addresses 
+                        WHERE (coalesce(name, road) ILIKE $1 OR coalesce(city, '') ILIKE $1) 
+                          AND coalesce(name, road) IS NOT NULL AND coalesce(name, road) != ''
+                    ) sub
+                ) t
+                ORDER BY (loc_type = 'geofence') DESC, loc ASC
+                LIMIT $2;
+            """
+            rows = await db.fetch(query, param, limit)
+        else:
+            query = """
+                SELECT loc, city, loc_type FROM (
+                    SELECT DISTINCT loc, city, loc_type FROM (
+                        SELECT name AS loc, '' AS city, 'geofence' AS loc_type 
+                        FROM geofences 
+                        WHERE name IS NOT NULL AND name != ''
+                        UNION ALL
+                        SELECT coalesce(name, road) AS loc, coalesce(city, '') AS city, 'address' AS loc_type 
+                        FROM addresses 
+                        WHERE coalesce(name, road) IS NOT NULL AND coalesce(name, road) != ''
+                    ) sub
+                ) t
+                ORDER BY (loc_type = 'geofence') DESC, loc ASC
+                LIMIT $1;
+            """
+            rows = await db.fetch(query, limit)
+
+        results = []
+        for r in rows:
+            loc = r["loc"]
+            city = r["city"]
+            display = f"{loc} ({city})" if city else loc
+            results.append({
+                "value": loc,
+                "display": display,
+                "name": loc,
+                "city": city,
+                "type": r["loc_type"]
+            })
+        return JSONResponse(content={"results": results})
+    except Exception as e:
+        print(f"[LocationsSearch] Error querying locations: {e}")
+        return JSONResponse(content={"results": []})
 
 
 @app.get("/api/health")
@@ -348,25 +419,25 @@ async def settings_save(
     recipient_email: str = Form(""),
     sender_name: str = Form("TeslaMate Digest"),
     email_theme: str = Form("dark_modern"),
-    tariff_preset: str = Form("xcel_colorado_tou"),
-    average_kwh_cost: float = Form(0.11),
-    off_peak_kwh_cost: float = Form(0.09),
-    shoulder_kwh_cost: float = Form(0.13),
-    on_peak_kwh_cost: float = Form(0.19),
+    tariff_preset: str = Form("standard_tou"),
+    average_kwh_cost: float = Form(0.13),
+    off_peak_kwh_cost: float = Form(0.10),
+    shoulder_kwh_cost: float = Form(0.14),
+    on_peak_kwh_cost: float = Form(0.20),
     off_peak_start_hour: int = Form(21),
     off_peak_end_hour: int = Form(9),
     peak_start_hour: int = Form(13),
     peak_end_hour: int = Form(19),
     weekends_are_off_peak: Optional[str] = Form(None),
     supercharger_fallback_cost: float = Form(0.36),
-    zip_code: str = Form("80005"),
-    gas_price_per_gal: float = Form(4.00),
+    zip_code: str = Form(""),
+    gas_price_per_gal: float = Form(3.50),
     baseline_ice_mpg: float = Form(26.0),
     eia_api_key: str = Form(""),
     openei_api_key: str = Form(""),
-    utility_name: str = Form("Public Service Co of Colorado (Xcel Energy)"),
+    utility_name: str = Form(""),
     dashboard_url: str = Form("http://localhost:8660"),
-    excluded_locations: str = Form("West 87th Terrace, Home"),
+    excluded_locations: str = Form("Home"),
     tire_rotation_interval_mi: int = Form(6250),
     schedule_enabled: Optional[str] = Form(None),
     frequency: str = Form("monthly"),
@@ -384,6 +455,7 @@ async def settings_save(
     mod_supercharger_explorer: Optional[str] = Form(None),
     mod_top_locations: Optional[str] = Form(None),
     mod_driving_milestones: Optional[str] = Form(None),
+    mod_mountain_regen: Optional[str] = Form(None),
     mod_colorado_mountain_regen: Optional[str] = Form(None),
     mod_vampire_drain: Optional[str] = Form(None),
     mod_maintenance_alerts: Optional[str] = Form(None),
@@ -448,8 +520,8 @@ async def settings_save(
     cfg.modules.battery_health = bool(mod_battery_health)
     cfg.modules.supercharger_explorer = bool(mod_supercharger_explorer)
     cfg.modules.top_locations = bool(mod_top_locations)
-    cfg.modules.driving_milestones = bool(mod_driving_milestones)
-    cfg.modules.colorado_mountain_regen = bool(mod_colorado_mountain_regen)
+    cfg.modules.mountain_regen = bool(mod_mountain_regen or mod_colorado_mountain_regen)
+    cfg.modules.colorado_mountain_regen = cfg.modules.mountain_regen
     cfg.modules.vampire_drain = bool(mod_vampire_drain)
     cfg.modules.maintenance_alerts = bool(mod_maintenance_alerts)
     cfg.modules.snow_tire_reminder = bool(mod_snow_tire_reminder)

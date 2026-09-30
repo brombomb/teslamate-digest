@@ -365,7 +365,7 @@
                       </td>
                       <td width="34%" style="padding-left: 6px;">
                         <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Mountain Ascent</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Elevation Climbed</div>
                           <div style="font-size: 17px; font-weight: 700; color: {{ theme.accent_blue }}; margin: 3px 0;">{{ "{:,.0f}".format(trips.elevation.ascent_ft) }} ft</div>
                           <div style="font-size: 11px; color: {{ theme.accent_green }};">~{{ trips.elevation.regen_kwh_recaptured }} kWh regen</div>
                         </div>
@@ -376,7 +376,7 @@
                   <!-- LONGEST DRIVE -->
                   {% if trips.longest_drive %}
                   <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; border: 1px solid {{ theme.card_inner_border }};">
-                    <div style="font-size: 12px; text-transform: uppercase; color: {{ theme.accent_blue }}; font-weight: 700; margin-bottom: 4px;">Longest Journey of the Month</div>
+                    <div style="font-size: 12px; text-transform: uppercase; color: {{ theme.accent_blue }}; font-weight: 700; margin-bottom: 4px;">Longest Journey</div>
                     <div style="font-size: 14px; font-weight: 700; color: {{ theme.text_primary }};">{{ trips.longest_drive.start_location }} &rarr; {{ trips.longest_drive.end_location }}</div>
                     <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 3px;">
                       {{ trips.longest_drive.distance_mi }} miles &bull; {{ trips.longest_drive.duration_min }} mins &bull; {{ trips.longest_drive.date }}

@@ -2,13 +2,13 @@ from datetime import datetime
 from typing import Dict, Any, Tuple
 
 TARIFF_PRESETS: Dict[str, Dict[str, Any]] = {
-    "xcel_colorado_tou": {
-        "name": "Xcel Energy Colorado (Schedule RE-TOU)",
-        "description": "Off-Peak 9 PM – 9 AM weekdays & ALL weekends. Shoulder 9 AM – 1 PM & 7 PM – 9 PM. On-Peak 1 PM – 7 PM weekdays.",
-        "off_peak_kwh_cost": 0.09,
-        "shoulder_kwh_cost": 0.13,
-        "on_peak_kwh_cost": 0.19,
-        "average_kwh_cost": 0.11,
+    "standard_tou": {
+        "name": "Standard Time-of-Use (Generic)",
+        "description": "Off-Peak 9 PM – 9 AM weekdays & all weekends. Shoulder 9 AM – 1 PM & 7 PM – 9 PM. On-Peak 1 PM – 7 PM weekdays.",
+        "off_peak_kwh_cost": 0.10,
+        "shoulder_kwh_cost": 0.14,
+        "on_peak_kwh_cost": 0.20,
+        "average_kwh_cost": 0.13,
         "off_peak_start_hour": 21,
         "off_peak_end_hour": 9,
         "peak_start_hour": 13,
@@ -18,9 +18,22 @@ TARIFF_PRESETS: Dict[str, Dict[str, Any]] = {
     "flat_rate": {
         "name": "Flat Electric Rate Plan",
         "description": "Fixed electricity rate across all hours and days.",
-        "off_peak_kwh_cost": 0.11,
-        "shoulder_kwh_cost": 0.11,
-        "on_peak_kwh_cost": 0.11,
+        "off_peak_kwh_cost": 0.13,
+        "shoulder_kwh_cost": 0.13,
+        "on_peak_kwh_cost": 0.13,
+        "average_kwh_cost": 0.13,
+        "off_peak_start_hour": 21,
+        "off_peak_end_hour": 9,
+        "peak_start_hour": 13,
+        "peak_end_hour": 19,
+        "weekends_are_off_peak": True
+    },
+    "xcel_colorado_tou": {
+        "name": "Xcel Energy Colorado (Schedule RE-TOU)",
+        "description": "Off-Peak 9 PM – 9 AM weekdays & ALL weekends. Shoulder 9 AM – 1 PM & 7 PM – 9 PM. On-Peak 1 PM – 7 PM weekdays.",
+        "off_peak_kwh_cost": 0.09,
+        "shoulder_kwh_cost": 0.13,
+        "on_peak_kwh_cost": 0.19,
         "average_kwh_cost": 0.11,
         "off_peak_start_hour": 21,
         "off_peak_end_hour": 9,

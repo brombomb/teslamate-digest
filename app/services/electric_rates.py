@@ -77,7 +77,7 @@ def set_cached_electric_rates(zip_code: str, rate_data: Dict[str, Any]) -> None:
 
 
 async def fetch_electric_rates(
-    zip_code: str = "80005",
+    zip_code: str = "",
     openei_api_key: Optional[str] = None,
     eia_api_key: Optional[str] = None,
     force_refresh: bool = False

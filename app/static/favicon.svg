@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3b30" />
+      <stop offset="100%" stop-color="#e82127" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#e82127" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bgGrad)" stroke="#27272a" stroke-width="1.5" />
+
+  <!-- Subtle Tesla Arc Curve Top -->
+  <path d="M18 16 C 26 13, 38 13, 46 16 C 42 18, 38 18.5, 32 18.5 C 26 18.5, 22 18, 18 16 Z" fill="#e82127" opacity="0.9" />
+
+  <!-- Center Lightning Bolt -->
+  <polygon points="35,19 23,35 31,35 27,48 41,31 33,31 37,19" fill="url(#boltGrad)" filter="url(#glow)" />
+</svg>

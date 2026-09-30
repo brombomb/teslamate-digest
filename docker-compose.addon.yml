@@ -9,16 +9,16 @@
     ports:
       - 8660:8660
     environment:
-      - TZ=America/Denver
+      - TZ=UTC
       - DATABASE_HOST=database
       - DATABASE_PORT=5432
       - DATABASE_USER=teslamate
-      - DATABASE_PASS=Curtly-Silty-7Strung-4Flesh-sinh2-ssss # matches your postgres password
+      - DATABASE_PASS=your_postgres_password # matches your postgres password
       - DATABASE_NAME=teslamate
       - GRAFANA_URL=http://grafana:3000
       - DATA_DIR=/app/data
     volumes:
-      - /data/docker/teslamate/addons/teslamate-digest/data:/app/data
-      - /data/docker/teslamate/addons/teslamate-digest/custom_templates:/app/custom_templates
+      - ./teslamate-digest/data:/app/data
+      - ./teslamate-digest/custom_templates:/app/custom_templates
     depends_on:
       - database

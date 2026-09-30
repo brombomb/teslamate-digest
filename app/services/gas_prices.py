@@ -62,7 +62,7 @@ def set_cached_gas_price_data(zip_code: str, price_data: Dict[str, Any]) -> None
 async def fetch_gas_price_details(
     zip_code: str = "80005",
     api_key: Optional[str] = None,
-    fallback: float = 4.00,
+    fallback: float = 3.50,
     force_refresh: bool = False
 ) -> Dict[str, Any]:
     """
@@ -75,14 +75,14 @@ async def fetch_gas_price_details(
         if cached:
             return cached
 
-    prefix = zip_code[:2] if len(zip_code) >= 2 else "80"
-    target_area = ZIP_TO_EIA_AREA.get(prefix, "SCO" if prefix.startswith("8") else "NUS")
+    prefix = zip_code[:2] if len(zip_code) >= 2 else ""
+    target_area = ZIP_TO_EIA_AREA.get(prefix, "NUS")
     eia_key = api_key or os.getenv("EIA_API_KEY", "") or "DEMO_KEY"
 
     # 1. Attempt EIA Petroleum API v2
     areas_to_try = [target_area]
-    if target_area != "SCO" and prefix in ["80", "81"]:
-        areas_to_try.append("SCO")
+    if target_area != "NUS" and "NUS" not in areas_to_try:
+        areas_to_try.append("NUS")
     areas_to_try.append("NUS")
 
     for area in areas_to_try:
@@ -134,21 +134,22 @@ async def fetch_gas_price_details(
         except Exception:
             pass
 
-    # 3. Fallback to confirmed EIA Denver/Colorado retail price ($4.033/gal)
+    # 3. Fallback to baseline price
     default_price = 4.033 if prefix in ["80", "81"] else fallback
+    area_desc = "Denver Metro (Colorado)" if prefix in ["80", "81"] else ("U.S. National Average" if target_area == "NUS" else "Local Area")
     fallback_data = {
         "price": default_price,
-        "period": "2026-09-28",
-        "area_name": "Denver Metro (Arvada 80005)" if prefix in ["80", "81"] else "Local Area",
+        "period": datetime.utcnow().strftime("%Y-%m-%d"),
+        "area_name": area_desc,
         "duoarea": target_area,
-        "source": "U.S. Energy Information Administration (EIA) Weekly",
-        "is_live": True
+        "source": "U.S. Energy Information Administration (EIA) Average",
+        "is_live": False
     }
     set_cached_gas_price_data(zip_code, fallback_data)
     return fallback_data
 
 
-async def fetch_live_gas_price(zip_code: str = "80005", fallback: float = 4.00) -> float:
+async def fetch_live_gas_price(zip_code: str = "", fallback: float = 3.50) -> float:
     """Convenience helper returning just the float price."""
     details = await fetch_gas_price_details(zip_code=zip_code, fallback=fallback)
     return float(details.get("price", fallback))
