@@ -243,7 +243,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Off-Peak Rate ($/kWh)</label>
           <input type="number" step="0.001" id="off_peak_kwh_cost" name="off_peak_kwh_cost" value="{{ config.rates.off_peak_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
@@ -256,6 +256,13 @@
           <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">On-Peak Rate ($/kWh)</label>
           <input type="number" step="0.001" id="on_peak_kwh_cost" name="on_peak_kwh_cost" value="{{ config.rates.on_peak_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
         </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Supercharger Fallback ($/kWh)</label>
+          <input type="number" step="0.01" id="supercharger_fallback_cost" name="supercharger_fallback_cost" value="{{ config.rates.supercharger_fallback_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Off-Peak Window Start</label>
           <select id="off_peak_start_hour" name="off_peak_start_hour" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
@@ -272,24 +279,101 @@
             {% endfor %}
           </select>
         </div>
-        <div class="flex items-center pt-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Peak Window Start</label>
+          <select id="peak_start_hour" name="peak_start_hour" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+            {% for h in range(24) %}
+            <option value="{{ h }}" {% if config.rates.peak_start_hour == h %}selected{% endif %}>{{ "%02d:00"|format(h) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Peak Window End</label>
+          <select id="peak_end_hour" name="peak_end_hour" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+            {% for h in range(24) %}
+            <option value="{{ h }}" {% if config.rates.peak_end_hour == h %}selected{% endif %}>{{ "%02d:00"|format(h) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Average Flat Rate ($/kWh)</label>
+          <input type="number" step="0.001" id="average_kwh_cost" name="average_kwh_cost" value="{{ config.rates.average_kwh_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Regular Gas Price ($/gal)</label>
+          <input type="number" step="0.01" id="gas_price_per_gal" name="gas_price_per_gal" value="{{ config.rates.gas_price_per_gal }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Baseline Gas Vehicle MPG</label>
+          <input type="number" step="0.1" name="baseline_ice_mpg" value="{{ config.rates.baseline_ice_mpg }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+        </div>
+        <div class="pt-4">
           <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
             <input type="checkbox" id="weekends_are_off_peak" name="weekends_are_off_peak" {% if config.rates.weekends_are_off_peak %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
             <span class="text-slate-700 dark:text-slate-200">Weekends are 100% Off-Peak</span>
           </label>
         </div>
+      </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Local ZIP Code</label>
-          <input type="text" name="zip_code" value="{{ config.rates.zip_code }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Regular Gas Price ($/gal)</label>
-          <input type="number" step="0.01" name="gas_price_per_gal" value="{{ config.rates.gas_price_per_gal }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Baseline Gas Vehicle MPG</label>
-          <input type="number" step="0.1" name="baseline_ice_mpg" value="{{ config.rates.baseline_ice_mpg }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+      <!-- LIVE OPEN APIS CARD -->
+      <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>🌐</span> Automated Open Rates & Gas APIs
+              </h4>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Automatically fetch live regional gasoline prices from <strong>U.S. EIA</strong> and TOU electric tariffs from <strong>OpenEI / NREL</strong> by ZIP code.
+              </p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button type="button" onclick="syncEiaGasPrice()" id="btn-sync-gas" class="px-3 py-1.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+                <span>⛽</span> Fetch EIA Gas Price
+              </button>
+              <button type="button" onclick="syncOpenEiElectricRates()" id="btn-sync-electric" class="px-3 py-1.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+                <span>⚡</span> Fetch Electric TOU Rates
+              </button>
+            </div>
+          </div>
+
+          <!-- Status / Feedback Toast inside the panel -->
+          <div id="rates-api-status-msg" class="hidden px-3 py-2 rounded-lg text-xs flex items-center justify-between"></div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Local ZIP Code</label>
+              <input type="text" id="rates_zip_code" name="zip_code" value="{{ config.rates.zip_code }}" placeholder="e.g. 80005" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+              <span class="text-[10px] text-slate-400 mt-0.5 block">Used to identify your regional energy market.</span>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                EIA API Key (Optional)
+                <a href="https://www.eia.gov/opendata/register.php" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
+              </label>
+              <input type="text" id="eia_api_key" name="eia_api_key" value="{{ config.rates.eia_api_key }}" placeholder="Free EIA v2 API Key" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400 mt-0.5 block">U.S. Energy Information Administration key.</span>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                OpenEI API Key (Optional)
+                <a href="https://openei.org/services/api/signup/" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
+              </label>
+              <input type="text" id="openei_api_key" name="openei_api_key" value="{{ config.rates.openei_api_key }}" placeholder="Free OpenEI / NREL Key" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400 mt-0.5 block">National Renewable Energy Lab database key.</span>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Detected Utility / Tariff Name</label>
+              <input type="text" id="utility_name" name="utility_name" value="{{ config.rates.utility_name }}" placeholder="e.g. Xcel Energy / Public Service Co" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+              <span class="text-[10px] text-slate-400 mt-0.5 block">Utility rate provider name or custom identifier.</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -392,6 +476,7 @@
           <span>📊 High-Res Embedded Chart Images</span>
         </label>
       </div>
+      <input type="hidden" name="modules_submitted" value="1">
     </div>
 
     <!-- SAVE BUTTON -->
@@ -559,31 +644,137 @@ function serializeSchedules() {
   document.getElementById('schedules_json').value = JSON.stringify(schedules);
 }
 
-// --- 1. TARIFF PRESET APPLIER ---
+// --- 1. TARIFF PRESET APPLIER & LIVE ENERGY APIS ---
 function applyTariffPreset(preset) {
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+  const setChecked = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = Boolean(val);
+  };
+
   if (preset === 'standard_tou') {
-    document.getElementById('off_peak_kwh_cost').value = '0.10';
-    document.getElementById('shoulder_kwh_cost').value = '0.14';
-    document.getElementById('on_peak_kwh_cost').value = '0.20';
-    document.getElementById('average_kwh_cost').value = '0.13';
-    document.getElementById('off_peak_start_hour').value = '21';
-    document.getElementById('off_peak_end_hour').value = '9';
-    document.getElementById('peak_start_hour').value = '13';
-    document.getElementById('peak_end_hour').value = '19';
-    document.getElementById('weekends_are_off_peak').checked = true;
+    setVal('off_peak_kwh_cost', '0.10');
+    setVal('shoulder_kwh_cost', '0.14');
+    setVal('on_peak_kwh_cost', '0.20');
+    setVal('average_kwh_cost', '0.13');
+    setVal('off_peak_start_hour', '21');
+    setVal('off_peak_end_hour', '9');
+    setVal('peak_start_hour', '13');
+    setVal('peak_end_hour', '19');
+    setChecked('weekends_are_off_peak', true);
   } else if (preset === 'xcel_colorado_tou') {
-    document.getElementById('off_peak_kwh_cost').value = '0.09';
-    document.getElementById('shoulder_kwh_cost').value = '0.13';
-    document.getElementById('on_peak_kwh_cost').value = '0.19';
-    document.getElementById('off_peak_start_hour').value = '21';
-    document.getElementById('off_peak_end_hour').value = '9';
-    document.getElementById('weekends_are_off_peak').checked = true;
+    setVal('off_peak_kwh_cost', '0.09');
+    setVal('shoulder_kwh_cost', '0.13');
+    setVal('on_peak_kwh_cost', '0.19');
+    setVal('average_kwh_cost', '0.12');
+    setVal('off_peak_start_hour', '21');
+    setVal('off_peak_end_hour', '9');
+    setVal('peak_start_hour', '13');
+    setVal('peak_end_hour', '19');
+    setChecked('weekends_are_off_peak', true);
   } else if (preset === 'flat_rate') {
-    document.getElementById('off_peak_kwh_cost').value = '0.13';
-    document.getElementById('shoulder_kwh_cost').value = '0.13';
-    document.getElementById('on_peak_kwh_cost').value = '0.13';
-    document.getElementById('average_kwh_cost').value = '0.13';
-    document.getElementById('weekends_are_off_peak').checked = true;
+    setVal('off_peak_kwh_cost', '0.13');
+    setVal('shoulder_kwh_cost', '0.13');
+    setVal('on_peak_kwh_cost', '0.13');
+    setVal('average_kwh_cost', '0.13');
+    setChecked('weekends_are_off_peak', true);
+  }
+}
+
+async function syncEiaGasPrice() {
+  const btn = document.getElementById('btn-sync-gas');
+  const statusEl = document.getElementById('rates-api-status-msg');
+  const zip = document.getElementById('rates_zip_code')?.value.trim() || '';
+  const eiaKey = document.getElementById('eia_api_key')?.value.trim() || '';
+
+  if (!btn || !statusEl) return;
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Fetching...';
+  statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 block';
+  statusEl.textContent = 'Querying live EIA gasoline prices...';
+
+  try {
+    const res = await fetch('/api/sync-gas-price', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zip_code: zip, eia_api_key: eiaKey })
+    });
+    const data = await res.json();
+    if (data.success && data.price !== undefined) {
+      const gasInput = document.getElementById('gas_price_per_gal');
+      if (gasInput) gasInput.value = data.price;
+      statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 block';
+      statusEl.innerHTML = `✅ <strong>EIA Gas Price Synced:</strong> $${data.price}/gal (${escapeHtml(data.area_name || 'Regional Market')}) &mdash; Source: ${escapeHtml(data.source || 'U.S. EIA')}`;
+    } else {
+      throw new Error(data.message || 'Could not fetch price from EIA');
+    }
+  } catch (err) {
+    statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 block';
+    statusEl.textContent = '❌ Failed to sync gas price: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+  }
+}
+
+async function syncOpenEiElectricRates() {
+  const btn = document.getElementById('btn-sync-electric');
+  const statusEl = document.getElementById('rates-api-status-msg');
+  const zip = document.getElementById('rates_zip_code')?.value.trim() || '';
+  const openeiKey = document.getElementById('openei_api_key')?.value.trim() || '';
+  const eiaKey = document.getElementById('eia_api_key')?.value.trim() || '';
+
+  if (!btn || !statusEl) return;
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Fetching...';
+  statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 block';
+  statusEl.textContent = 'Querying OpenEI / NREL tariff database...';
+
+  try {
+    const res = await fetch('/api/sync-electric-rates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zip_code: zip, openei_api_key: openeiKey, eia_api_key: eiaKey })
+    });
+    const data = await res.json();
+    if (data.success && data.rates) {
+      const r = data.rates;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val !== undefined) el.value = val;
+      };
+      setVal('off_peak_kwh_cost', r.off_peak_kwh_cost);
+      setVal('shoulder_kwh_cost', r.shoulder_kwh_cost);
+      setVal('on_peak_kwh_cost', r.on_peak_kwh_cost);
+      setVal('off_peak_start_hour', r.off_peak_start_hour);
+      setVal('off_peak_end_hour', r.off_peak_end_hour);
+      setVal('peak_start_hour', r.peak_start_hour);
+      setVal('peak_end_hour', r.peak_end_hour);
+      if (r.weekends_are_off_peak !== undefined) {
+        const w = document.getElementById('weekends_are_off_peak');
+        if (w) w.checked = Boolean(r.weekends_are_off_peak);
+      }
+      if (r.utility_name) setVal('utility_name', r.utility_name);
+
+      const presetSelect = document.getElementById('tariff-preset-select');
+      if (presetSelect) presetSelect.value = 'custom';
+
+      statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 block';
+      statusEl.innerHTML = `✅ <strong>Electric Rates Synced:</strong> Off-Peak $${r.off_peak_kwh_cost}/kWh, Peak $${r.on_peak_kwh_cost}/kWh (${escapeHtml(r.utility_name || 'Utility')}) &mdash; Source: ${escapeHtml(r.source || 'OpenEI URDB')}`;
+    } else {
+      throw new Error(data.message || 'Could not fetch electric rates');
+    }
+  } catch (err) {
+    statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 block';
+    statusEl.textContent = '❌ Failed to sync electric rates: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
   }
 }
 

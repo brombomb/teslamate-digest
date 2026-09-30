@@ -521,6 +521,7 @@ async def settings_save(
     schedules_json: Optional[str] = Form(None),
     irs_mileage_rate: float = Form(0.67),
     work_routes_json: Optional[str] = Form(None),
+    modules_submitted: Optional[str] = Form(None),
     mod_spend_breakdown: Optional[str] = Form(None),
     mod_gas_savings: Optional[str] = Form(None),
     mod_driving_efficiency: Optional[str] = Form(None),
@@ -618,20 +619,22 @@ async def settings_save(
         except Exception as e:
             print(f"[Settings] Error parsing work routes JSON: {e}")
 
-    cfg.modules.spend_breakdown = bool(mod_spend_breakdown)
-    cfg.modules.gas_savings = bool(mod_gas_savings)
-    cfg.modules.driving_efficiency = bool(mod_driving_efficiency)
-    cfg.modules.charge_limit_compliance = bool(mod_charge_limit_compliance)
-    cfg.modules.work_mileage = bool(mod_work_mileage)
-    cfg.modules.battery_health = bool(mod_battery_health)
-    cfg.modules.supercharger_explorer = bool(mod_supercharger_explorer)
-    cfg.modules.top_locations = bool(mod_top_locations)
-    cfg.modules.mountain_regen = bool(mod_mountain_regen or mod_colorado_mountain_regen)
-    cfg.modules.colorado_mountain_regen = cfg.modules.mountain_regen
-    cfg.modules.vampire_drain = bool(mod_vampire_drain)
-    cfg.modules.maintenance_alerts = bool(mod_maintenance_alerts)
-    cfg.modules.snow_tire_reminder = bool(mod_snow_tire_reminder)
-    cfg.modules.embedded_charts = bool(mod_embedded_charts)
+    if modules_submitted:
+        cfg.modules.spend_breakdown = bool(mod_spend_breakdown)
+        cfg.modules.gas_savings = bool(mod_gas_savings)
+        cfg.modules.driving_efficiency = bool(mod_driving_efficiency)
+        cfg.modules.charge_limit_compliance = bool(mod_charge_limit_compliance)
+        cfg.modules.work_mileage = bool(mod_work_mileage)
+        cfg.modules.battery_health = bool(mod_battery_health)
+        cfg.modules.supercharger_explorer = bool(mod_supercharger_explorer)
+        cfg.modules.top_locations = bool(mod_top_locations)
+        cfg.modules.driving_milestones = bool(mod_driving_milestones)
+        cfg.modules.mountain_regen = bool(mod_mountain_regen or mod_colorado_mountain_regen)
+        cfg.modules.colorado_mountain_regen = cfg.modules.mountain_regen
+        cfg.modules.vampire_drain = bool(mod_vampire_drain)
+        cfg.modules.maintenance_alerts = bool(mod_maintenance_alerts)
+        cfg.modules.snow_tire_reminder = bool(mod_snow_tire_reminder)
+        cfg.modules.embedded_charts = bool(mod_embedded_charts)
 
     save_config(cfg)
     setup_scheduler(cfg)
