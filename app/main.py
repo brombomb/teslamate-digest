@@ -32,7 +32,7 @@ from app.scheduler import (
 from app.report import build_digest_report, build_wrapped_report
 from app.mailer import Mailer
 from app.services.gas_prices import fetch_gas_price_details
-from app.services.electric_rates import fetch_electric_rates
+from app.services.electric_rates import fetch_electric_rates, search_electric_rate_plans
 
 BASE_DIR = Path(__file__).resolve().parent
 WEB_TEMPLATES_DIR = BASE_DIR / "templates" / "web"
@@ -212,6 +212,27 @@ async def sync_electric_rates(request: Request):
     return JSONResponse(content={
         "success": True,
         "rates": rates
+    })
+
+
+@app.post("/api/search-electric-rates")
+async def search_electric_rates_api(request: Request):
+    cfg = load_config()
+    data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    zip_code = (data.get("zip_code") or cfg.rates.zip_code or "80005").strip()
+    openei_key = data.get("openei_api_key") or cfg.rates.openei_api_key
+    eia_key = data.get("eia_api_key") or cfg.rates.eia_api_key
+
+    plans = await search_electric_rate_plans(
+        zip_code=zip_code,
+        openei_api_key=openei_key,
+        eia_api_key=eia_key,
+        force_refresh=True
+    )
+    return JSONResponse(content={
+        "success": True,
+        "zip_code": zip_code,
+        "plans": plans
     })
 
 
@@ -536,6 +557,7 @@ async def settings_save(
     send_minute: int = Form(0),
     schedules_json: Optional[str] = Form(None),
     irs_mileage_rate: float = Form(0.67),
+    commute_target_car_id: Optional[str] = Form(None),
     work_routes_json: Optional[str] = Form(None),
     modules_submitted: Optional[str] = Form(None),
     mod_spend_breakdown: Optional[str] = Form(None),
@@ -634,6 +656,14 @@ async def settings_save(
             ]
 
     cfg.irs_mileage_rate = irs_mileage_rate
+    if commute_target_car_id and commute_target_car_id.strip():
+        try:
+            cfg.commute_target_car_id = int(commute_target_car_id)
+        except (ValueError, TypeError):
+            cfg.commute_target_car_id = None
+    else:
+        cfg.commute_target_car_id = None
+
     if work_routes_json:
         try:
             parsed = json.loads(work_routes_json)

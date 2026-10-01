@@ -17,6 +17,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./custom_templates:/app/custom_templates
+      - ./app:/app/app
     networks:
       - teslamate_default
 

@@ -62,7 +62,11 @@ async def build_digest_report(
     compliance = await get_charge_compliance_analytics(db, start_date, end_date, car_id)
 
     routes_config = [r.model_dump() if hasattr(r, 'model_dump') else r for r in getattr(config, "work_routes", [])]
-    work_mileage = await get_work_mileage_analytics(db, start_date, end_date, routes_config, car_id, getattr(config, "irs_mileage_rate", 0.67))
+    work_mileage = await get_work_mileage_analytics(
+        db, start_date, end_date, routes_config, car_id,
+        getattr(config, "irs_mileage_rate", 0.67),
+        commute_target_car_id=getattr(config, "commute_target_car_id", None)
+    )
 
     cars = await db.get_cars()
     car_name = "Fleet"

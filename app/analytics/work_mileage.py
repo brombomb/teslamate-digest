@@ -9,11 +9,13 @@ async def get_work_mileage_analytics(
     end_date: datetime,
     routes: List[Dict[str, Any]],
     car_id: Optional[int] = None,
-    irs_rate: float = 0.67
+    irs_rate: float = 0.67,
+    commute_target_car_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Computes business / work mileage between pairs of configured points
     (addresses or geofences) for mileage deduction and expense logs.
+    If commute_target_car_id is configured, commute tracking only applies to that vehicle.
     """
     if not routes:
         return {
@@ -22,18 +24,41 @@ async def get_work_mileage_analytics(
             "total_trips": 0,
             "total_miles": 0.0,
             "total_irs_deduction": 0.0,
+            "irs_rate": irs_rate,
+            "target_car_id": commute_target_car_id,
+            "target_car_name": "",
             "routes": []
         }
 
-    car_filter = "AND d.car_id = $3" if car_id else ""
+    # If commute is restricted to a specific vehicle:
+    if commute_target_car_id:
+        # If this digest is for a specific car that doesn't match the commute vehicle, omit commute section
+        if car_id and car_id != commute_target_car_id:
+            return {
+                "has_routes": False,
+                "total_routes": 0,
+                "total_trips": 0,
+                "total_miles": 0.0,
+                "total_irs_deduction": 0.0,
+                "irs_rate": irs_rate,
+                "target_car_id": commute_target_car_id,
+                "target_car_name": "",
+                "routes": []
+            }
+        effective_car_id = commute_target_car_id
+    else:
+        effective_car_id = car_id
+
+    car_filter = "AND d.car_id = $3" if effective_car_id else ""
     args = [start_date, end_date]
-    if car_id:
-        args.append(car_id)
+    if effective_car_id:
+        args.append(effective_car_id)
 
     # Fetch all drives in the window with their resolved start/end names
     query = f"""
         SELECT 
             d.id,
+            d.car_id,
             d.distance * 0.621371 as distance_mi,
             coalesce(g_start.name, a_start.name, a_start.road, '') as start_name,
             coalesce(a_start.city, '') as start_city,
@@ -50,6 +75,12 @@ async def get_work_mileage_analytics(
     """
     drives = await db.fetch(query, *args)
 
+    target_car_name = ""
+    if commute_target_car_id:
+        car_row = await db.fetchrow("SELECT name, model FROM cars WHERE id = $1;", commute_target_car_id)
+        if car_row:
+            target_car_name = f"{car_row['name']} (Model {car_row['model']})"
+
     route_results = []
     overall_trips = 0
     overall_miles = 0.0
@@ -59,6 +90,14 @@ async def get_work_mileage_analytics(
         pt_a = r.get("point_a", "").strip().lower()
         pt_b = r.get("point_b", "").strip().lower()
         bidirectional = r.get("bidirectional", True)
+        route_car = r.get("target_car_id")
+        if route_car is not None and str(route_car).strip():
+            try:
+                route_car_id = int(route_car)
+            except (ValueError, TypeError):
+                route_car_id = None
+        else:
+            route_car_id = None
 
         if not pt_a or not pt_b:
             continue
@@ -67,6 +106,10 @@ async def get_work_mileage_analytics(
         matching_miles = 0.0
 
         for d in drives:
+            # If route specifies an individual vehicle, enforce match
+            if route_car_id and d.get("car_id") != route_car_id:
+                continue
+
             s_full = f"{d['start_name']} {d['start_city']}".lower()
             e_full = f"{d['end_name']} {d['end_city']}".lower()
             dist = float(d["distance_mi"] or 0)
@@ -87,6 +130,7 @@ async def get_work_mileage_analytics(
             "point_a": r.get("point_a", ""),
             "point_b": r.get("point_b", ""),
             "bidirectional": bidirectional,
+            "target_car_id": route_car_id,
             "trip_count": matching_trips,
             "total_miles": round(matching_miles, 1),
             "irs_deduction": round(deduction, 2)
@@ -101,6 +145,8 @@ async def get_work_mileage_analytics(
         "total_miles": round(overall_miles, 1),
         "total_irs_deduction": round(total_deduction, 2),
         "irs_rate": irs_rate,
+        "target_car_id": commute_target_car_id,
+        "target_car_name": target_car_name,
         "routes": route_results
     }
 

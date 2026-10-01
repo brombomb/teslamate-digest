@@ -318,6 +318,9 @@
                 <div class="card">
                   <div class="section-title">
                     <span style="margin-right: 8px;">💼</span> Work & Commute Mileage Tracker
+                    {% if work_mileage.target_car_name and not car_id %}
+                    <span style="font-size: 11px; font-weight: normal; color: {{ theme.text_muted }}; margin-left: 6px;">({{ work_mileage.target_car_name }})</span>
+                    {% endif %}
                   </div>
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                     <tr>

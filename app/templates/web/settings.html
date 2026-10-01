@@ -176,16 +176,27 @@
 
     <!-- 3. WORK & COMMUTE MILEAGE TRACKER (BUSINESS LOGGING) -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
-      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
         <div>
           <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <span>💼</span> Work & Commute Mileage Routes
           </h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Define pairs of addresses or geofences to track business/work trips, total miles, and IRS mileage tax deductions.</p>
         </div>
-        <div class="flex items-center gap-2">
-          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">IRS Rate ($/mi):</label>
-          <input type="number" step="0.01" name="irs_mileage_rate" value="{{ config.irs_mileage_rate }}" class="w-20 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+        <div class="flex items-center gap-3.5 flex-wrap">
+          <div class="flex items-center gap-1.5">
+            <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">Target Vehicle:</label>
+            <select name="commute_target_car_id" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-white font-medium">
+              <option value="" {% if not config.commute_target_car_id %}selected{% endif %}>All Cars (Fleet)</option>
+              {% for c in cars %}
+              <option value="{{ c.id }}" {% if config.commute_target_car_id == c.id %}selected{% endif %}>{{ c.name }} (Model {{ c.model }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">IRS Rate ($/mi):</label>
+            <input type="number" step="0.01" name="irs_mileage_rate" value="{{ config.irs_mileage_rate }}" class="w-20 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+          </div>
         </div>
       </div>
 
@@ -204,12 +215,20 @@
             <input type="text" placeholder="Point B (Destination)" value="{{ r.point_b }}" class="route-point-b location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
             <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
           </div>
-          <div class="sm:col-span-2 flex items-center space-x-1.5">
-            <input type="checkbox" class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla" {% if r.bidirectional %}checked{% endif %}>
-            <span class="text-[11px] text-slate-600 dark:text-slate-400">A &harr; B</span>
+          <div class="sm:col-span-2">
+            <select class="route-target-car w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] text-slate-900 dark:text-white">
+              <option value="" {% if not r.target_car_id %}selected{% endif %}>Default Vehicle</option>
+              {% for c in cars %}
+              <option value="{{ c.id }}" {% if r.target_car_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
           </div>
-          <div class="sm:col-span-1 text-right">
-            <button type="button" onclick="removeRouteRow(this)" class="p-1.5 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
+          <div class="sm:col-span-1 flex items-center justify-end gap-1.5">
+            <label title="Bidirectional A <-> B" class="flex items-center cursor-pointer">
+              <input type="checkbox" class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla" {% if r.bidirectional %}checked{% endif %}>
+              <span class="text-[10px] ml-1 text-slate-500 dark:text-slate-400 font-semibold">&harr;</span>
+            </label>
+            <button type="button" onclick="removeRouteRow(this)" class="p-1 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
           </div>
         </div>
         {% endfor %}
@@ -226,9 +245,92 @@
 
     <!-- 4. ELECTRICITY RATES & FUEL PRICING -->
     <div class="space-y-6">
-      
-      <!-- SUBSECTION 4A: RATE STRUCTURE & TARIFFS -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors">
+
+      <!-- SUBSECTION 4A: AUTOMATED OPEN RATES & GAS APIS (MOVED BEFORE RATES & GAS) -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div>
+            <h4 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>🌐</span> Automated Open Rates & Gas APIs
+            </h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Sync live regional gasoline prices from the <strong>U.S. EIA</strong> and search electric tariffs from <strong>OpenEI / NREL</strong> by ZIP code.
+            </p>
+          </div>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <button type="button" onclick="syncEiaGasPrice()" id="btn-sync-gas" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+              <span>⛽</span> Fetch EIA Gas Price
+            </button>
+            <button type="button" onclick="syncOpenEiElectricRates()" id="btn-sync-electric" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+              <span>⚡</span> Fetch Electric Rates
+            </button>
+          </div>
+        </div>
+
+        <!-- Status / Feedback Toast inside the panel -->
+        <div id="rates-api-status-msg" class="hidden px-4 py-3 rounded-xl text-xs flex items-center justify-between font-medium"></div>
+
+        <!-- TOP 5 MATCHING TARIFF PLANS SELECTOR CONTAINER -->
+        <div id="matched-plans-container" class="hidden p-4 rounded-xl border border-tesla/30 bg-red-50/20 dark:bg-red-950/20 space-y-3 transition-all">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🎯</span>
+              <label class="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Top 5 Matching Utility Rate Plans for ZIP <span id="matched-plans-zip" class="text-tesla font-mono"></span>:
+              </label>
+            </div>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">Select your best fit to populate rate structure below</span>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-2.5">
+            <select id="matched-plans-dropdown" onchange="onSelectMatchedPlan(this.value)" class="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white shadow-sm focus:ring-2 focus:ring-tesla/30 focus:border-tesla">
+              <!-- Options populated dynamically -->
+            </select>
+            <button type="button" onclick="applySelectedMatchedPlan()" class="px-4 py-2 bg-tesla hover:bg-tesla/90 text-white rounded-lg text-xs font-bold transition shadow flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+              <span>✓</span> Apply Selected Plan
+            </button>
+          </div>
+
+          <div id="matched-plan-details" class="text-xs text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-900/80 p-3 rounded-lg border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <!-- Summary card updated dynamically -->
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Local ZIP Code</label>
+            <input type="text" id="rates_zip_code" name="zip_code" value="{{ config.rates.zip_code }}" placeholder="e.g. 80005" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
+            <span class="text-[10px] text-slate-400 mt-1 block">Identifies your local energy market.</span>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+              EIA API Key (Optional)
+              <a href="https://www.eia.gov/opendata/register.php" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
+            </label>
+            <input type="text" id="eia_api_key" name="eia_api_key" value="{{ config.rates.eia_api_key }}" placeholder="Free EIA v2 API Key" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white font-mono">
+            <span class="text-[10px] text-slate-400 mt-1 block">U.S. Energy Information Administration API key.</span>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+              OpenEI API Key (Optional)
+              <a href="https://openei.org/services/api/signup/" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
+            </label>
+            <input type="text" id="openei_api_key" name="openei_api_key" value="{{ config.rates.openei_api_key }}" placeholder="Free OpenEI / NREL Key" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white font-mono">
+            <span class="text-[10px] text-slate-400 mt-1 block">NREL Utility Rate Database API key.</span>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Detected Utility / Tariff Name</label>
+            <input type="text" id="utility_name" name="utility_name" value="{{ config.rates.utility_name }}" placeholder="e.g. Xcel Energy / Public Service Co" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
+            <span class="text-[10px] text-slate-400 mt-1 block">Utility rate provider name or custom identifier.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBSECTION 4B: ELECTRIC UTILITY RATE STRUCTURE & TARIFFS -->
+      <div id="subsection-rate-structure" class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors">
         
         <!-- Header & Preset Selector -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
@@ -477,7 +579,7 @@
 
       </div>
 
-      <!-- SUBSECTION 4B: FAST CHARGING & GAS COMPARISON -->
+      <!-- SUBSECTION 4C: SUPERCHARGING FALLBACK & GASOLINE COMPARISON -->
       <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
         <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
           <h4 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -514,63 +616,6 @@
               <span class="absolute right-3 top-2.5 text-xs text-slate-400">MPG</span>
             </div>
             <span class="text-[11px] text-slate-400 block">Estimated fuel economy of an equivalent ICE vehicle.</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- SUBSECTION 4C: AUTOMATED OPEN RATES & GAS APIS -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 transition-colors">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-          <div>
-            <h4 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span>🌐</span> Automated Open Rates & Gas APIs
-            </h4>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Sync live regional gasoline prices from the <strong>U.S. EIA</strong> and electric tariffs from <strong>OpenEI / NREL</strong> by ZIP code.
-            </p>
-          </div>
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <button type="button" onclick="syncEiaGasPrice()" id="btn-sync-gas" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
-              <span>⛽</span> Fetch EIA Gas Price
-            </button>
-            <button type="button" onclick="syncOpenEiElectricRates()" id="btn-sync-electric" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center gap-1.5 cursor-pointer">
-              <span>⚡</span> Fetch Electric Rates
-            </button>
-          </div>
-        </div>
-
-        <!-- Status / Feedback Toast inside the panel -->
-        <div id="rates-api-status-msg" class="hidden px-4 py-3 rounded-xl text-xs flex items-center justify-between font-medium"></div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-          <div>
-            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Local ZIP Code</label>
-            <input type="text" id="rates_zip_code" name="zip_code" value="{{ config.rates.zip_code }}" placeholder="e.g. 80005" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
-            <span class="text-[10px] text-slate-400 mt-1 block">Identifies your local energy market.</span>
-          </div>
-
-          <div>
-            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-              EIA API Key (Optional)
-              <a href="https://www.eia.gov/opendata/register.php" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
-            </label>
-            <input type="text" id="eia_api_key" name="eia_api_key" value="{{ config.rates.eia_api_key }}" placeholder="Free EIA v2 API Key" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white font-mono">
-            <span class="text-[10px] text-slate-400 mt-1 block">U.S. Energy Information Administration API key.</span>
-          </div>
-
-          <div>
-            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-              OpenEI API Key (Optional)
-              <a href="https://openei.org/services/api/signup/" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
-            </label>
-            <input type="text" id="openei_api_key" name="openei_api_key" value="{{ config.rates.openei_api_key }}" placeholder="Free OpenEI / NREL Key" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white font-mono">
-            <span class="text-[10px] text-slate-400 mt-1 block">NREL Utility Rate Database API key.</span>
-          </div>
-
-          <div>
-            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Detected Utility / Tariff Name</label>
-            <input type="text" id="utility_name" name="utility_name" value="{{ config.rates.utility_name }}" placeholder="e.g. Xcel Energy / Public Service Co" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
-            <span class="text-[10px] text-slate-400 mt-1 block">Utility rate provider name or custom identifier.</span>
           </div>
         </div>
       </div>
@@ -957,6 +1002,8 @@ async function syncEiaGasPrice() {
   }
 }
 
+let _matchedRatePlans = [];
+
 async function syncOpenEiElectricRates() {
   const btn = document.getElementById('btn-sync-electric');
   const statusEl = document.getElementById('rates-api-status-msg');
@@ -967,56 +1014,135 @@ async function syncOpenEiElectricRates() {
   if (!btn || !statusEl) return;
   const origHtml = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<span>⏳</span> Fetching...';
-  statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 block';
-  statusEl.textContent = 'Querying OpenEI / NREL tariff database...';
+  btn.innerHTML = '<span>⏳</span> Searching Plans...';
+  statusEl.className = 'px-4 py-3 rounded-xl text-xs bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 block';
+  statusEl.textContent = 'Searching OpenEI URDB & regional electric rate plans...';
 
   try {
-    const res = await fetch('/api/sync-electric-rates', {
+    const res = await fetch('/api/search-electric-rates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ zip_code: zip, openei_api_key: openeiKey, eia_api_key: eiaKey })
     });
     const data = await res.json();
-    if (data.success && data.rates) {
-      const r = data.rates;
-      const setVal = (id, val) => {
-        const el = document.getElementById(id);
-        if (el && val !== undefined) el.value = val;
-      };
-      setVal('off_peak_kwh_cost', r.off_peak_kwh_cost);
-      setVal('shoulder_kwh_cost', r.shoulder_kwh_cost);
-      setVal('on_peak_kwh_cost', r.on_peak_kwh_cost);
-      setVal('off_peak_start_hour', r.off_peak_start_hour);
-      setVal('off_peak_end_hour', r.off_peak_end_hour);
-      setVal('peak_start_hour', r.peak_start_hour);
-      setVal('peak_end_hour', r.peak_end_hour);
-      if (r.weekends_are_off_peak !== undefined) {
-        const w = document.getElementById('weekends_are_off_peak');
-        if (w) w.checked = Boolean(r.weekends_are_off_peak);
-      }
-      if (r.utility_name) setVal('utility_name', r.utility_name);
-      if (r.tier1_max_kwh !== undefined) setVal('tier1_max_kwh', r.tier1_max_kwh);
-      if (r.tier1_kwh_cost !== undefined) setVal('tier1_kwh_cost', r.tier1_kwh_cost);
-      if (r.tier2_max_kwh !== undefined) setVal('tier2_max_kwh', r.tier2_max_kwh);
-      if (r.tier2_kwh_cost !== undefined) setVal('tier2_kwh_cost', r.tier2_kwh_cost);
-      if (r.tier3_kwh_cost !== undefined) setVal('tier3_kwh_cost', r.tier3_kwh_cost);
+    if (data.success && data.plans && data.plans.length > 0) {
+      _matchedRatePlans = data.plans;
+      renderMatchedPlansDropdown(data.plans, data.zip_code);
+      // Auto-apply the 1st matching plan
+      applyMatchedPlanIndex(0);
 
-      const presetSelect = document.getElementById('tariff-preset-select');
-      if (presetSelect) presetSelect.value = 'custom';
-
-      statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 block';
-      statusEl.innerHTML = `✅ <strong>Electric Rates Synced:</strong> Off-Peak $${r.off_peak_kwh_cost}/kWh, Peak $${r.on_peak_kwh_cost}/kWh (${escapeHtml(r.utility_name || 'Utility')}) &mdash; Source: ${escapeHtml(r.source || 'OpenEI URDB')}`;
+      statusEl.className = 'px-4 py-3 rounded-xl text-xs bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 block';
+      statusEl.innerHTML = `✅ <strong>Found ${data.plans.length} matching plans!</strong> Select your best fit from the dropdown below to auto-populate your rate structure.`;
     } else {
-      throw new Error(data.message || 'Could not fetch electric rates');
+      throw new Error(data.message || 'No matching electric rate plans found.');
     }
   } catch (err) {
-    statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 block';
-    statusEl.textContent = '❌ Failed to sync electric rates: ' + err.message;
+    statusEl.className = 'px-4 py-3 rounded-xl text-xs bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 block';
+    statusEl.textContent = '❌ Failed to search electric rates: ' + err.message;
   } finally {
     btn.disabled = false;
     btn.innerHTML = origHtml;
   }
+}
+
+function renderMatchedPlansDropdown(plans, zip) {
+  const container = document.getElementById('matched-plans-container');
+  const dropdown = document.getElementById('matched-plans-dropdown');
+  const zipSpan = document.getElementById('matched-plans-zip');
+  if (!container || !dropdown) return;
+
+  if (zipSpan) zipSpan.textContent = zip;
+
+  dropdown.innerHTML = plans.map((p, idx) => `
+    <option value="${idx}">
+      ${idx + 1}. [${escapeHtml(p.badge)}] ${escapeHtml(p.plan_name)} — ${escapeHtml(p.utility_name)}
+    </option>
+  `).join('');
+
+  container.classList.remove('hidden');
+  updateMatchedPlanDetails(0);
+}
+
+function updateMatchedPlanDetails(index) {
+  const detailsEl = document.getElementById('matched-plan-details');
+  if (!detailsEl || !_matchedRatePlans || !_matchedRatePlans[index]) return;
+  const p = _matchedRatePlans[index];
+
+  const badgeColor = p.rate_mode === 'tou' 
+    ? 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border-sky-300'
+    : (p.rate_mode === 'tiered'
+      ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300'
+      : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300');
+
+  detailsEl.innerHTML = `
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeColor}">${escapeHtml(p.badge)}</span>
+      <span class="font-bold text-slate-900 dark:text-white">${escapeHtml(p.plan_name)}</span>
+      <span class="text-slate-500 dark:text-slate-400">(${escapeHtml(p.utility_name)})</span>
+    </div>
+    <div class="text-[11px] text-slate-600 dark:text-slate-300 font-mono">
+      ${escapeHtml(p.description)}
+    </div>
+  `;
+}
+
+function onSelectMatchedPlan(indexVal) {
+  const idx = parseInt(indexVal, 10);
+  if (isNaN(idx)) return;
+  updateMatchedPlanDetails(idx);
+  applyMatchedPlanIndex(idx);
+}
+
+function applySelectedMatchedPlan() {
+  const dropdown = document.getElementById('matched-plans-dropdown');
+  const idx = dropdown ? parseInt(dropdown.value, 10) : 0;
+  applyMatchedPlanIndex(idx);
+  
+  // Highlight Subsection 4B
+  const rateSection = document.getElementById('subsection-rate-structure');
+  if (rateSection) {
+    rateSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    rateSection.classList.add('ring-2', 'ring-tesla');
+    setTimeout(() => rateSection.classList.remove('ring-2', 'ring-tesla'), 1800);
+  }
+}
+
+function applyMatchedPlanIndex(idx) {
+  if (!_matchedRatePlans || !_matchedRatePlans[idx]) return;
+  const p = _matchedRatePlans[idx];
+
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined) el.value = val;
+  };
+
+  // Switch rate mode pill & reveal panel
+  if (p.rate_mode) {
+    switchRateMode(p.rate_mode);
+  }
+
+  // Populate fields
+  if (p.utility_name) setVal('utility_name', p.utility_name);
+  if (p.off_peak_kwh_cost !== undefined) setVal('off_peak_kwh_cost', p.off_peak_kwh_cost);
+  if (p.shoulder_kwh_cost !== undefined) setVal('shoulder_kwh_cost', p.shoulder_kwh_cost);
+  if (p.on_peak_kwh_cost !== undefined) setVal('on_peak_kwh_cost', p.on_peak_kwh_cost);
+  if (p.off_peak_start_hour !== undefined) setVal('off_peak_start_hour', p.off_peak_start_hour);
+  if (p.off_peak_end_hour !== undefined) setVal('off_peak_end_hour', p.off_peak_end_hour);
+  if (p.peak_start_hour !== undefined) setVal('peak_start_hour', p.peak_start_hour);
+  if (p.peak_end_hour !== undefined) setVal('peak_end_hour', p.peak_end_hour);
+  if (p.weekends_are_off_peak !== undefined) {
+    const w = document.getElementById('weekends_are_off_peak');
+    if (w) w.checked = Boolean(p.weekends_are_off_peak);
+  }
+  if (p.tier1_max_kwh !== undefined) setVal('tier1_max_kwh', p.tier1_max_kwh);
+  if (p.tier1_kwh_cost !== undefined) setVal('tier1_kwh_cost', p.tier1_kwh_cost);
+  if (p.tier2_max_kwh !== undefined) setVal('tier2_max_kwh', p.tier2_max_kwh);
+  if (p.tier2_kwh_cost !== undefined) setVal('tier2_kwh_cost', p.tier2_kwh_cost);
+  if (p.tier3_kwh_cost !== undefined) setVal('tier3_kwh_cost', p.tier3_kwh_cost);
+  if (p.average_kwh_cost !== undefined) setVal('average_kwh_cost', p.average_kwh_cost);
+
+  const presetSelect = document.getElementById('tariff-preset-select');
+  if (presetSelect) presetSelect.value = 'custom';
 }
 
 // --- 2. SERVER-SIDE LOCATION SEARCH CACHE & API ---
@@ -1287,12 +1413,20 @@ function addRouteRow() {
       <input type="text" placeholder="Point B (Destination)" class="route-point-b location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
       <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
     </div>
-    <div class="sm:col-span-2 flex items-center space-x-1.5">
-      <input type="checkbox" checked class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
-      <span class="text-[11px] text-slate-600 dark:text-slate-400">A &harr; B</span>
+    <div class="sm:col-span-2">
+      <select class="route-target-car w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] text-slate-900 dark:text-white">
+        <option value="">Default Vehicle</option>
+        {% for c in cars %}
+        <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
     </div>
-    <div class="sm:col-span-1 text-right">
-      <button type="button" onclick="removeRouteRow(this)" class="p-1.5 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
+    <div class="sm:col-span-1 flex items-center justify-end gap-1.5">
+      <label title="Bidirectional A <-> B" class="flex items-center cursor-pointer">
+        <input type="checkbox" checked class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
+        <span class="text-[10px] ml-1 text-slate-500 dark:text-slate-400 font-semibold">&harr;</span>
+      </label>
+      <button type="button" onclick="removeRouteRow(this)" class="p-1 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
     </div>
   `;
   container.appendChild(div);
@@ -1314,12 +1448,15 @@ function serializeWorkRoutes() {
     const ptA = r.querySelector('.route-point-a')?.value.trim();
     const ptB = r.querySelector('.route-point-b')?.value.trim();
     const bidi = r.querySelector('.route-bidirectional')?.checked ?? true;
+    const carVal = r.querySelector('.route-target-car')?.value;
+    const targetCarId = carVal ? parseInt(carVal, 10) : null;
     if (label && ptA && ptB) {
       routes.push({
         label: label,
         point_a: ptA,
         point_b: ptB,
-        bidirectional: bidi
+        bidirectional: bidi,
+        target_car_id: isNaN(targetCarId) ? null : targetCarId
       });
     }
   });

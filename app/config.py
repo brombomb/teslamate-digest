@@ -92,6 +92,7 @@ class WorkRouteItem(BaseModel):
     point_a: str
     point_b: str
     bidirectional: bool = True
+    target_car_id: Optional[int] = None
 
 
 class ModuleToggles(BaseModel):
@@ -152,6 +153,7 @@ class AppConfig(BaseModel):
     email_theme: str = "pearl_white"
     work_routes: list[WorkRouteItem] = Field(default_factory=list)
     irs_mileage_rate: float = 0.67
+    commute_target_car_id: Optional[int] = None
 
 
 def load_config() -> AppConfig:
