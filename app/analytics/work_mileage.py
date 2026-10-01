@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from app.db import Database
+from app.config import AppConfig
+from app.services.geofences import load_effective_geofences, load_address_coordinates_cache, matches_location_point
 
 
 async def get_work_mileage_analytics(
@@ -10,12 +12,15 @@ async def get_work_mileage_analytics(
     routes: List[Dict[str, Any]],
     car_id: Optional[int] = None,
     irs_rate: float = 0.67,
-    commute_target_car_id: Optional[int] = None
+    commute_target_car_id: Optional[int] = None,
+    config: Optional[AppConfig] = None
 ) -> Dict[str, Any]:
     """
     Computes business / work mileage between pairs of configured points
     (addresses or geofences) for mileage deduction and expense logs.
     If commute_target_car_id is configured, commute tracking only applies to that vehicle.
+    Uses coordinate-based geofence radius and address proximity matching to seamlessly
+    handle GPS drift and micro-variations in street names.
     """
     if not routes:
         return {
@@ -54,7 +59,11 @@ async def get_work_mileage_analytics(
     if effective_car_id:
         args.append(effective_car_id)
 
-    # Fetch all drives in the window with their resolved start/end names
+    # Load effective geofences and address coordinate cache
+    effective_geofences = await load_effective_geofences(db, config)
+    addr_cache = await load_address_coordinates_cache(db)
+
+    # Fetch all drives in the window with resolved start/end names and GPS coordinates
     query = f"""
         SELECT 
             d.id,
@@ -62,13 +71,19 @@ async def get_work_mileage_analytics(
             d.distance * 0.621371 as distance_mi,
             coalesce(g_start.name, a_start.name, a_start.road, '') as start_name,
             coalesce(a_start.city, '') as start_city,
+            coalesce(p_start.latitude, a_start.latitude) as start_lat,
+            coalesce(p_start.longitude, a_start.longitude) as start_lon,
             coalesce(g_end.name, a_end.name, a_end.road, '') as end_name,
-            coalesce(a_end.city, '') as end_city
+            coalesce(a_end.city, '') as end_city,
+            coalesce(p_end.latitude, a_end.latitude) as end_lat,
+            coalesce(p_end.longitude, a_end.longitude) as end_lon
         FROM drives d
         LEFT JOIN geofences g_start ON d.start_geofence_id = g_start.id
         LEFT JOIN addresses a_start ON d.start_address_id = a_start.id
+        LEFT JOIN positions p_start ON d.start_position_id = p_start.id
         LEFT JOIN geofences g_end ON d.end_geofence_id = g_end.id
         LEFT JOIN addresses a_end ON d.end_address_id = a_end.id
+        LEFT JOIN positions p_end ON d.end_position_id = p_end.id
         WHERE d.start_date >= $1 AND d.start_date < $2
           AND d.distance IS NOT NULL AND d.distance > 0
           {car_filter};
@@ -87,8 +102,8 @@ async def get_work_mileage_analytics(
 
     for r in routes:
         label = r.get("label", "Commute Route")
-        pt_a = r.get("point_a", "").strip().lower()
-        pt_b = r.get("point_b", "").strip().lower()
+        pt_a = (r.get("point_a") or "").strip()
+        pt_b = (r.get("point_b") or "").strip()
         bidirectional = r.get("bidirectional", True)
         route_car = r.get("target_car_id")
         if route_car is not None and str(route_car).strip():
@@ -110,16 +125,24 @@ async def get_work_mileage_analytics(
             if route_car_id and d.get("car_id") != route_car_id:
                 continue
 
-            s_full = f"{d['start_name']} {d['start_city']}".lower()
-            e_full = f"{d['end_name']} {d['end_city']}".lower()
-            dist = float(d["distance_mi"] or 0)
+            s_lat = float(d["start_lat"]) if d["start_lat"] is not None else None
+            s_lon = float(d["start_lon"]) if d["start_lon"] is not None else None
+            e_lat = float(d["end_lat"]) if d["end_lat"] is not None else None
+            e_lon = float(d["end_lon"]) if d["end_lon"] is not None else None
 
-            forward_match = (pt_a in s_full and pt_b in e_full)
-            reverse_match = (bidirectional and (pt_b in s_full and pt_a in e_full))
+            forward_match = (
+                matches_location_point(pt_a, s_lat, s_lon, d["start_name"], d["start_city"], effective_geofences, addr_cache) and
+                matches_location_point(pt_b, e_lat, e_lon, d["end_name"], d["end_city"], effective_geofences, addr_cache)
+            )
+            reverse_match = (
+                bidirectional and
+                matches_location_point(pt_b, s_lat, s_lon, d["start_name"], d["start_city"], effective_geofences, addr_cache) and
+                matches_location_point(pt_a, e_lat, e_lon, d["end_name"], d["end_city"], effective_geofences, addr_cache)
+            )
 
             if forward_match or reverse_match:
                 matching_trips += 1
-                matching_miles += dist
+                matching_miles += float(d["distance_mi"] or 0)
 
         deduction = matching_miles * irs_rate
         overall_trips += matching_trips
@@ -127,8 +150,8 @@ async def get_work_mileage_analytics(
 
         route_results.append({
             "label": label,
-            "point_a": r.get("point_a", ""),
-            "point_b": r.get("point_b", ""),
+            "point_a": pt_a,
+            "point_b": pt_b,
             "bidirectional": bidirectional,
             "target_car_id": route_car_id,
             "trip_count": matching_trips,

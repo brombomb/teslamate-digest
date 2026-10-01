@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from app.db import Database
+from app.config import AppConfig
+from app.services.geofences import load_effective_geofences, load_address_coordinates_cache, matches_location_point
 
 
 async def get_trip_analytics(
@@ -8,7 +10,8 @@ async def get_trip_analytics(
     start_date: datetime,
     end_date: datetime,
     car_id: Optional[int] = None,
-    excluded_locations: Optional[List[str]] = None
+    excluded_locations: Optional[List[str]] = None,
+    config: Optional[AppConfig] = None
 ) -> Dict[str, Any]:
     car_filter = "AND d.car_id = $3" if car_id else ""
     args = [start_date, end_date]
@@ -88,18 +91,23 @@ async def get_trip_analytics(
         SELECT 
             coalesce(g.name, a.name, a.road, 'Unknown') as location_name,
             coalesce(a.city, '') as city,
+            coalesce(avg(p.latitude), avg(a.latitude)) as avg_lat,
+            coalesce(avg(p.longitude), avg(a.longitude)) as avg_lon,
             count(d.id) as visit_count
         FROM drives d
         LEFT JOIN geofences g ON d.end_geofence_id = g.id
         LEFT JOIN addresses a ON d.end_address_id = a.id
+        LEFT JOIN positions p ON d.end_position_id = p.id
         WHERE d.start_date >= $1 AND d.start_date < $2
         {car_filter}
         GROUP BY 1, 2
         ORDER BY visit_count DESC
-        LIMIT 30;
+        LIMIT 50;
     """
     top_places_raw = await db.fetch(query_top_places, *args)
-    exclusions = [e.lower().strip() for e in (excluded_locations or []) if e.strip()]
+
+    effective_geofences = await load_effective_geofences(db, config)
+    addr_cache = await load_address_coordinates_cache(db)
 
     top_places = []
     for p in top_places_raw:
@@ -108,8 +116,18 @@ async def get_trip_analytics(
         if not loc_name or loc_name == "Unknown":
             continue
 
-        full_loc = f"{loc_name} {city}".lower()
-        if any(exc in full_loc for exc in exclusions):
+        p_lat = float(p["avg_lat"]) if p["avg_lat"] is not None else None
+        p_lon = float(p["avg_lon"]) if p["avg_lon"] is not None else None
+
+        excluded = False
+        for exc in (excluded_locations or []):
+            if not exc or not exc.strip():
+                continue
+            if matches_location_point(exc, p_lat, p_lon, loc_name, city, effective_geofences, addr_cache):
+                excluded = True
+                break
+
+        if excluded:
             continue
 
         top_places.append({
@@ -119,7 +137,6 @@ async def get_trip_analytics(
         })
         if len(top_places) == 5:
             break
-
 
     return {
         "drives_count": drives_count,

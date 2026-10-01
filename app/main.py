@@ -20,7 +20,8 @@ from app.config import (
     AppConfig,
     SMTPSettings,
     WorkRouteItem,
-    ScheduleItem
+    ScheduleItem,
+    GeofenceItem
 )
 from app.themes import EMAIL_THEMES, get_theme
 from app.analytics.work_mileage import get_available_locations_for_work
@@ -82,64 +83,113 @@ async def favicon():
 @app.get("/api/locations/search")
 async def search_locations(request: Request, q: str = Query("", alias="q"), limit: int = Query(15, le=50)):
     """
-    Server-side typeahead search for geofences and recorded drive addresses.
+    Server-side typeahead search for configured geofences, native geofences, and recorded drive addresses.
     """
     db: Database = request.app.state.db
-    q_str = q.strip()
-    try:
-        if q_str:
-            param = f"%{q_str}%"
-            query = """
-                SELECT loc, city, loc_type FROM (
-                    SELECT DISTINCT loc, city, loc_type FROM (
-                        SELECT name AS loc, '' AS city, 'geofence' AS loc_type 
-                        FROM geofences 
-                        WHERE name ILIKE $1
-                        UNION ALL
-                        SELECT coalesce(name, road) AS loc, coalesce(city, '') AS city, 'address' AS loc_type 
-                        FROM addresses 
-                        WHERE (coalesce(name, road) ILIKE $1 OR coalesce(city, '') ILIKE $1) 
-                          AND coalesce(name, road) IS NOT NULL AND coalesce(name, road) != ''
-                    ) sub
-                ) t
-                ORDER BY (loc_type = 'geofence') DESC, loc ASC
-                LIMIT $2;
-            """
-            rows = await db.fetch(query, param, limit)
-        else:
-            query = """
-                SELECT loc, city, loc_type FROM (
-                    SELECT DISTINCT loc, city, loc_type FROM (
-                        SELECT name AS loc, '' AS city, 'geofence' AS loc_type 
-                        FROM geofences 
-                        WHERE name IS NOT NULL AND name != ''
-                        UNION ALL
-                        SELECT coalesce(name, road) AS loc, coalesce(city, '') AS city, 'address' AS loc_type 
-                        FROM addresses 
-                        WHERE coalesce(name, road) IS NOT NULL AND coalesce(name, road) != ''
-                    ) sub
-                ) t
-                ORDER BY (loc_type = 'geofence') DESC, loc ASC
-                LIMIT $1;
-            """
-            rows = await db.fetch(query, limit)
+    cfg = load_config()
+    q_str = q.strip().lower()
+    results = []
+    seen_keys = set()
 
-        results = []
-        for r in rows:
-            loc = r["loc"]
-            city = r["city"]
-            display = f"{loc} ({city})" if city else loc
-            results.append({
-                "value": loc,
-                "display": display,
-                "name": loc,
-                "city": city,
-                "type": r["loc_type"]
-            })
-        return JSONResponse(content={"results": results})
+    # 1. Configured Geofences
+    for g in getattr(cfg, "geofences", []):
+        g_name_lower = g.name.lower()
+        aliases_lower = [a.lower() for a in g.address_aliases]
+        if not q_str or (q_str in g_name_lower) or any(q_str in a for a in aliases_lower):
+            key = f"geo:{g.name.lower()}"
+            if key not in seen_keys:
+                seen_keys.add(key)
+                results.append({
+                    "value": g.name,
+                    "display": f"{g.name} ({g.radius_meters}m geofence)",
+                    "name": g.name,
+                    "city": "",
+                    "type": "geofence",
+                    "lat": g.latitude,
+                    "lon": g.longitude,
+                    "radius": g.radius_meters,
+                    "aliases": g.address_aliases
+                })
+
+    # 2. Native TeslaMate geofences & addresses
+    try:
+        # Native geofences from PostgreSQL
+        try:
+            tm_geos = await db.fetch("SELECT name, latitude, longitude, radius FROM geofences WHERE name IS NOT NULL AND name != '';")
+            for tg in tm_geos:
+                name = str(tg["name"]).strip()
+                if not q_str or q_str in name.lower():
+                    key = f"geo:{name.lower()}"
+                    if key not in seen_keys:
+                        seen_keys.add(key)
+                        results.append({
+                            "value": name,
+                            "display": f"{name} ({tg['radius'] or 350}m geofence)",
+                            "name": name,
+                            "city": "",
+                            "type": "geofence",
+                            "lat": float(tg["latitude"]) if tg["latitude"] is not None else None,
+                            "lon": float(tg["longitude"]) if tg["longitude"] is not None else None,
+                            "radius": int(tg["radius"] or 350),
+                            "aliases": []
+                        })
+        except Exception:
+            pass
+
+        # 3. Addresses from database
+        remaining = max(0, limit - len(results))
+        if remaining > 0:
+            if q_str:
+                param = f"%{q_str}%"
+                addr_query = """
+                    SELECT 
+                        coalesce(name, road) AS loc, 
+                        coalesce(city, '') AS city,
+                        avg(latitude) AS lat,
+                        avg(longitude) AS lon
+                    FROM addresses
+                    WHERE (coalesce(name, road) ILIKE $1 OR coalesce(city, '') ILIKE $1)
+                      AND coalesce(name, road) IS NOT NULL AND coalesce(name, road) != ''
+                    GROUP BY 1, 2
+                    ORDER BY loc ASC
+                    LIMIT $2;
+                """
+                rows = await db.fetch(addr_query, param, remaining)
+            else:
+                addr_query = """
+                    SELECT 
+                        coalesce(name, road) AS loc, 
+                        coalesce(city, '') AS city,
+                        avg(latitude) AS lat,
+                        avg(longitude) AS lon
+                    FROM addresses
+                    WHERE coalesce(name, road) IS NOT NULL AND coalesce(name, road) != ''
+                    GROUP BY 1, 2
+                    ORDER BY loc ASC
+                    LIMIT $1;
+                """
+                rows = await db.fetch(addr_query, remaining)
+
+            for r in rows:
+                loc = r["loc"]
+                city = r["city"]
+                key = f"addr:{loc.lower()}:{city.lower()}"
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    display = f"{loc} ({city})" if city else loc
+                    results.append({
+                        "value": loc,
+                        "display": display,
+                        "name": loc,
+                        "city": city,
+                        "type": "address",
+                        "lat": float(r["lat"]) if r["lat"] is not None else None,
+                        "lon": float(r["lon"]) if r["lon"] is not None else None
+                    })
     except Exception as e:
         print(f"[LocationsSearch] Error querying locations: {e}")
-        return JSONResponse(content={"results": []})
+
+    return JSONResponse(content={"results": results[:limit]})
 
 
 @app.get("/api/health")
@@ -601,6 +651,7 @@ async def settings_save(
     irs_mileage_rate: float = Form(0.67),
     commute_target_car_id: Optional[str] = Form(None),
     work_routes_json: Optional[str] = Form(None),
+    geofences_json: Optional[str] = Form(None),
     modules_submitted: Optional[str] = Form(None),
     mod_spend_breakdown: Optional[str] = Form(None),
     mod_gas_savings: Optional[str] = Form(None),
@@ -716,6 +767,13 @@ async def settings_save(
             cfg.work_routes = [WorkRouteItem(**item) for item in parsed]
         except Exception as e:
             print(f"[Settings] Error parsing work routes JSON: {e}")
+
+    if geofences_json is not None:
+        try:
+            parsed_geos = json.loads(geofences_json)
+            cfg.geofences = [GeofenceItem(**item) for item in parsed_geos]
+        except Exception as e:
+            print(f"[Settings] Error parsing geofences JSON: {e}")
 
     if modules_submitted:
         cfg.modules.spend_breakdown = bool(mod_spend_breakdown)

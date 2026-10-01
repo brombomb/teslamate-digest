@@ -52,7 +52,7 @@ async def build_digest_report(
             config.rates.zip_code, config.rates.gas_price_per_gal
         )
 
-    trips = await get_trip_analytics(db, start_date, end_date, car_id, config.excluded_locations)
+    trips = await get_trip_analytics(db, start_date, end_date, car_id, config.excluded_locations, config=config)
     charging = await get_charging_analytics(db, start_date, end_date, car_id, config.rates, trips["total_miles"])
     superchargers = await get_supercharger_analytics(db, start_date, end_date, car_id)
     battery = await get_battery_health_analytics(db, end_date, car_id)
@@ -68,7 +68,8 @@ async def build_digest_report(
     work_mileage = await get_work_mileage_analytics(
         db, start_date, end_date, routes_config, car_id,
         getattr(config, "irs_mileage_rate", 0.67),
-        commute_target_car_id=getattr(config, "commute_target_car_id", None)
+        commute_target_car_id=getattr(config, "commute_target_car_id", None),
+        config=config
     )
 
     cars = await db.get_cars()

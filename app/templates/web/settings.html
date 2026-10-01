@@ -16,7 +16,7 @@
   </div>
   {% endif %}
 
-  <form id="settings-form" method="POST" action="/settings" class="space-y-6" onsubmit="serializeSchedules(); serializeWorkRoutes(); syncExcludedLocations();">
+  <form id="settings-form" method="POST" action="/settings" class="space-y-6" onsubmit="serializeSchedules(); serializeGeofences(); serializeWorkRoutes(); syncExcludedLocations();">
 
     <!-- 1. EMAIL DELIVERY (SMTP) -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
@@ -204,6 +204,72 @@
         </div>
         {% endfor %}
       </div>
+    </div>
+
+    <!-- 2.5 GEOFENCES & NAMED AREAS -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>📍</span> Geofences &amp; Named Areas
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Define custom geofences and areas (e.g. Home, Work, Gym, Cabin) with custom radii and street aliases. Used across Excluded Locations to block off areas and in Work Routes to match any parking spot within the zone.
+          </p>
+        </div>
+      </div>
+
+      <!-- GEOFENCES LIST -->
+      <div id="geofences-list" class="space-y-3">
+        {% for g in config.geofences %}
+        <div class="geofence-row p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            <div class="sm:col-span-3">
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Geofence Name</label>
+              <input type="text" placeholder="e.g. Home or Work" value="{{ g.name }}" class="geo-name w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-medium">
+            </div>
+            <div class="sm:col-span-5 relative location-typeahead-container">
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Center Address / Location (Search)</label>
+              <input type="text" placeholder="Type or search recorded address to auto-fill coordinates..." value="" class="geo-search location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
+              <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Latitude</label>
+              <input type="number" step="0.000001" placeholder="Lat" value="{{ g.latitude }}" class="geo-lat w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white">
+            </div>
+            <div class="sm:col-span-2 flex items-end gap-2">
+              <div class="flex-1">
+                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Longitude</label>
+                <input type="number" step="0.000001" placeholder="Lon" value="{{ g.longitude }}" class="geo-lon w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white">
+              </div>
+              <button type="button" onclick="removeGeofenceRow(this)" class="p-1.5 mb-0.5 text-red-500 hover:text-red-700 text-xs font-bold shrink-0" title="Delete Geofence">✕</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+            <div class="sm:col-span-4 flex items-center gap-2">
+              <label class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Radius (meters):</label>
+              <input type="number" min="50" max="5000" step="25" value="{{ g.radius_meters }}" class="geo-radius w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+              <span class="text-[10px] text-slate-400">(e.g. 350m)</span>
+            </div>
+            <div class="sm:col-span-8">
+              <div class="flex items-center gap-2">
+                <label class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Street Aliases:</label>
+                <input type="text" placeholder="Comma-separated streets e.g. Main St, Elm St" value="{{ g.address_aliases | join(', ') }}" class="geo-aliases flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="pt-2">
+        <button type="button" onclick="addGeofenceRow()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5">
+          <span>➕</span> Add Geofence / Named Area
+        </button>
+      </div>
+
+      <input type="hidden" name="geofences_json" id="geofences_json" value="">
     </div>
 
     <!-- 3. WORK & COMMUTE MILEAGE TRACKER (BUSINESS LOGGING) -->
@@ -1220,14 +1286,14 @@ function initLocationTypeahead(container) {
     }
 
     resultsDiv.innerHTML = items.map((item, idx) => `
-      <div class="typeahead-item px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between gap-2 transition-colors select-none" data-value="${escapeHtml(item.value)}" data-index="${idx}">
+      <div class="typeahead-item px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between gap-2 transition-colors select-none" data-value="${escapeHtml(item.value)}" data-name="${escapeHtml(item.name)}" data-lat="${item.lat != null ? item.lat : ''}" data-lon="${item.lon != null ? item.lon : ''}" data-type="${item.type}" data-index="${idx}">
         <div class="flex items-center gap-1.5 overflow-hidden">
           <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${item.type === 'geofence' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">
             ${item.type === 'geofence' ? 'Geofence' : 'Address'}
           </span>
           <span class="font-medium text-slate-900 dark:text-white truncate">${escapeHtml(item.name)}</span>
         </div>
-        ${item.city ? `<span class="text-[11px] text-slate-400 shrink-0">${escapeHtml(item.city)}</span>` : ''}
+        ${item.city ? `<span class="text-[11px] text-slate-400 shrink-0">${escapeHtml(item.city)}</span>` : (item.radius ? `<span class="text-[10px] text-blue-500 dark:text-blue-400 shrink-0 font-medium">${item.radius}m</span>` : '')}
       </div>
     `).join('');
 
@@ -1236,6 +1302,24 @@ function initLocationTypeahead(container) {
         e.preventDefault();
         input.value = el.getAttribute('data-value');
         resultsDiv.classList.add('hidden');
+
+        // If this input is inside a geofence-row, auto-fill coordinates and geofence name
+        const geoRow = container.closest('.geofence-row');
+        if (geoRow) {
+          const lat = el.getAttribute('data-lat');
+          const lon = el.getAttribute('data-lon');
+          const name = el.getAttribute('data-name');
+          if (lat && lon) {
+            const latInput = geoRow.querySelector('.geo-lat');
+            const lonInput = geoRow.querySelector('.geo-lon');
+            if (latInput) latInput.value = lat;
+            if (lonInput) lonInput.value = lon;
+          }
+          const nameInput = geoRow.querySelector('.geo-name');
+          if (nameInput && !nameInput.value.trim() && name) {
+            nameInput.value = name;
+          }
+        }
       });
     });
 
@@ -1364,7 +1448,7 @@ function initExcludedTypeahead() {
           </span>
           <span class="font-medium text-slate-900 dark:text-white truncate">${escapeHtml(item.name)}</span>
         </div>
-        ${item.city ? `<span class="text-[11px] text-slate-400 shrink-0">${escapeHtml(item.city)}</span>` : ''}
+        ${item.city ? `<span class="text-[11px] text-slate-400 shrink-0">${escapeHtml(item.city)}</span>` : (item.radius ? `<span class="text-[10px] text-blue-500 dark:text-blue-400 shrink-0 font-medium">${item.radius}m</span>` : '')}
       </div>
     `).join('');
 
@@ -1437,6 +1521,87 @@ function initExcludedTypeahead() {
         item.classList.remove('bg-slate-100', 'dark:bg-slate-800');
       }
     });
+  }
+}
+
+// --- 4.5 GEOFENCES MANAGEMENT ---
+function addGeofenceRow() {
+  const container = document.getElementById('geofences-list');
+  const div = document.createElement('div');
+  div.className = 'geofence-row p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-3';
+  div.innerHTML = `
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+      <div class="sm:col-span-3">
+        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Geofence Name</label>
+        <input type="text" placeholder="e.g. Home or Work" class="geo-name w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-medium">
+      </div>
+      <div class="sm:col-span-5 relative location-typeahead-container">
+        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Center Address / Location (Search)</label>
+        <input type="text" placeholder="Type or search recorded address to auto-fill coordinates..." class="geo-search location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
+        <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Latitude</label>
+        <input type="number" step="0.000001" placeholder="Lat" class="geo-lat w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white">
+      </div>
+      <div class="sm:col-span-2 flex items-end gap-2">
+        <div class="flex-1">
+          <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Longitude</label>
+          <input type="number" step="0.000001" placeholder="Lon" class="geo-lon w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white">
+        </div>
+        <button type="button" onclick="removeGeofenceRow(this)" class="p-1.5 mb-0.5 text-red-500 hover:text-red-700 text-xs font-bold shrink-0" title="Delete Geofence">✕</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+      <div class="sm:col-span-4 flex items-center gap-2">
+        <label class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Radius (meters):</label>
+        <input type="number" min="50" max="5000" step="25" value="350" class="geo-radius w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+        <span class="text-[10px] text-slate-400">(e.g. 350m)</span>
+      </div>
+      <div class="sm:col-span-8">
+        <div class="flex items-center gap-2">
+          <label class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Street Aliases:</label>
+          <input type="text" placeholder="Comma-separated streets e.g. Main St, Elm St" class="geo-aliases flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+        </div>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+  div.querySelectorAll('.location-typeahead-container').forEach(initLocationTypeahead);
+}
+
+function removeGeofenceRow(btn) {
+  const row = btn.closest('.geofence-row');
+  if (row) row.remove();
+}
+
+function serializeGeofences() {
+  const rows = document.querySelectorAll('.geofence-row');
+  const geos = [];
+  rows.forEach(r => {
+    const name = r.querySelector('.geo-name')?.value.trim();
+    const latStr = r.querySelector('.geo-lat')?.value.trim();
+    const lonStr = r.querySelector('.geo-lon')?.value.trim();
+    const radiusStr = r.querySelector('.geo-radius')?.value.trim();
+    const aliasesStr = r.querySelector('.geo-aliases')?.value.trim() || '';
+    if (name && latStr && lonStr) {
+      const lat = parseFloat(latStr);
+      const lon = parseFloat(lonStr);
+      const radius = radiusStr ? parseInt(radiusStr, 10) : 350;
+      if (!isNaN(lat) && !isNaN(lon)) {
+        geos.push({
+          name: name,
+          latitude: lat,
+          longitude: lon,
+          radius_meters: isNaN(radius) ? 350 : radius,
+          address_aliases: aliasesStr ? aliasesStr.split(',').map(s => s.trim()).filter(Boolean) : []
+        });
+      }
+    }
+  });
+  const hiddenInput = document.getElementById('geofences_json');
+  if (hiddenInput) {
+    hiddenInput.value = JSON.stringify(geos);
   }
 }
 

@@ -3,7 +3,7 @@ import os
 import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -87,6 +87,24 @@ class UnitSettings(BaseModel):
     currency: str = "$"
 
 
+class GeofenceItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
+    name: str
+    latitude: float
+    longitude: float
+    radius_meters: int = 350
+    address_aliases: list[str] = Field(default_factory=list)
+
+    @field_validator("address_aliases", mode="before")
+    @classmethod
+    def parse_aliases(cls, v):
+        if isinstance(v, str):
+            return [x.strip() for x in v.split(",") if x.strip()]
+        if isinstance(v, list):
+            return [str(x).strip() for x in v if str(x).strip()]
+        return []
+
+
 class WorkRouteItem(BaseModel):
     label: str
     point_a: str
@@ -151,6 +169,7 @@ class AppConfig(BaseModel):
     dashboard_url: str = Field(default_factory=lambda: os.getenv("DASHBOARD_URL", "http://localhost:8660"))
     excluded_locations: list[str] = Field(default_factory=lambda: ["Home"])
     email_theme: str = "pearl_white"
+    geofences: list[GeofenceItem] = Field(default_factory=list)
     work_routes: list[WorkRouteItem] = Field(default_factory=list)
     irs_mileage_rate: float = 0.67
     commute_target_car_id: Optional[int] = None
