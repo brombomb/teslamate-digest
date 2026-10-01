@@ -56,6 +56,14 @@
                       <span style="color: {{ theme.accent_red }}; font-weight: 900; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">TESLAMATE DIGEST</span>
                       <h1 style="margin: 6px 0 2px 0; font-size: 26px; font-weight: 800; color: {{ theme.text_primary }}; font-family: {{ theme.header_font or 'inherit' }}; {% if theme.id == 'cybertruck' %}letter-spacing: 2px; text-transform: uppercase;{% endif %}">{{ report_title }}</h1>
                       <div style="color: {{ theme.text_muted }}; font-size: 13px;">{{ date_subtitle }} &bull; {{ car_subtitle }}</div>
+                      <div style="margin-top: 10px;">
+                        {% if teslamate_url %}
+                        <a href="{{ teslamate_url }}" target="_blank" style="display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; color: {{ theme.accent_red }}; background: rgba(232, 33, 39, 0.12); border: 1px solid rgba(232, 33, 39, 0.35); text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 6px;">⚡ TeslaMate</a>
+                        {% endif %}
+                        {% if grafana_url %}
+                        <a href="{{ grafana_url }}" target="_blank" style="display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; color: {{ theme.text_muted }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">📊 Grafana</a>
+                        {% endif %}
+                      </div>
                     </td>
                     <td align="right" style="vertical-align: middle;">
                       {% if car_subtitle and car_subtitle != 'Fleet' %}
@@ -106,9 +114,20 @@
                 <!-- SECTION 1: CHARGING & SPEND BREAKDOWN -->
                 {% if modules.spend_breakdown %}
                 <div class="card">
-                  <div class="section-title">
-                    <span style="margin-right: 8px;">⚡</span> Charging & Electric Spend Breakdown
-                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0;">
+                          <span style="margin-right: 8px;">⚡</span> Charging &amp; Electric Spend Breakdown
+                        </div>
+                      </td>
+                      {% if grafana_charging_url %}
+                      <td align="right" style="vertical-align: middle;">
+                        <a href="{{ grafana_charging_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
                   
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px; table-layout: fixed;">
                     <tr>
@@ -217,11 +236,15 @@
                   {% endif %}
 
                   {% if chart_spend %}
-                  <img src="{{ chart_spend }}" alt="Spend Breakdown" class="chart-img" />
+                  <a href="{{ grafana_charging_url }}" target="_blank" style="text-decoration: none; display: block;" title="View Live Charging Stats in Grafana">
+                    <img src="{{ chart_spend }}" alt="Spend Breakdown" class="chart-img" />
+                  </a>
                   {% endif %}
 
                   {% if chart_tou %}
-                  <img src="{{ chart_tou }}" alt="24-Hour TOU Distribution" class="chart-img" />
+                  <a href="{{ grafana_charge_level_url or grafana_charging_url }}" target="_blank" style="text-decoration: none; display: block;" title="View Live Charge Level in Grafana">
+                    <img src="{{ chart_tou }}" alt="24-Hour TOU Distribution" class="chart-img" />
+                  </a>
                   {% endif %}
                 </div>
                 {% endif %}
@@ -229,9 +252,20 @@
                 <!-- SECTION: DRIVING EFFICIENCY & WH/MI CONSUMPTION -->
                 {% if modules.driving_efficiency and efficiency %}
                 <div class="card">
-                  <div class="section-title">
-                    <span style="margin-right: 8px;">📊</span> Driving Efficiency & Consumption
-                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0;">
+                          <span style="margin-right: 8px;">📊</span> Driving Efficiency &amp; Consumption
+                        </div>
+                      </td>
+                      {% if grafana_efficiency_url %}
+                      <td align="right" style="vertical-align: middle;">
+                        <a href="{{ grafana_efficiency_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px; table-layout: fixed;">
                     <tr>
                       <td width="33%" style="padding-right: 6px; vertical-align: top;">
@@ -277,9 +311,20 @@
                 <!-- SECTION: CHARGE LIMIT COMPLIANCE & PACK STRESS -->
                 {% if modules.charge_limit_compliance and compliance %}
                 <div class="card">
-                  <div class="section-title">
-                    <span style="margin-right: 8px;">🛡️</span> Charge Limit Compliance & Pack Stress
-                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0;">
+                          <span style="margin-right: 8px;">🛡️</span> Charge Limit Compliance &amp; Pack Stress
+                        </div>
+                      </td>
+                      {% if grafana_charge_level_url %}
+                      <td align="right" style="vertical-align: middle;">
+                        <a href="{{ grafana_charge_level_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
                   <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 10px;">
                     Tracks battery dwell time outside the recommended 20% - 80% SoC zone to minimize chemical cell stress and capacity degradation.
                   </div>
@@ -366,9 +411,20 @@
                 <!-- SECTION 2: BATTERY HEALTH (MONTHLY DIGEST ONLY) -->
                 {% if modules.battery_health and show_battery_health and battery.cars %}
                 <div class="card">
-                  <div class="section-title">
-                    <span style="margin-right: 8px;">🔋</span> Battery Health & Range Degradation (Monthly Review)
-                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0;">
+                          <span style="margin-right: 8px;">🔋</span> Battery Health &amp; Range Degradation (Monthly Review)
+                        </div>
+                      </td>
+                      {% if grafana_battery_url %}
+                      <td align="right" style="vertical-align: middle;">
+                        <a href="{{ grafana_battery_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
 
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                     {% for c in battery.cars %}
@@ -401,7 +457,9 @@
                   </table>
 
                   {% if chart_battery %}
-                  <img src="{{ chart_battery }}" alt="Battery Range Trend" class="chart-img" />
+                  <a href="{{ grafana_battery_url }}" target="_blank" style="text-decoration: none; display: block;" title="View Live Battery Health in Grafana">
+                    <img src="{{ chart_battery }}" alt="Battery Range Trend" class="chart-img" />
+                  </a>
                   {% endif %}
                 </div>
                 {% endif %}
@@ -409,9 +467,20 @@
                 <!-- SECTION 3: DRIVING HIGHLIGHTS & TOP DESTINATIONS -->
                 {% if modules.top_locations or modules.driving_milestones %}
                 <div class="card">
-                  <div class="section-title">
-                    <span style="margin-right: 8px;">📍</span> Driving Highlights & Top Destinations
-                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0;">
+                          <span style="margin-right: 8px;">📍</span> Driving Highlights &amp; Top Destinations
+                        </div>
+                      </td>
+                      {% if grafana_drives_url %}
+                      <td align="right" style="vertical-align: middle;">
+                        <a href="{{ grafana_drives_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Drives &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
 
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
                     <tr>
@@ -473,9 +542,20 @@
                 <!-- SECTION 4: SUPERCHARGER EXPLORER -->
                 {% if modules.supercharger_explorer %}
                 <div class="card">
-                  <div class="section-title">
-                    <span style="margin-right: 8px;">⚡</span> Supercharger Explorer
-                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0;">
+                          <span style="margin-right: 8px;">⚡</span> Supercharger Explorer
+                        </div>
+                      </td>
+                      {% if grafana_charges_url %}
+                      <td align="right" style="vertical-align: middle;">
+                        <a href="{{ grafana_charges_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Charges &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
 
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                     <tr>
@@ -597,9 +677,20 @@
                 <!-- SECTION 6: VAMPIRE / STANDBY DRAIN -->
                 {% if modules.vampire_drain %}
                 <div class="card">
-                  <div class="section-title">
-                    <span style="margin-right: 8px;">🌙</span> Phantom / Standby Loss
-                  </div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0;">
+                          <span style="margin-right: 8px;">🌙</span> Phantom / Standby Loss
+                        </div>
+                      </td>
+                      {% if grafana_vampire_url %}
+                      <td align="right" style="vertical-align: middle;">
+                        <a href="{{ grafana_vampire_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td width="33%" style="text-align: center;">
@@ -626,7 +717,15 @@
             <tr>
               <td style="padding: 18px 24px; background-color: {{ theme.footer_bg }}; border-top: 1px solid {{ theme.footer_border }}; text-align: center; color: {{ theme.footer_text }}; font-size: 12px;">
                 Generated by <strong>TeslaMate Digest</strong><br>
-                <a href="{{ dashboard_url }}" style="color: {{ theme.footer_link }}; text-decoration: none; margin-top: 4px; display: inline-block;">Open Local Dashboard</a>
+                <div style="margin-top: 8px;">
+                  {% if teslamate_url %}
+                  <a href="{{ teslamate_url }}" target="_blank" style="color: {{ theme.footer_link }}; text-decoration: none; margin: 0 8px; font-weight: 600;">⚡ TeslaMate</a> &bull;
+                  {% endif %}
+                  {% if grafana_url %}
+                  <a href="{{ grafana_url }}" target="_blank" style="color: {{ theme.footer_link }}; text-decoration: none; margin: 0 8px; font-weight: 600;">📊 Grafana</a> &bull;
+                  {% endif %}
+                  <a href="{{ dashboard_url }}" style="color: {{ theme.footer_link }}; text-decoration: none; margin: 0 8px;">Digest Settings</a>
+                </div>
               </td>
             </tr>
 

@@ -214,18 +214,29 @@
             <span>📍</span> Geofences &amp; Named Areas
           </h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Define custom geofences and areas (e.g. Home, Work, Gym, Cabin) with custom radii and street aliases. Used across Excluded Locations to block off areas and in Work Routes to match any parking spot within the zone.
+            Bi-directionally synced with TeslaMate's native geofences table. Define custom areas (e.g. Home, Work, Gym) with custom radii and street aliases for exclusion rules and work commute matching.
           </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <span id="geofence-sync-status" class="text-xs text-slate-400"></span>
+          <button type="button" id="btn-sync-geofences" onclick="syncTeslaMateGeofences()" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-semibold rounded-lg border border-blue-200 dark:border-blue-800 transition flex items-center gap-1.5 whitespace-nowrap">
+            <span>🔄</span> Sync with TeslaMate
+          </button>
         </div>
       </div>
 
       <!-- GEOFENCES LIST -->
       <div id="geofences-list" class="space-y-3">
         {% for g in config.geofences %}
-        <div class="geofence-row p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-3">
+        <div class="geofence-row p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-3" data-in-teslamate="{{ 'true' if g.in_teslamate else 'false' }}">
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
             <div class="sm:col-span-3">
-              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Geofence Name</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Geofence Name</label>
+                {% if g.in_teslamate %}
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" title="Synchronized with TeslaMate PostgreSQL geofences table">✓ TeslaMate</span>
+                {% endif %}
+              </div>
               <input type="text" placeholder="e.g. Home or Work" value="{{ g.name }}" class="geo-name w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-medium">
             </div>
             <div class="sm:col-span-5 relative location-typeahead-container">
@@ -732,34 +743,56 @@
 
     </div>
 
-    <!-- 5. DRIVING & DASHBOARD OPTIONS -->
+    <!-- 5. SERVICE URLS & DASHBOARD OPTIONS -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
-      <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <span>🗺️</span> Driving & Dashboard Options
-        </h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Filter out frequent home locations from Top Destinations and customize your email dashboard link.</p>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>🔗</span> Service URLs &amp; Dashboards (TeslaMate &amp; Grafana)
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Configure host URLs used in emails to link directly to TeslaMate and interactive Grafana dashboards.
+          </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <span id="urls-autodetect-status" class="text-xs text-slate-400"></span>
+          <button type="button" id="btn-autodetect-urls" onclick="autoDetectServiceUrls()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+            <span>⚡</span> Auto-Detect from TeslaMate DB
+          </button>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Excluded Locations from Top Destinations</label>
-          <div class="relative" id="excluded-picker-wrapper">
-            <div id="excluded-tags-box" class="min-h-[42px] p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-tesla/30 focus-within:border-tesla transition-all cursor-text">
-              <div id="excluded-tags-list" class="flex flex-wrap items-center gap-1.5"></div>
-              <input type="text" id="excluded-search-input" placeholder="Search or type address/geofence to exclude..." class="flex-1 min-w-[180px] bg-transparent border-0 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none placeholder-slate-400 py-0.5 px-1" autocomplete="off">
-            </div>
-            <div id="excluded-typeahead-results" class="hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
-            <input type="hidden" name="excluded_locations" id="excluded_locations_input" value="{{ config.excluded_locations | join(', ') }}">
-          </div>
-          <p class="text-[11px] text-slate-400 mt-1.5">Locations to exclude from Top Places ranking (e.g. hides daily home parking). Type to search or press Enter/comma to add.</p>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">TeslaMate Web UI URL</label>
+          <input type="text" name="teslamate_url" id="teslamate_url_input" value="{{ config.teslamate_url or '' }}" placeholder="http://192.168.1.15:4000" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+          <p class="text-[11px] text-slate-400 mt-1">TeslaMate web interface (linked in email header and footer).</p>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Local Dashboard URL</label>
-          <input type="text" name="dashboard_url" value="{{ config.dashboard_url }}" placeholder="http://localhost:8660" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-          <p class="text-[11px] text-slate-400 mt-1">Used for links in email digest footers (e.g. http://192.168.1.50:8660 or https://digest.example.com).</p>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Grafana Dashboards URL</label>
+          <input type="text" name="grafana_url" id="grafana_url_input" value="{{ config.grafana_url or '' }}" placeholder="http://192.168.1.15:3000" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+          <p class="text-[11px] text-slate-400 mt-1">Grafana dashboards URL (charts and cards in emails link directly here).</p>
         </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Local Digest Dashboard URL</label>
+          <input type="text" name="dashboard_url" value="{{ config.dashboard_url }}" placeholder="http://localhost:8660" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+          <p class="text-[11px] text-slate-400 mt-1">Link in email footers back to this TeslaMate Digest portal.</p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
+        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Excluded Locations from Top Destinations</label>
+        <div class="relative" id="excluded-picker-wrapper">
+          <div id="excluded-tags-box" class="min-h-[42px] p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-tesla/30 focus-within:border-tesla transition-all cursor-text">
+            <div id="excluded-tags-list" class="flex flex-wrap items-center gap-1.5"></div>
+            <input type="text" id="excluded-search-input" placeholder="Search or type address/geofence to exclude..." class="flex-1 min-w-[180px] bg-transparent border-0 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none placeholder-slate-400 py-0.5 px-1" autocomplete="off">
+          </div>
+          <div id="excluded-typeahead-results" class="hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+          <input type="hidden" name="excluded_locations" id="excluded_locations_input" value="{{ config.excluded_locations | join(', ') }}">
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1.5">Locations to exclude from Top Places ranking (e.g. hides daily home parking). Type to search or press Enter/comma to add.</p>
       </div>
     </div>
 
@@ -1584,6 +1617,7 @@ function serializeGeofences() {
     const lonStr = r.querySelector('.geo-lon')?.value.trim();
     const radiusStr = r.querySelector('.geo-radius')?.value.trim();
     const aliasesStr = r.querySelector('.geo-aliases')?.value.trim() || '';
+    const inTeslaMate = r.getAttribute('data-in-teslamate') === 'true';
     if (name && latStr && lonStr) {
       const lat = parseFloat(latStr);
       const lon = parseFloat(lonStr);
@@ -1594,7 +1628,8 @@ function serializeGeofences() {
           latitude: lat,
           longitude: lon,
           radius_meters: isNaN(radius) ? 350 : radius,
-          address_aliases: aliasesStr ? aliasesStr.split(',').map(s => s.trim()).filter(Boolean) : []
+          address_aliases: aliasesStr ? aliasesStr.split(',').map(s => s.trim()).filter(Boolean) : [],
+          in_teslamate: inTeslaMate
         });
       }
     }
@@ -1602,6 +1637,95 @@ function serializeGeofences() {
   const hiddenInput = document.getElementById('geofences_json');
   if (hiddenInput) {
     hiddenInput.value = JSON.stringify(geos);
+  }
+}
+
+async function syncTeslaMateGeofences() {
+  const syncBtn = document.getElementById('btn-sync-geofences');
+  const syncStatus = document.getElementById('geofence-sync-status');
+  if (syncBtn) {
+    syncBtn.disabled = true;
+    syncBtn.innerHTML = `<span>⏳</span> Syncing...`;
+  }
+  if (syncStatus) {
+    syncStatus.textContent = 'Syncing with TeslaMate PostgreSQL...';
+    syncStatus.className = 'text-xs text-blue-500 font-medium';
+  }
+
+  try {
+    const res = await fetch('/api/geofences/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      const stats = data.stats || {};
+      if (syncStatus) {
+        syncStatus.textContent = `✓ Synced! TeslaMate: ${stats.total || data.geofences.length} total (${stats.imported_from_teslamate || 0} imported, ${stats.exported_to_teslamate || 0} exported)`;
+        syncStatus.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
+      }
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } else {
+      if (syncStatus) {
+        syncStatus.textContent = `Sync failed: ${data.error || 'Unknown error'}`;
+        syncStatus.className = 'text-xs text-red-500 font-medium';
+      }
+    }
+  } catch (err) {
+    if (syncStatus) {
+      syncStatus.textContent = `Sync error: ${err.message}`;
+      syncStatus.className = 'text-xs text-red-500 font-medium';
+    }
+  } finally {
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = `<span>🔄</span> Sync with TeslaMate`;
+    }
+  }
+}
+
+async function autoDetectServiceUrls() {
+  const btn = document.getElementById('btn-autodetect-urls');
+  const status = document.getElementById('urls-autodetect-status');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>⏳</span> Detecting...`;
+  }
+  if (status) {
+    status.textContent = 'Querying TeslaMate database...';
+    status.className = 'text-xs text-blue-500 font-medium';
+  }
+
+  try {
+    const res = await fetch('/api/system/urls');
+    const data = await res.json();
+    if (data.teslamate_url || data.grafana_url) {
+      const tmInput = document.getElementById('teslamate_url_input');
+      const grafInput = document.getElementById('grafana_url_input');
+      if (tmInput && data.teslamate_url) tmInput.value = data.teslamate_url;
+      if (grafInput && data.grafana_url) grafInput.value = data.grafana_url;
+      if (status) {
+        status.textContent = `✓ Auto-detected! TM: ${data.teslamate_url} | Grafana: ${data.grafana_url}`;
+        status.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
+      }
+    } else {
+      if (status) {
+        status.textContent = 'No URLs found in TeslaMate database settings.';
+        status.className = 'text-xs text-amber-500 font-medium';
+      }
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = `Detection failed: ${err.message}`;
+      status.className = 'text-xs text-red-500 font-medium';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>⚡</span> Auto-Detect from TeslaMate DB`;
+    }
   }
 }
 

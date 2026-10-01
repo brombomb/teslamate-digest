@@ -17,6 +17,7 @@ from app.analytics.compliance import get_charge_compliance_analytics
 from app.analytics.work_mileage import get_work_mileage_analytics
 from app.analytics.wrapped import get_year_in_review_analytics
 from app.themes import get_theme
+from app.services.geofences import get_effective_service_urls, get_grafana_dashboard_urls
 import app.charts as charts
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -156,6 +157,8 @@ async def build_digest_report(
                 tmpl = Template(f.read())
 
     dashboard_url = getattr(config, "dashboard_url", None) or f"http://localhost:{os.getenv('PORT', '8660')}"
+    teslamate_url, grafana_url = await get_effective_service_urls(db, config)
+    grafana_dashboards = get_grafana_dashboard_urls(grafana_url, car_id)
 
     html_content = tmpl.render(
         report_title=report_title,
@@ -177,7 +180,10 @@ async def build_digest_report(
         chart_tou=chart_tou_src,
         chart_battery=chart_battery_src,
         dashboard_url=dashboard_url,
-        theme=theme
+        teslamate_url=teslamate_url,
+        grafana_url=grafana_url,
+        theme=theme,
+        **grafana_dashboards
     )
 
     return subject, html_content, inline_images

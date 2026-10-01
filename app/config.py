@@ -94,6 +94,7 @@ class GeofenceItem(BaseModel):
     longitude: float
     radius_meters: int = 350
     address_aliases: list[str] = Field(default_factory=list)
+    in_teslamate: bool = False
 
     @field_validator("address_aliases", mode="before")
     @classmethod
@@ -142,7 +143,7 @@ class AppConfig(BaseModel):
     database_pass: str = Field(default_factory=lambda: os.getenv("DATABASE_PASS", "teslamate"))
     database_name: str = Field(default_factory=lambda: os.getenv("DATABASE_NAME", "teslamate"))
     timezone: str = Field(default_factory=lambda: os.getenv("TZ", "UTC"))
-    grafana_url: str = Field(default_factory=lambda: os.getenv("GRAFANA_URL", "http://grafana:3000"))
+    grafana_url: str = Field(default_factory=lambda: os.getenv("GRAFANA_URL", ""))
     grafana_api_token: str = Field(default_factory=lambda: os.getenv("GRAFANA_API_TOKEN", ""))
 
     smtp: SMTPSettings = Field(default_factory=SMTPSettings)
@@ -167,6 +168,7 @@ class AppConfig(BaseModel):
     modules: ModuleToggles = Field(default_factory=ModuleToggles)
     tire_rotation_interval_mi: int = 6250
     dashboard_url: str = Field(default_factory=lambda: os.getenv("DASHBOARD_URL", "http://localhost:8660"))
+    teslamate_url: str = Field(default_factory=lambda: os.getenv("TESLAMATE_URL", ""))
     excluded_locations: list[str] = Field(default_factory=lambda: ["Home"])
     email_theme: str = "pearl_white"
     geofences: list[GeofenceItem] = Field(default_factory=list)
@@ -203,6 +205,19 @@ def load_config() -> AppConfig:
             cfg = AppConfig(**data)
             if not cfg.smtp.password and os.getenv("SMTP_PASSWORD"):
                 cfg.smtp.password = os.getenv("SMTP_PASSWORD")
+            if os.getenv("DATABASE_PASS"):
+                cfg.database_pass = os.getenv("DATABASE_PASS")
+            if os.getenv("DATABASE_HOST"):
+                cfg.database_host = os.getenv("DATABASE_HOST")
+            if os.getenv("DATABASE_USER"):
+                cfg.database_user = os.getenv("DATABASE_USER")
+            if os.getenv("DATABASE_NAME"):
+                cfg.database_name = os.getenv("DATABASE_NAME")
+            if os.getenv("DATABASE_PORT"):
+                try:
+                    cfg.database_port = int(os.getenv("DATABASE_PORT"))
+                except ValueError:
+                    pass
             return cfg
         except Exception as e:
             print(f"[Config] Error parsing config from storage: {e}. Using defaults.")

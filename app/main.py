@@ -25,6 +25,7 @@ from app.config import (
 )
 from app.themes import EMAIL_THEMES, get_theme
 from app.analytics.work_mileage import get_available_locations_for_work
+from app.services.geofences import sync_geofences_with_teslamate, get_effective_service_urls
 from app.db import Database
 from app.scheduler import (
     setup_scheduler,
@@ -195,6 +196,40 @@ async def search_locations(request: Request, q: str = Query("", alias="q"), limi
 @app.get("/api/health")
 async def health():
     return {"status": "healthy", "service": "teslamate-digest"}
+
+
+@app.post("/api/geofences/sync")
+async def api_sync_geofences(request: Request):
+    """
+    Bi-directional synchronization of geofences between TeslaMate-Digest and TeslaMate PostgreSQL.
+    """
+    db: Database = request.app.state.db
+    cfg = load_config()
+    try:
+        geos, stats = await sync_geofences_with_teslamate(db, cfg)
+        return JSONResponse(content={
+            "status": "ok",
+            "stats": stats,
+            "geofences": [g.model_dump() for g in geos]
+        })
+    except Exception as e:
+        print(f"[API] Error syncing geofences: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+
+
+@app.get("/api/system/urls")
+async def api_get_system_urls(request: Request):
+    """
+    Returns auto-detected or configured TeslaMate and Grafana URLs.
+    """
+    db: Database = request.app.state.db
+    cfg = load_config()
+    tm_url, graf_url = await get_effective_service_urls(db, cfg)
+    return JSONResponse(content={
+        "teslamate_url": tm_url,
+        "grafana_url": graf_url,
+        "dashboard_url": cfg.dashboard_url
+    })
 
 
 @app.post("/api/sync-gas-price")
@@ -586,6 +621,20 @@ async def get_theme_palette(theme: str = Query("pearl_white")):
 async def settings_view(request: Request):
     cfg = load_config()
     db: Database = request.app.state.db
+
+    # Auto-detect service URLs if empty
+    tm_url, graf_url = await get_effective_service_urls(db, cfg)
+    if not cfg.teslamate_url:
+        cfg.teslamate_url = tm_url
+    if not cfg.grafana_url:
+        cfg.grafana_url = graf_url
+
+    # Auto-sync geofences with TeslaMate
+    try:
+        await sync_geofences_with_teslamate(db, cfg)
+    except Exception as e:
+        print(f"[Settings] Error auto-syncing geofences: {e}")
+
     cars = await db.get_cars()
     locations = await get_available_locations_for_work(db)
     return templates.TemplateResponse(
@@ -640,6 +689,8 @@ async def settings_save(
     openei_api_key: str = Form(""),
     utility_name: str = Form(""),
     dashboard_url: str = Form("http://localhost:8660"),
+    teslamate_url: Optional[str] = Form(""),
+    grafana_url: Optional[str] = Form(""),
     excluded_locations: str = Form("Home"),
     tire_rotation_interval_mi: int = Form(6250),
     schedule_enabled: Optional[str] = Form(None),
@@ -686,6 +737,8 @@ async def settings_save(
 
     cfg.email_theme = email_theme
     cfg.dashboard_url = dashboard_url.strip() or "http://localhost:8660"
+    cfg.teslamate_url = (teslamate_url or "").strip()
+    cfg.grafana_url = (grafana_url or "").strip()
     cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
 
     cfg.rates.rate_mode = rate_mode.strip().lower() or "tou"
@@ -772,8 +825,9 @@ async def settings_save(
         try:
             parsed_geos = json.loads(geofences_json)
             cfg.geofences = [GeofenceItem(**item) for item in parsed_geos]
+            await sync_geofences_with_teslamate(db, cfg)
         except Exception as e:
-            print(f"[Settings] Error parsing geofences JSON: {e}")
+            print(f"[Settings] Error parsing/syncing geofences: {e}")
 
     if modules_submitted:
         cfg.modules.spend_breakdown = bool(mod_spend_breakdown)
