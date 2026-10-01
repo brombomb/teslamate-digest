@@ -49,6 +49,48 @@
 
       <div class="p-5 space-y-6 flex-1">
         
+        <!-- TPMS LIVE TELEMETRY -->
+        {% if c.tpms %}
+        <div class="space-y-2 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span>🏎️</span> Live Tire Pressure ({{ c.tpms.unit | upper }})
+            </span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">Cold Spec: ~42 psi</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span class="text-slate-500">Front Left</span>
+              <span class="font-bold flex items-center gap-1.5" style="color: {{ c.tpms.fl_color }};">
+                <span class="w-2 h-2 rounded-full" style="background-color: {{ c.tpms.fl_color }};"></span>
+                {{ c.tpms.front_left }} {{ c.tpms.unit }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span class="text-slate-500">Front Right</span>
+              <span class="font-bold flex items-center gap-1.5" style="color: {{ c.tpms.fr_color }};">
+                <span class="w-2 h-2 rounded-full" style="background-color: {{ c.tpms.fr_color }};"></span>
+                {{ c.tpms.front_right }} {{ c.tpms.unit }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span class="text-slate-500">Rear Left</span>
+              <span class="font-bold flex items-center gap-1.5" style="color: {{ c.tpms.rl_color }};">
+                <span class="w-2 h-2 rounded-full" style="background-color: {{ c.tpms.rl_color }};"></span>
+                {{ c.tpms.rear_left }} {{ c.tpms.unit }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span class="text-slate-500">Rear Right</span>
+              <span class="font-bold flex items-center gap-1.5" style="color: {{ c.tpms.rr_color }};">
+                <span class="w-2 h-2 rounded-full" style="background-color: {{ c.tpms.rr_color }};"></span>
+                {{ c.tpms.rear_right }} {{ c.tpms.unit }}
+              </span>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
         <!-- 1. TIRE ROTATION LIFE BAR -->
         <div class="space-y-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors">
           <div class="flex justify-between items-center text-xs">

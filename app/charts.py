@@ -26,21 +26,47 @@ def _fig_to_bytes(fig) -> bytes:
     return data
 
 
-def _get_chart_colors(theme: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
+def _clean_color(val: Any, default: str = "#ffffff") -> Any:
+    if not val:
+        return default
+    if not isinstance(val, str):
+        return val
+    s = val.strip()
+    if s.startswith("rgb(") and s.endswith(")"):
+        parts = s[4:-1].split(",")
+        if len(parts) == 3:
+            try:
+                r, g, b = [int(p.strip()) for p in parts]
+                return f"#{r:02x}{g:02x}{b:02x}"
+            except Exception:
+                pass
+    elif s.startswith("rgba(") and s.endswith(")"):
+        parts = s[5:-1].split(",")
+        if len(parts) == 4:
+            try:
+                r, g, b = [int(parts[0].strip()), int(parts[1].strip()), int(parts[2].strip())]
+                a = float(parts[3].strip())
+                return (r / 255.0, g / 255.0, b / 255.0, a)
+            except Exception:
+                pass
+    return s
+
+
+def _get_chart_colors(theme: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     ct = theme.get("chart_theme", {}) if theme else {}
     return {
-        "bg": ct.get("chart_bg", "#0f172a"),
-        "plot_bg": ct.get("chart_plot_bg", ct.get("chart_bg", "#0f172a")),
-        "text": ct.get("chart_text", "#f8fafc"),
-        "muted": ct.get("chart_muted", "#94a3b8"),
-        "grid": ct.get("chart_grid", "#1e293b"),
-        "primary": ct.get("chart_primary", "#e82127"),
-        "secondary": ct.get("chart_secondary", "#38bdf8"),
-        "tertiary": ct.get("chart_tertiary", "#10b981"),
-        "off_peak": ct.get("chart_off_peak", "#10b981"),
-        "shoulder": ct.get("chart_shoulder", "#38bdf8"),
-        "on_peak": ct.get("chart_on_peak", "#f59e0b"),
-        "supercharger": ct.get("chart_supercharger", "#e82127")
+        "bg": _clean_color(ct.get("chart_bg", "#0f172a"), "#0f172a"),
+        "plot_bg": _clean_color(ct.get("chart_plot_bg", ct.get("chart_bg", "#0f172a")), "#0f172a"),
+        "text": _clean_color(ct.get("chart_text", "#f8fafc"), "#f8fafc"),
+        "muted": _clean_color(ct.get("chart_muted", "#94a3b8"), "#94a3b8"),
+        "grid": _clean_color(ct.get("chart_grid", "#1e293b"), "#1e293b"),
+        "primary": _clean_color(ct.get("chart_primary", "#e82127"), "#e82127"),
+        "secondary": _clean_color(ct.get("chart_secondary", "#38bdf8"), "#38bdf8"),
+        "tertiary": _clean_color(ct.get("chart_tertiary", "#10b981"), "#10b981"),
+        "off_peak": _clean_color(ct.get("chart_off_peak", "#10b981"), "#10b981"),
+        "shoulder": _clean_color(ct.get("chart_shoulder", "#38bdf8"), "#38bdf8"),
+        "on_peak": _clean_color(ct.get("chart_on_peak", "#f59e0b"), "#f59e0b"),
+        "supercharger": _clean_color(ct.get("chart_supercharger", "#e82127"), "#e82127")
     }
 
 

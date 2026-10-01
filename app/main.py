@@ -720,10 +720,49 @@ async def maintenance_view(request: Request, msg: Optional[str] = Query(None)):
     for c in cars:
         cid = c["id"]
         latest_pos = await db.fetchrow(
-            "SELECT coalesce(odometer, 0) * 0.621371 as odometer_mi FROM positions WHERE car_id = $1 ORDER BY date DESC LIMIT 1;",
+            """
+            SELECT 
+                tpms_pressure_fl,
+                tpms_pressure_fr,
+                tpms_pressure_rl,
+                tpms_pressure_rr,
+                coalesce(odometer, 0) * 0.621371 as odometer_mi 
+            FROM positions 
+            WHERE car_id = $1 AND tpms_pressure_fl IS NOT NULL
+            ORDER BY date DESC LIMIT 1;
+            """,
             cid
         )
+        if not latest_pos:
+            latest_pos = await db.fetchrow(
+                "SELECT coalesce(odometer, 0) * 0.621371 as odometer_mi FROM positions WHERE car_id = $1 ORDER BY date DESC LIMIT 1;",
+                cid
+            )
         curr_odo = round(float(latest_pos["odometer_mi"]), 1) if latest_pos else 0.0
+
+        tpms = None
+        if latest_pos and latest_pos.get("tpms_pressure_fl") is not None:
+            fl_bar = float(latest_pos["tpms_pressure_fl"] or 0)
+            fr_bar = float(latest_pos["tpms_pressure_fr"] or 0)
+            rl_bar = float(latest_pos["tpms_pressure_rl"] or 0)
+            rr_bar = float(latest_pos["tpms_pressure_rr"] or 0)
+            p_unit = getattr(cfg.units, "pressure", "psi")
+            fl_psi = round(fl_bar * 14.5038, 1)
+            fr_psi = round(fr_bar * 14.5038, 1)
+            rl_psi = round(rl_bar * 14.5038, 1)
+            rr_psi = round(rr_bar * 14.5038, 1)
+            tpms = {
+                "unit": p_unit,
+                "front_left": round(fl_bar, 1) if p_unit == "bar" else fl_psi,
+                "front_right": round(fr_bar, 1) if p_unit == "bar" else fr_psi,
+                "rear_left": round(rl_bar, 1) if p_unit == "bar" else rl_psi,
+                "rear_right": round(rr_bar, 1) if p_unit == "bar" else rr_psi,
+                "fl_color": "#10b981" if 40.0 <= fl_psi <= 45.0 else ("#f59e0b" if 38.0 <= fl_psi <= 47.0 else "#ef4444"),
+                "fr_color": "#10b981" if 40.0 <= fr_psi <= 45.0 else ("#f59e0b" if 38.0 <= fr_psi <= 47.0 else "#ef4444"),
+                "rl_color": "#10b981" if 40.0 <= rl_psi <= 45.0 else ("#f59e0b" if 38.0 <= rl_psi <= 47.0 else "#ef4444"),
+                "rr_color": "#10b981" if 40.0 <= rr_psi <= 45.0 else ("#f59e0b" if 38.0 <= rr_psi <= 47.0 else "#ef4444"),
+            }
+
         m = log.get(str(cid), {})
         last_rot_odo = float(m.get("last_tire_rotation_odometer", 0))
         last_rot_date = m.get("last_tire_rotation_date", "")
@@ -751,6 +790,7 @@ async def maintenance_view(request: Request, msg: Optional[str] = Query(None)):
             "active_tire_set": active_set,
             "last_tire_swap_date": last_swap_date,
             "notes": notes,
+            "tpms": tpms,
         })
 
     flash_message = None

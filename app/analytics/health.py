@@ -9,7 +9,8 @@ async def get_health_analytics(
     start_date: datetime,
     end_date: datetime,
     car_id: Optional[int] = None,
-    rotation_interval_mi: int = 6250
+    rotation_interval_mi: int = 6250,
+    pressure_unit: str = "psi"
 ) -> Dict[str, Any]:
     car_filter = "WHERE id = $1" if car_id else ""
     args = [car_id] if car_id else []
@@ -67,7 +68,17 @@ async def get_health_analytics(
             imbalance_rear = abs(rl_psi - rr_psi) >= 2.0
             has_alert = fl_psi < 38.0 or fr_psi < 38.0 or rl_psi < 38.0 or rr_psi < 38.0 or imbalance_front or imbalance_rear
 
+            front_left_val = round(fl_bar, 1) if pressure_unit == "bar" else fl_psi
+            front_right_val = round(fr_bar, 1) if pressure_unit == "bar" else fr_psi
+            rear_left_val = round(rl_bar, 1) if pressure_unit == "bar" else rl_psi
+            rear_right_val = round(rr_bar, 1) if pressure_unit == "bar" else rr_psi
+
             tpms_data = {
+                "front_left": front_left_val,
+                "front_right": front_right_val,
+                "rear_left": rear_left_val,
+                "rear_right": rear_right_val,
+                "unit": pressure_unit,
                 "fl_psi": fl_psi,
                 "fr_psi": fr_psi,
                 "rl_psi": rl_psi,

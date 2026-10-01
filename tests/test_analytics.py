@@ -77,3 +77,33 @@ def test_tire_rotation_counter():
     pct_used = (miles_since / interval) * 100
     assert round(pct_used, 1) == 68.8
     assert miles_since < interval
+
+
+def test_eco_green_theme_validity():
+    import matplotlib.colors as mcolors
+    from app.themes import EMAIL_THEMES
+    from app.charts import _get_chart_colors
+
+    assert "eco_green" in EMAIL_THEMES
+    eco = EMAIL_THEMES["eco_green"]
+    assert eco["card_bg"] == "#232f2e"
+    assert eco["accent_green"] == "#4b9d43"
+    assert eco["accent_red"] == "#ef4444"
+
+    # All chart theme colors must be directly valid in matplotlib
+    chart_colors = _get_chart_colors(eco)
+    for key, color_val in chart_colors.items():
+        # Will raise ValueError if matplotlib cannot parse
+        rgba = mcolors.to_rgba(color_val)
+        assert len(rgba) == 4
+
+
+def test_charts_clean_color():
+    from app.charts import _clean_color
+    assert _clean_color("rgb(75, 157, 67)") == "#4b9d43"
+    assert _clean_color("rgb(35, 47, 46)") == "#232f2e"
+    assert _clean_color("#e82127") == "#e82127"
+    rgba_tuple = _clean_color("rgba(75, 157, 67, 0.5)")
+    assert isinstance(rgba_tuple, tuple)
+    assert rgba_tuple[3] == 0.5
+

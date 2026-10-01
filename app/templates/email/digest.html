@@ -496,6 +496,17 @@
                     <strong>{{ s.name }}</strong> ({{ s.date }}) &bull; Peak: {{ s.power_kw }} kW &bull; +{{ s.kwh }} kWh
                   </div>
                   {% endfor %}
+                  {% elif superchargers.recent_visits %}
+                  <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_primary }}; margin-bottom: 6px;">⚡ Supercharger Sessions This Period:</div>
+                  {% for s in superchargers.recent_visits %}
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid {{ theme.card_inner_border }}; font-size: 12px; color: {{ theme.text_primary }};">
+                    <strong>{{ s.name }}</strong> ({{ s.date }}) &bull; Peak: {{ s.power_kw }} kW &bull; +{{ s.kwh }} kWh
+                  </div>
+                  {% endfor %}
+                  {% else %}
+                  <div style="font-size: 12px; color: {{ theme.text_muted }}; text-align: center; padding: 6px 0;">
+                    No Supercharger visits recorded during this reporting period.
+                  </div>
                   {% endif %}
                 </div>
                 {% endif %}
@@ -513,18 +524,26 @@
                       {{ car_h.car_name }} (Model {{ car_h.model }})
                     </div>
 
-                    <!-- TPMS GRAPHIC -->
-                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 6px;">Tire Pressure Status (Cold PSI):</div>
+                    <!-- TPMS READINGS -->
+                    {% if car_h.tpms %}
+                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 6px;">
+                      Tire Pressure Telemetry ({{ car_h.tpms.unit | upper }}):
+                      {% if car_h.tpms.has_alert %}
+                      <span style="color: #ef4444; font-weight: 700; margin-left: 6px;">⚠️ {{ car_h.tpms.alert_msg }}</span>
+                      {% endif %}
+                    </div>
                     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                       <tr>
                         <td width="48%" style="padding-right: 4px;">
                           <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
-                            Front Left: <strong>{{ car_h.tpms.front_left }} psi</strong>
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.fl_info.color }}; margin-right: 4px;"></span>
+                            Front Left: <strong>{{ car_h.tpms.front_left }} {{ car_h.tpms.unit }}</strong>
                           </div>
                         </td>
                         <td width="48%" style="padding-left: 4px;">
                           <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
-                            Front Right: <strong>{{ car_h.tpms.front_right }} psi</strong>
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.fr_info.color }}; margin-right: 4px;"></span>
+                            Front Right: <strong>{{ car_h.tpms.front_right }} {{ car_h.tpms.unit }}</strong>
                           </div>
                         </td>
                       </tr>
@@ -532,16 +551,23 @@
                       <tr>
                         <td width="48%" style="padding-right: 4px;">
                           <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
-                            Rear Left: <strong>{{ car_h.tpms.rear_left }} psi</strong>
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.rl_info.color }}; margin-right: 4px;"></span>
+                            Rear Left: <strong>{{ car_h.tpms.rear_left }} {{ car_h.tpms.unit }}</strong>
                           </div>
                         </td>
                         <td width="48%" style="padding-left: 4px;">
                           <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
-                            Rear Right: <strong>{{ car_h.tpms.rear_right }} psi</strong>
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.rr_info.color }}; margin-right: 4px;"></span>
+                            Rear Right: <strong>{{ car_h.tpms.rear_right }} {{ car_h.tpms.unit }}</strong>
                           </div>
                         </td>
                       </tr>
                     </table>
+                    {% else %}
+                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 12px; text-align: center; padding: 6px 0; background-color: {{ theme.card_inner_bg }}; border-radius: 6px;">
+                      No tire pressure readings recorded yet for this vehicle.
+                    </div>
+                    {% endif %}
 
                     <!-- TIRE ROTATION PROGRESS -->
                     <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 4px; display: flex; justify-content: space-between;">

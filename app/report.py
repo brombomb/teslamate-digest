@@ -56,7 +56,10 @@ async def build_digest_report(
     charging = await get_charging_analytics(db, start_date, end_date, car_id, config.rates, trips["total_miles"])
     superchargers = await get_supercharger_analytics(db, start_date, end_date, car_id)
     battery = await get_battery_health_analytics(db, end_date, car_id)
-    health = await get_health_analytics(db, start_date, end_date, car_id, config.tire_rotation_interval_mi)
+    health = await get_health_analytics(
+        db, start_date, end_date, car_id, config.tire_rotation_interval_mi,
+        pressure_unit=getattr(config.units, "pressure", "psi")
+    )
     vampire = await get_vampire_analytics(db, start_date, end_date, car_id, config.rates.average_kwh_cost)
     efficiency = await get_driving_efficiency_analytics(db, start_date, end_date, car_id)
     compliance = await get_charge_compliance_analytics(db, start_date, end_date, car_id)
