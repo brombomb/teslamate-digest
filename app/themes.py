@@ -3,7 +3,7 @@ from typing import Dict, Any
 EMAIL_THEMES: Dict[str, Dict[str, Any]] = {
     "pearl_white": {
         "id": "pearl_white",
-        "name": "Pearl White Multi-Coat",
+        "name": "Pearl White",
         "paint_swatch": "#f8fafc",
         "description": "Classic multi-coat metallic white with razor-sharp Tesla red accents.",
         "body_bg": "#f1f5f9",
@@ -41,49 +41,6 @@ EMAIL_THEMES: Dict[str, Dict[str, Any]] = {
             "chart_off_peak": "#e82127",
             "chart_shoulder": "#334155",
             "chart_on_peak": "#0f172a",
-            "chart_supercharger": "#b91c1c"
-        }
-    },
-    "solid_black": {
-        "id": "solid_black",
-        "name": "Solid Black",
-        "paint_swatch": "#000000",
-        "description": "Deep, glossy solid black with vivid crimson contrast.",
-        "body_bg": "#000000",
-        "wrapper_bg": "#000000",
-        "main_bg": "#050505",
-        "header_bg": "linear-gradient(135deg, #18181b 0%, #050505 100%)",
-        "header_border": "#27272a",
-        "card_bg": "#0d0d0d",
-        "card_border": "#262626",
-        "card_inner_bg": "#141414",
-        "card_inner_border": "#2e2e2e",
-        "text_primary": "#ffffff",
-        "text_secondary": "#e4e4e7",
-        "text_muted": "#a1a1aa",
-        "accent_red": "#e82127",
-        "accent_green": "#22c55e",
-        "accent_blue": "#38bdf8",
-        "badge_bg": "rgba(232, 33, 39, 0.25)",
-        "badge_border": "rgba(232, 33, 39, 0.5)",
-        "badge_text": "#fca5a5",
-        "footer_bg": "#000000",
-        "footer_border": "#1f1f1f",
-        "footer_text": "#71717a",
-        "footer_link": "#e82127",
-        "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-        "chart_theme": {
-            "chart_bg": "#050505",
-            "chart_plot_bg": "#0d0d0d",
-            "chart_text": "#ffffff",
-            "chart_muted": "#a1a1aa",
-            "chart_grid": "#262626",
-            "chart_primary": "#e82127",
-            "chart_secondary": "#ffffff",
-            "chart_tertiary": "#71717a",
-            "chart_off_peak": "#e82127",
-            "chart_shoulder": "#38bdf8",
-            "chart_on_peak": "#ef4444",
             "chart_supercharger": "#b91c1c"
         }
     },
@@ -390,9 +347,9 @@ EMAIL_THEMES: Dict[str, Dict[str, Any]] = {
     },
     "cybertruck": {
         "id": "cybertruck",
-        "name": "Cybertruck (Stainless Steel)",
+        "name": "Cybertruck",
         "paint_swatch": "#9ca3af",
-        "description": "Raw brushed stainless steel with sharp angular aesthetics and futuristic monospace typography.",
+        "description": "Raw brushed stainless steel with sharp angular aesthetics and futuristic graffiti typography.",
         "body_bg": "#0f0f10",
         "wrapper_bg": "#0f0f10",
         "main_bg": "#17181a",
@@ -416,7 +373,7 @@ EMAIL_THEMES: Dict[str, Dict[str, Any]] = {
         "footer_text": "#9ca3af",
         "footer_link": "#e5e7eb",
         "font_family": "'Share Tech Mono', 'Chakra Petch', 'Courier New', monospace",
-        "header_font": "'Share Tech Mono', monospace",
+        "header_font": "'Permanent Marker', 'Rubik Glitch', 'Sedgwick Ave Display', 'Orbitron', monospace, cursive, sans-serif",
         "chart_theme": {
             "chart_bg": "#17181a",
             "chart_plot_bg": "#222429",
@@ -434,7 +391,7 @@ EMAIL_THEMES: Dict[str, Dict[str, Any]] = {
     },
     "cybercab": {
         "id": "cybercab",
-        "name": "Cybercab (Metallic Gold)",
+        "name": "Cybercab",
         "paint_swatch": "#c59b48",
         "description": "Subtle metallic Champagne Gold and deep obsidian bronze, inspired by the autonomous Cybercab.",
         "body_bg": "#0c0b09",
@@ -566,7 +523,8 @@ EMAIL_THEMES: Dict[str, Dict[str, Any]] = {
 # Theme Aliases for backwards compatibility
 THEME_ALIASES = {
     "clean_white": "pearl_white",
-    "clean_black": "solid_black",
+    "clean_black": "obsidian_black",
+    "solid_black": "obsidian_black",
     "electric_blue": "marine_blue"
 }
 

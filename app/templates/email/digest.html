@@ -6,7 +6,8 @@
   <title>TeslaMate Digest - {{ report_title }}</title>
   {% if theme.id == 'cybertruck' %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Orbitron:wght@700;900&family=Rubik+Glitch&family=Sedgwick+Ave+Display&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   {% endif %}
   <style>
     body {
@@ -26,6 +27,10 @@
     .kpi-val { font-size: 24px; font-weight: 800; color: {{ theme.text_primary }}; margin-bottom: 4px; line-height: 1.1; font-family: {{ theme.header_font or 'inherit' }}; }
     .kpi-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: {{ theme.text_muted }}; font-weight: 600; }
     .section-title { font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 0 0 14px 0; display: flex; align-items: center; font-family: {{ theme.header_font or 'inherit' }}; }
+    {% if theme.id == 'cybertruck' %}
+    .section-title { font-family: 'Permanent Marker', 'Rubik Glitch', 'Sedgwick Ave Display', 'Orbitron', Impact, sans-serif !important; letter-spacing: 1.5px; text-transform: uppercase; font-size: 17px; }
+    .kpi-val { font-family: 'Permanent Marker', 'Orbitron', Impact, sans-serif !important; letter-spacing: 1px; }
+    {% endif %}
     .badge { display: inline-block; padding: 3px 8px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}6px{% endif %}; font-size: 11px; font-weight: 700; text-transform: uppercase; }
     .badge-theme { background-color: {{ theme.badge_bg }}; color: {{ theme.badge_text }}; border: 1px solid {{ theme.badge_border }}; }
     .badge-green { background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
@@ -49,7 +54,7 @@
                   <tr>
                     <td>
                       <span style="color: {{ theme.accent_red }}; font-weight: 900; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">TESLAMATE DIGEST</span>
-                      <h1 style="margin: 6px 0 2px 0; font-size: 26px; font-weight: 800; color: {{ theme.text_primary }};">{{ report_title }}</h1>
+                      <h1 style="margin: 6px 0 2px 0; font-size: 26px; font-weight: 800; color: {{ theme.text_primary }}; font-family: {{ theme.header_font or 'inherit' }}; {% if theme.id == 'cybertruck' %}letter-spacing: 2px; text-transform: uppercase;{% endif %}">{{ report_title }}</h1>
                       <div style="color: {{ theme.text_muted }}; font-size: 13px;">{{ date_subtitle }} &bull; {{ car_subtitle }}</div>
                     </td>
                     <td align="right" style="vertical-align: middle;">

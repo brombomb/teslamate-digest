@@ -226,13 +226,26 @@
 
             <div>
               <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Service Notes</label>
-              <input type="text" name="notes" value="{{ c.notes }}" placeholder="e.g. Discount Tire on 80th & Wadsworth" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+              <input type="text" name="notes" value="{{ c.notes }}" placeholder="e.g. Local Tire Service Center, 4-wheel rotation & rebalance" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
             </div>
 
-            <button type="submit" class="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold rounded-lg text-xs transition border border-slate-300 dark:border-slate-700">
-              Save Manual Details
-            </button>
+            <div class="flex items-center gap-2 pt-1">
+              <button type="submit" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold rounded-lg text-xs transition border border-slate-300 dark:border-slate-700">
+                Save Manual Details
+              </button>
+            </div>
           </form>
+
+          {% if c.last_tire_rotation_odometer and c.last_tire_rotation_odometer > 0 %}
+          <div class="p-4 pt-0 border-t border-slate-200 dark:border-slate-800/60 mt-3">
+            <form method="POST" action="/maintenance/reset-rotate" onsubmit="return confirm('Clear tire rotation history for {{ c.name }}? This will reset the last rotation mileage to 0.');">
+              <input type="hidden" name="car_id" value="{{ c.id }}">
+              <button type="submit" class="w-full py-1.5 px-3 text-[11px] text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-lg transition border border-rose-500/20 flex items-center justify-center gap-1.5">
+                <span>🗑️</span> Reset / Clear Rotation History
+              </button>
+            </form>
+          </div>
+          {% endif %}
         </details>
 
       </div>

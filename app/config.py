@@ -157,11 +157,10 @@ class AppConfig(BaseModel):
 
 
 def load_config() -> AppConfig:
-    if CONFIG_FILE.exists():
+    from app.storage import load_config_data, save_config_data
+    data = load_config_data()
+    if data:
         try:
-            with open(CONFIG_FILE, "r") as f:
-                data = json.load(f)
-            
             # Migration from legacy single schedule to multi-schedules list
             if "schedules" not in data and "schedule" in data:
                 leg = data["schedule"]
@@ -187,36 +186,42 @@ def load_config() -> AppConfig:
                 cfg.smtp.password = os.getenv("SMTP_PASSWORD")
             return cfg
         except Exception as e:
-            print(f"[Config] Error loading {CONFIG_FILE}: {e}. Using defaults.")
-    
+            print(f"[Config] Error parsing config from storage: {e}. Using defaults.")
+
     cfg = AppConfig()
     save_config(cfg)
     return cfg
 
 
 def save_config(cfg: AppConfig) -> None:
+    from app.storage import save_config_data
     try:
-        with open(CONFIG_FILE, "w") as f:
-            json.dump(cfg.model_dump(), f, indent=2)
+        save_config_data(cfg.model_dump())
     except Exception as e:
         print(f"[Config] Error saving config: {e}")
 
 
 def load_maintenance_log() -> Dict[str, Any]:
-    if MAINTENANCE_FILE.exists():
-        try:
-            with open(MAINTENANCE_FILE, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[Maintenance] Error loading log: {e}")
-    
-    default_log = {}
-    return default_log
+    from app.storage import load_maintenance_data
+    try:
+        return load_maintenance_data()
+    except Exception as e:
+        print(f"[Maintenance] Error loading log: {e}")
+        return {}
 
 
 def save_maintenance_log(data: Dict[str, Any]) -> None:
+    from app.storage import save_maintenance_data
     try:
-        with open(MAINTENANCE_FILE, "w") as f:
-            json.dump(data, f, indent=2)
+        save_maintenance_data(data)
     except Exception as e:
         print(f"[Maintenance] Error saving log: {e}")
+
+
+def reset_maintenance_log_rotation(car_id: str) -> None:
+    from app.storage import reset_maintenance_rotation
+    try:
+        reset_maintenance_rotation(car_id)
+    except Exception as e:
+        print(f"[Maintenance] Error resetting rotation: {e}")
+

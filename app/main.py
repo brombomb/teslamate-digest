@@ -16,6 +16,7 @@ from app.config import (
     save_config,
     load_maintenance_log,
     save_maintenance_log,
+    reset_maintenance_log_rotation,
     AppConfig,
     SMTPSettings,
     WorkRouteItem,
@@ -566,7 +567,7 @@ async def settings_save(
     use_ssl: Optional[str] = Form(None),
     email_theme: str = Form("pearl_white"),
     rate_mode: str = Form("tou"),
-    tariff_preset: str = Form("standard_tou"),
+    tariff_preset: Optional[str] = Form(None),
     average_kwh_cost: float = Form(0.13),
     off_peak_kwh_cost: float = Form(0.10),
     shoulder_kwh_cost: float = Form(0.14),
@@ -637,7 +638,8 @@ async def settings_save(
     cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
 
     cfg.rates.rate_mode = rate_mode.strip().lower() or "tou"
-    cfg.rates.tariff_preset = tariff_preset
+    if tariff_preset:
+        cfg.rates.tariff_preset = tariff_preset
     cfg.rates.average_kwh_cost = average_kwh_cost
     cfg.rates.off_peak_kwh_cost = off_peak_kwh_cost
     cfg.rates.shoulder_kwh_cost = shoulder_kwh_cost
@@ -842,6 +844,8 @@ async def maintenance_view(request: Request, msg: Optional[str] = Query(None)):
         flash_message = "✅ Tires marked as rotated today! Tread life reset to 100%."
     elif msg == "swapped":
         flash_message = "✅ Seasonal tire set updated successfully!"
+    elif msg == "reset":
+        flash_message = "ℹ️ Tire rotation history has been reset for this vehicle."
 
     return templates.TemplateResponse(
         "maintenance.html",
@@ -871,6 +875,12 @@ async def quick_rotate(request: Request, car_id: str = Form(...)):
     log[cid_str]["last_tire_rotation_date"] = datetime.now().strftime("%Y-%m-%d")
     save_maintenance_log(log)
     return RedirectResponse(url="/maintenance?msg=rotated", status_code=303)
+
+
+@app.post("/maintenance/reset-rotate")
+async def reset_rotate(request: Request, car_id: str = Form(...)):
+    reset_maintenance_log_rotation(str(car_id))
+    return RedirectResponse(url="/maintenance?msg=reset", status_code=303)
 
 
 @app.post("/maintenance/swap-tires")
