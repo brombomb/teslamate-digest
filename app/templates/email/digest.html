@@ -249,6 +249,77 @@
                 </div>
                 {% endif %}
 
+                <!-- SECTION: SOLAR GENERATION & CLEAN EV CHARGING -->
+                {% if modules.solar_production and solar and solar.has_data %}
+                <div class="card">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0;">
+                          <span style="margin-right: 8px;">☀️</span> Solar Production &amp; Clean Charging
+                        </div>
+                      </td>
+                      {% if homeassistant_url %}
+                      <td align="right" style="vertical-align: middle;">
+                        <a href="{{ homeassistant_url }}/energy" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">🏡 Home Assistant &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px; table-layout: fixed;">
+                    <tr>
+                      <td width="25%" style="padding-right: 4px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 8px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
+                          <div style="font-size: 11px; color: #f59e0b; font-weight: 700;">Solar Generated</div>
+                          <div style="font-size: 16px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ "{:,.1f}".format(solar.total_solar_kwh) }} <span style="font-size: 10px; font-weight: 600;">kWh</span></div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">${{ "{:,.2f}".format(solar.solar_savings) }} value</div>
+                        </div>
+                      </td>
+                      <td width="25%" style="padding: 0 2px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 8px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
+                          <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 700;">EV Solar Offset</div>
+                          <div style="font-size: 16px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">{{ "{:,.0f}".format(solar.solar_ev_coverage_pct) }}%</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ solar.clean_miles_covered }} clean mi</div>
+                        </div>
+                      </td>
+                      <td width="25%" style="padding: 0 2px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 8px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
+                          <div style="font-size: 11px; color: {{ theme.accent_blue }}; font-weight: 700;">Grid Flow</div>
+                          <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">+{{ "{:,.0f}".format(solar.grid_export_kwh) }} / -{{ "{:,.0f}".format(solar.grid_import_kwh) }}</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">Exp / Imp (kWh)</div>
+                        </div>
+                      </td>
+                      <td width="25%" style="padding-left: 4px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 8px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 700;">Peak Output</div>
+                          <div style="font-size: 16px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ "{:,.1f}".format(solar.peak_solar_kw) }} <span style="font-size: 10px; font-weight: 600;">kW</span></div>
+                          <div style="font-size: 10px; color: {{ theme.accent_green }};">{{ "{:,.0f}".format(solar.self_consumption_pct) }}% self-use</div>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; border: 1px solid {{ theme.card_inner_border }}; font-size: 12px; color: {{ theme.text_muted }}; line-height: 1.5;">
+                    <span style="color: #f59e0b; font-weight: 700;">🌞 Solar Coverage:</span> 
+                    Rooftop solar generated <b style="color: {{ theme.text_primary }};">{{ "{:,.1f}".format(solar.total_solar_kwh) }} kWh</b>, covering <b style="color: {{ theme.accent_green }};">{{ "{:,.0f}".format(solar.solar_ev_coverage_pct) }}%</b> of your home vehicle charging (<span style="color: {{ theme.text_primary }};">{{ "{:,.1f}".format(solar.home_charging_kwh) }} kWh</span> charged).
+                    {% if solar.solar_surplus_kwh > 0 %}
+                    You produced <b style="color: {{ theme.accent_green }};">+{{ "{:,.1f}".format(solar.solar_surplus_kwh) }} kWh</b> of clean surplus energy beyond your EV charging needs!
+                    {% endif %}
+                  </div>
+
+                  {% if chart_solar %}
+                  {% if homeassistant_url %}
+                  <a href="{{ homeassistant_url }}/energy" target="_blank" style="text-decoration: none; display: block;" title="View Energy in Home Assistant">
+                    <img src="{{ chart_solar }}" alt="Solar Generation vs EV Charging" class="chart-img" />
+                  </a>
+                  {% else %}
+                  <img src="{{ chart_solar }}" alt="Solar Generation vs EV Charging" class="chart-img" />
+                  {% endif %}
+                  {% endif %}
+                </div>
+                {% endif %}
+
                 <!-- SECTION: DRIVING EFFICIENCY & WH/MI CONSUMPTION -->
                 {% if modules.driving_efficiency and efficiency %}
                 <div class="card">

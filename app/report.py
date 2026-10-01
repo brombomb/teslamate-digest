@@ -18,6 +18,7 @@ from app.analytics.work_mileage import get_work_mileage_analytics
 from app.analytics.wrapped import get_year_in_review_analytics
 from app.themes import get_theme
 from app.services.geofences import get_effective_service_urls, get_grafana_dashboard_urls
+from app.services.homeassistant import fetch_solar_summary
 import app.charts as charts
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -100,11 +101,41 @@ async def build_digest_report(
     chosen_theme = theme_override or getattr(config, "email_theme", "dark_modern")
     theme = get_theme(chosen_theme)
 
+    # 2b. Solar Energy & Home Assistant Telemetry
+    solar = {
+        "has_data": False,
+        "total_solar_kwh": 0.0,
+        "home_charging_kwh": charging.get("home_kwh", 0.0),
+        "solar_ev_coverage_pct": 0.0,
+        "clean_miles_covered": 0.0,
+        "solar_surplus_kwh": 0.0,
+        "solar_savings": 0.0,
+        "grid_import_kwh": 0.0,
+        "grid_export_kwh": 0.0,
+        "home_load_kwh": 0.0,
+        "peak_solar_kw": 0.0,
+        "self_consumption_pct": 100.0,
+        "daily_breakdown": [],
+    }
+    ha_cfg = getattr(config, "homeassistant", None)
+    if ha_cfg and ha_cfg.enabled and getattr(config.modules, "solar_production", True):
+        try:
+            solar = await fetch_solar_summary(
+                ha_cfg,
+                start_date=start_date,
+                end_date=end_date,
+                home_charging_kwh=charging.get("home_kwh", 0.0),
+                kwh_cost=config.rates.off_peak_kwh_cost or config.rates.average_kwh_cost or 0.13
+            )
+        except Exception as e:
+            print(f"[Report] Error fetching solar telemetry from Home Assistant: {e}")
+
     # 3. Charts Generation
     inline_images: Dict[str, bytes] = {}
     chart_spend_src = ""
     chart_tou_src = ""
     chart_battery_src = ""
+    chart_solar_src = ""
 
     if config.modules.embedded_charts:
         spend_bytes = charts.generate_spend_chart(charging, theme=theme, as_bytes=True)
@@ -122,12 +153,22 @@ async def build_digest_report(
         else:
             battery_bytes = b""
 
+        solar_bytes = b""
+        if getattr(config.modules, "solar_production", True) and solar.get("has_data"):
+            try:
+                solar_bytes = charts.generate_solar_chart(solar, theme=theme, as_bytes=True)
+            except Exception as e:
+                print(f"[Report] Error generating solar chart: {e}")
+
         if for_email:
             inline_images["chart_spend"] = spend_bytes
             inline_images["chart_tou"] = tou_bytes
             if show_battery_health and battery_bytes:
                 inline_images["chart_battery"] = battery_bytes
                 chart_battery_src = "cid:chart_battery"
+            if solar_bytes:
+                inline_images["chart_solar"] = solar_bytes
+                chart_solar_src = "cid:chart_solar"
             chart_spend_src = "cid:chart_spend"
             chart_tou_src = "cid:chart_tou"
         else:
@@ -136,6 +177,8 @@ async def build_digest_report(
             chart_tou_src = f"data:image/png;base64,{base64.b64encode(tou_bytes).decode('utf-8')}"
             if show_battery_health and battery_bytes:
                 chart_battery_src = f"data:image/png;base64,{base64.b64encode(battery_bytes).decode('utf-8')}"
+            if solar_bytes:
+                chart_solar_src = f"data:image/png;base64,{base64.b64encode(solar_bytes).decode('utf-8')}"
 
     env = get_jinja_env()
     custom_template_path = CUSTOM_TEMPLATES_DIR / "custom_digest.html"
@@ -159,6 +202,7 @@ async def build_digest_report(
     dashboard_url = getattr(config, "dashboard_url", None) or f"http://localhost:{os.getenv('PORT', '8660')}"
     teslamate_url, grafana_url = await get_effective_service_urls(db, config)
     grafana_dashboards = get_grafana_dashboard_urls(grafana_url, car_id, getattr(config, "grafana_dashboards", None))
+    ha_url = (ha_cfg.url if ha_cfg and ha_cfg.enabled else "").rstrip("/")
 
     html_content = tmpl.render(
         report_title=report_title,
@@ -166,6 +210,7 @@ async def build_digest_report(
         car_subtitle=car_subtitle,
         trips=trips,
         charging=charging,
+        solar=solar,
         superchargers=superchargers,
         battery=battery,
         health=health,
@@ -179,9 +224,11 @@ async def build_digest_report(
         chart_spend=chart_spend_src,
         chart_tou=chart_tou_src,
         chart_battery=chart_battery_src,
+        chart_solar=chart_solar_src,
         dashboard_url=dashboard_url,
         teslamate_url=teslamate_url,
         grafana_url=grafana_url,
+        homeassistant_url=ha_url,
         theme=theme,
         **grafana_dashboards
     )

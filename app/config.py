@@ -130,10 +130,22 @@ class ModuleToggles(BaseModel):
     maintenance_alerts: bool = True
     snow_tire_reminder: bool = True
     embedded_charts: bool = True
+    solar_production: bool = True
 
     def model_post_init(self, __context: Any) -> None:
         if self.colorado_mountain_regen is not None:
             self.mountain_regen = self.colorado_mountain_regen
+
+
+class HomeAssistantConfig(BaseModel):
+    enabled: bool = False
+    url: str = "http://192.168.1.15:8123"
+    token: str = ""
+    solar_energy_entity: str = "sensor.tesla_solar_production"
+    solar_power_entity: str = "sensor.1au_solar_power"
+    grid_import_entity: str = "sensor.current_grid_consumption"
+    grid_export_entity: str = "sensor.current_grid_feed"
+    home_load_entity: str = "sensor.total_load_energy"
 
 
 class GrafanaDashboardsConfig(BaseModel):
@@ -164,6 +176,7 @@ class AppConfig(BaseModel):
     grafana_url: str = Field(default_factory=lambda: os.getenv("GRAFANA_URL", ""))
     grafana_api_token: str = Field(default_factory=lambda: os.getenv("GRAFANA_API_TOKEN", ""))
     grafana_dashboards: GrafanaDashboardsConfig = Field(default_factory=GrafanaDashboardsConfig)
+    homeassistant: HomeAssistantConfig = Field(default_factory=HomeAssistantConfig)
 
     smtp: SMTPSettings = Field(default_factory=SMTPSettings)
     schedules: list[ScheduleItem] = Field(default_factory=lambda: [

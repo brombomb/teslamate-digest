@@ -41,6 +41,7 @@ from app.report import build_digest_report, build_wrapped_report
 from app.mailer import Mailer
 from app.services.gas_prices import fetch_gas_price_details
 from app.services.electric_rates import fetch_electric_rates, search_electric_rate_plans
+from app.services.homeassistant import verify_ha_connection, discover_ha_solar_entities
 
 BASE_DIR = Path(__file__).resolve().parent
 WEB_TEMPLATES_DIR = BASE_DIR / "templates" / "web"
@@ -251,6 +252,34 @@ async def api_discover_grafana_dashboards(request: Request):
     api_token = (data.get("grafana_api_token") or cfg.grafana_api_token or "").strip()
 
     result = await discover_grafana_dashboards(graf_url, api_token)
+    return JSONResponse(content=result)
+
+
+@app.post("/api/homeassistant/test")
+async def api_test_homeassistant(request: Request):
+    """
+    Tests connectivity and authorization with Home Assistant REST API.
+    """
+    data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    cfg = load_config()
+    ha = getattr(cfg, "homeassistant", None)
+    url = (data.get("url") or (ha.url if ha else "") or "http://192.168.1.15:8123").strip()
+    token = (data.get("token") or (ha.token if ha else "")).strip()
+    result = await verify_ha_connection(url, token)
+    return JSONResponse(content=result)
+
+
+@app.post("/api/homeassistant/discover")
+async def api_discover_homeassistant(request: Request):
+    """
+    Discovers available solar and energy monitoring entities from Home Assistant.
+    """
+    data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    cfg = load_config()
+    ha = getattr(cfg, "homeassistant", None)
+    url = (data.get("url") or (ha.url if ha else "") or "http://192.168.1.15:8123").strip()
+    token = (data.get("token") or (ha.token if ha else "")).strip()
+    result = await discover_ha_solar_entities(url, token)
     return JSONResponse(content=result)
 
 
@@ -742,11 +771,19 @@ async def settings_save(
     mod_top_locations: Optional[str] = Form(None),
     mod_driving_milestones: Optional[str] = Form(None),
     mod_mountain_regen: Optional[str] = Form(None),
-    mod_colorado_mountain_regen: Optional[str] = Form(None),
     mod_vampire_drain: Optional[str] = Form(None),
     mod_maintenance_alerts: Optional[str] = Form(None),
     mod_snow_tire_reminder: Optional[str] = Form(None),
     mod_embedded_charts: Optional[str] = Form(None),
+    mod_solar_production: Optional[str] = Form(None),
+    ha_enabled: Optional[str] = Form(None),
+    ha_url: Optional[str] = Form(""),
+    ha_token: Optional[str] = Form(""),
+    ha_solar_energy: Optional[str] = Form(""),
+    ha_solar_power: Optional[str] = Form(""),
+    ha_grid_import: Optional[str] = Form(""),
+    ha_grid_export: Optional[str] = Form(""),
+    ha_home_load: Optional[str] = Form(""),
 ):
     cfg = load_config()
 
@@ -783,6 +820,26 @@ async def settings_save(
     if dash_vampire is not None and dash_vampire.strip():
         cfg.grafana_dashboards.vampire_drain = dash_vampire.strip()
     cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
+
+    if getattr(cfg, "homeassistant", None) is None:
+        from app.config import HomeAssistantConfig
+        cfg.homeassistant = HomeAssistantConfig()
+
+    cfg.homeassistant.enabled = bool(ha_enabled)
+    if ha_url and ha_url.strip():
+        cfg.homeassistant.url = ha_url.strip()
+    if ha_token and ha_token.strip():
+        cfg.homeassistant.token = ha_token.strip()
+    if ha_solar_energy and ha_solar_energy.strip():
+        cfg.homeassistant.solar_energy_entity = ha_solar_energy.strip()
+    if ha_solar_power and ha_solar_power.strip():
+        cfg.homeassistant.solar_power_entity = ha_solar_power.strip()
+    if ha_grid_import and ha_grid_import.strip():
+        cfg.homeassistant.grid_import_entity = ha_grid_import.strip()
+    if ha_grid_export and ha_grid_export.strip():
+        cfg.homeassistant.grid_export_entity = ha_grid_export.strip()
+    if ha_home_load and ha_home_load.strip():
+        cfg.homeassistant.home_load_entity = ha_home_load.strip()
 
     cfg.rates.rate_mode = rate_mode.strip().lower() or "tou"
     if tariff_preset:
@@ -888,6 +945,7 @@ async def settings_save(
         cfg.modules.maintenance_alerts = bool(mod_maintenance_alerts)
         cfg.modules.snow_tire_reminder = bool(mod_snow_tire_reminder)
         cfg.modules.embedded_charts = bool(mod_embedded_charts)
+        cfg.modules.solar_production = bool(mod_solar_production)
 
     save_config(cfg)
     setup_scheduler(cfg)

@@ -843,11 +843,89 @@
       </div>
     </div>
 
-    <!-- 6. ACTIVE MODULES & SECTIONS -->
+    <!-- 6. HOME ASSISTANT & SOLAR INTEGRATION -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>☀️</span> Home Assistant &amp; Solar Integration
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Integrate rooftop solar generation and energy metrics from Home Assistant into your email digests.</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" name="ha_enabled" id="ha_enabled" class="sr-only peer" {% if config.homeassistant.enabled %}checked{% endif %} onchange="toggleHaSection(this.checked)">
+          <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
+          <span class="ml-2 text-xs font-semibold text-slate-700 dark:text-slate-300">Enabled</span>
+        </label>
+      </div>
+
+      <div id="ha-config-container" class="space-y-4 {% if not config.homeassistant.enabled %}opacity-50 pointer-events-none{% endif %} transition-opacity">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Home Assistant Base URL</label>
+            <input type="text" name="ha_url" id="ha_url" value="{{ config.homeassistant.url }}" placeholder="http://192.168.1.15:8123" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+            <p class="text-[11px] text-slate-400 mt-1">Local or host URL of your Home Assistant instance (e.g. <span class="font-mono text-emerald-600 dark:text-emerald-400">http://192.168.1.15:8123</span>).</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400">Long-Lived Access Token</label>
+              <button type="button" onclick="togglePasswordVisibility('ha_token')" class="text-[11px] text-blue-500 hover:underline">Show/Hide</button>
+            </div>
+            <input type="password" name="ha_token" id="ha_token" value="{{ config.homeassistant.token }}" placeholder="eyJhbGciOiJIUzI1Ni..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+            <p class="text-[11px] text-slate-400 mt-1">Generated from your Home Assistant profile under Long-Lived Access Tokens.</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 pt-1">
+          <button type="button" id="btn-test-ha" onclick="testHomeAssistantConnection()" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5">
+            <span>⚡</span> Test Connection
+          </button>
+          <button type="button" id="btn-discover-ha" onclick="discoverHomeAssistantEntities()" class="px-3.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
+            <span>🔍</span> Auto-Detect Solar Entities
+          </button>
+          <div id="ha-test-status" class="text-xs"></div>
+        </div>
+
+        <!-- SOLAR & ENERGY ENTITY MAPPING -->
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Solar &amp; Grid Entity IDs</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Cumulative Solar Energy (kWh)</label>
+              <input type="text" name="ha_solar_energy" id="ha_solar_energy" value="{{ config.homeassistant.solar_energy_entity }}" placeholder="sensor.tesla_solar_production" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Total generated energy</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Instantaneous Solar Power (W / kW)</label>
+              <input type="text" name="ha_solar_power" id="ha_solar_power" value="{{ config.homeassistant.solar_power_entity }}" placeholder="sensor.1au_solar_power" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Used for peak kW generation</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Grid Import / Consumption (kWh)</label>
+              <input type="text" name="ha_grid_import" id="ha_grid_import" value="{{ config.homeassistant.grid_import_entity }}" placeholder="sensor.current_grid_consumption" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Energy pulled from utility grid</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Grid Export / Feed-in (kWh)</label>
+              <input type="text" name="ha_grid_export" id="ha_grid_export" value="{{ config.homeassistant.grid_export_entity }}" placeholder="sensor.current_grid_feed" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Clean solar pushed back to grid</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Total Home Load (kWh)</label>
+              <input type="text" name="ha_home_load" id="ha_home_load" value="{{ config.homeassistant.home_load_entity }}" placeholder="sensor.total_load_energy" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Overall household electricity draw</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. ACTIVE MODULES & SECTIONS -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
       <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
         <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <span>🧩</span> Active Modules & Sections
+          <span>🧩</span> Active Modules &amp; Sections
         </h3>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Toggle which cards and analytics are included in your digest.</p>
       </div>
@@ -908,6 +986,10 @@
         <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
           <input type="checkbox" name="mod_embedded_charts" {% if config.modules.embedded_charts %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>📊 High-Res Embedded Chart Images</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_solar_production" {% if config.modules.solar_production %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
+          <span>☀️ Solar Production &amp; Clean EV Charging</span>
         </label>
       </div>
       <input type="hidden" name="modules_submitted" value="1">
@@ -1798,6 +1880,135 @@ async function discoverGrafanaDashboards() {
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = `<span>🔍</span> Scan / Discover Dashboards`;
+    }
+  }
+}
+
+function toggleHaSection(enabled) {
+  const container = document.getElementById('ha-config-container');
+  if (container) {
+    if (enabled) {
+      container.classList.remove('opacity-50', 'pointer-events-none');
+    } else {
+      container.classList.add('opacity-50', 'pointer-events-none');
+    }
+  }
+}
+
+function togglePasswordVisibility(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.type = el.type === 'password' ? 'text' : 'password';
+  }
+}
+
+async function testHomeAssistantConnection() {
+  const btn = document.getElementById('btn-test-ha');
+  const status = document.getElementById('ha-test-status');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>⏳</span> Connecting...`;
+  }
+  if (status) {
+    status.textContent = 'Testing connection to Home Assistant...';
+    status.className = 'text-xs text-blue-500 font-medium';
+  }
+
+  try {
+    const url = (document.getElementById('ha_url')?.value || '').trim();
+    const token = (document.getElementById('ha_token')?.value || '').trim();
+    const res = await fetch('/api/homeassistant/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, token })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (status) {
+        status.textContent = `✓ ${data.message || 'Connected successfully!'}`;
+        status.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
+      }
+    } else {
+      if (status) {
+        status.textContent = `✗ Connection failed: ${data.error || 'Check URL and token'}`;
+        status.className = 'text-xs text-red-500 font-medium';
+      }
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = `Test error: ${err.message}`;
+      status.className = 'text-xs text-red-500 font-medium';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>⚡</span> Test Connection`;
+    }
+  }
+}
+
+async function discoverHomeAssistantEntities() {
+  const btn = document.getElementById('btn-discover-ha');
+  const status = document.getElementById('ha-test-status');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>⏳</span> Scanning...`;
+  }
+  if (status) {
+    status.textContent = 'Scanning Home Assistant entities...';
+    status.className = 'text-xs text-blue-500 font-medium';
+  }
+
+  try {
+    const url = (document.getElementById('ha_url')?.value || '').trim();
+    const token = (document.getElementById('ha_token')?.value || '').trim();
+    const res = await fetch('/api/homeassistant/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, token })
+    });
+    const data = await res.json();
+    if (data.success && data.suggested) {
+      const s = data.suggested;
+      if (s.solar_energy_entity) {
+        const el = document.getElementById('ha_solar_energy');
+        if (el) el.value = s.solar_energy_entity;
+      }
+      if (s.solar_power_entity) {
+        const el = document.getElementById('ha_solar_power');
+        if (el) el.value = s.solar_power_entity;
+      }
+      if (s.grid_import_entity) {
+        const el = document.getElementById('ha_grid_import');
+        if (el) el.value = s.grid_import_entity;
+      }
+      if (s.grid_export_entity) {
+        const el = document.getElementById('ha_grid_export');
+        if (el) el.value = s.grid_export_entity;
+      }
+      if (s.home_load_entity) {
+        const el = document.getElementById('ha_home_load');
+        if (el) el.value = s.home_load_entity;
+      }
+      if (status) {
+        status.textContent = `✓ Auto-detected solar entities from Home Assistant!`;
+        status.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
+      }
+    } else {
+      if (status) {
+        status.textContent = `⚠️ Discovery note: ${data.error || 'No entities found'}`;
+        status.className = 'text-xs text-amber-500 font-medium';
+      }
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = `Discovery error: ${err.message}`;
+      status.className = 'text-xs text-red-500 font-medium';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>🔍</span> Auto-Detect Solar Entities`;
     }
   }
 }

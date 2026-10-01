@@ -302,3 +302,60 @@ def generate_tpms_diagram(tpms_dict: Dict[str, Any], theme: Optional[Dict[str, A
     ax.axis("off")
 
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
+
+
+def generate_solar_chart(solar_data: Dict[str, Any], theme: Optional[Dict[str, Any]] = None, as_bytes: bool = False):
+    """
+    Renders daily solar production bar chart with theme-responsive styling.
+    """
+    c = _get_chart_colors(theme)
+    fig, ax = plt.subplots(figsize=(6.5, 2.5), facecolor=c["bg"])
+    ax.set_facecolor(c["plot_bg"])
+
+    daily = solar_data.get("daily_breakdown", [])
+    total_kwh = solar_data.get("total_solar_kwh", 0.0)
+    peak_kw = solar_data.get("peak_solar_kw", 0.0)
+
+    solar_color = _clean_color(c.get("on_peak", "#f59e0b"))
+    if not solar_color or solar_color == "#f8fafc":
+        solar_color = "#f59e0b"
+
+    if daily and len(daily) > 0:
+        plot_days = daily[-14:] if len(daily) > 14 else daily
+        labels = [d["date"][5:] for d in plot_days]
+        vals = [d["kwh"] for d in plot_days]
+
+        bars = ax.bar(labels, vals, color=solar_color, width=0.6, zorder=3, alpha=0.9, edgecolor="none")
+
+        max_val = max(vals) if vals else 1.0
+        for bar in bars:
+            height = bar.get_height()
+            if height > 0:
+                ax.annotate(f"{height:.1f}",
+                            xy=(bar.get_x() + bar.get_width() / 2, height),
+                            xytext=(0, 3),
+                            textcoords="offset points",
+                            ha="center", va="bottom",
+                            color=c["text"], fontsize=7.5, fontweight="bold")
+
+        ax.set_ylim(0, max_val * 1.25 if max_val > 0 else 10)
+    else:
+        ax.bar(["Total Solar"], [total_kwh], color=solar_color, width=0.4, zorder=3)
+        ax.annotate(f"{total_kwh:.1f} kWh", xy=(0, total_kwh), xytext=(0, 4),
+                    textcoords="offset points", ha="center", va="bottom",
+                    color=c["text"], fontsize=8.5, fontweight="bold")
+
+    ax.tick_params(axis="x", colors=c["muted"], labelsize=8.0, length=0)
+    ax.tick_params(axis="y", colors=c["muted"], labelsize=8.0, length=0)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    ax.grid(axis="y", color=c["grid"], linestyle="--", alpha=0.7, zorder=1)
+    ax.set_ylabel("kWh Generated", color=c["muted"], fontsize=8.5)
+
+    title_text = f"☀️ Solar Generation: {total_kwh:.1f} kWh"
+    if peak_kw > 0:
+        title_text += f" (Peak {peak_kw:.1f} kW)"
+    ax.set_title(title_text, color=c["text"], fontsize=10.0, fontweight="bold", pad=10, loc="left")
+
+    return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
