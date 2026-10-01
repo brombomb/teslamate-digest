@@ -825,6 +825,10 @@
               <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Vampire Drain Path/UID</label>
               <input type="text" name="dash_vampire" id="dash_vampire_input" value="{{ config.grafana_dashboards.vampire_drain }}" placeholder="zhHx2Fggk/vampire-drain" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
             </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Achievements Path/UID</label>
+              <input type="text" name="dash_achievements" id="dash_achievements_input" value="{{ config.grafana_dashboards.achievements }}" placeholder="c6020bdb-a2c7-4b1c-ab2c-fd34ab836c6e/achievements" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
           </div>
         </div>
       </details>
@@ -990,6 +994,10 @@
         <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
           <input type="checkbox" name="mod_solar_production" {% if config.modules.solar_production %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
           <span>☀️ Solar Production &amp; Clean EV Charging</span>
+        </label>
+        <label class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
+          <input type="checkbox" name="mod_achievements" {% if config.modules.achievements %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
+          <span>🏆 Driving Achievements &amp; Badges</span>
         </label>
       </div>
       <input type="hidden" name="modules_submitted" value="1">
@@ -1860,6 +1868,10 @@ async function discoverGrafanaDashboards() {
       if (data.mapped.vampire_drain) {
         const el = document.getElementById('dash_vampire_input');
         if (el) el.value = data.mapped.vampire_drain;
+      }
+      if (data.mapped.achievements) {
+        const el = document.getElementById('dash_achievements_input');
+        if (el) el.value = data.mapped.achievements;
       }
       if (status) {
         status.textContent = `✓ Discovered ${data.count} dashboards in Grafana! Mapped ${Object.keys(data.mapped).length} paths.`;

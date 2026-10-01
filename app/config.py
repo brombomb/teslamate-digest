@@ -131,6 +131,7 @@ class ModuleToggles(BaseModel):
     snow_tire_reminder: bool = True
     embedded_charts: bool = True
     solar_production: bool = True
+    achievements: bool = True
 
     def model_post_init(self, __context: Any) -> None:
         if self.colorado_mountain_regen is not None:
@@ -164,6 +165,7 @@ class GrafanaDashboardsConfig(BaseModel):
     visited: str = "RG_DxSmgk/visited"
     updates: str = "IiC07mgWz/updates"
     timeline: str = "SUBgwtigz/timeline"
+    achievements: str = "c6020bdb-a2c7-4b1c-ab2c-fd34ab836c6e/achievements"
 
 
 class AppConfig(BaseModel):

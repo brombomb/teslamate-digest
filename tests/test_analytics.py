@@ -107,3 +107,81 @@ def test_charts_clean_color():
     assert isinstance(rgba_tuple, tuple)
     assert rgba_tuple[3] == 0.5
 
+
+def test_achievements_structure_and_evaluation():
+    import asyncio
+    from datetime import datetime, timedelta
+    from app.analytics.achievements import ACHIEVEMENT_DEFINITIONS, get_achievements_analytics
+
+    assert len(ACHIEVEMENT_DEFINITIONS) >= 40
+    for ach in ACHIEVEMENT_DEFINITIONS:
+        assert "id" in ach
+        assert "category" in ach
+        assert "name" in ach
+        assert "icon" in ach
+        assert "description" in ach
+
+    # Mock Database
+    class MockDB:
+        async def fetchrow(self, query, *args):
+            return {
+                "total_drives": 50,
+                "total_dist": 12000.0,
+                "max_dist": 450.0,
+                "total_drive_min": 15000,
+                "weekend_dist": 4000.0,
+                "weekday_dist": 8000.0,
+                "night_dist": 200.0,
+                "hypermiler": True,
+                "night_rider": True,
+                "period_hypermiler": True,
+                "period_night_rider": False,
+                "period_dist": 800.0,
+                "total_charges": 30,
+                "total_charge_min": 1200,
+                "total_charge_kwh": 600.0,
+                "free_charge_kwh": 200.0,
+                "early_charges": 15,
+                "offpeak_charges": 25,
+                "opt_charges": 20,
+                "full_cycle": False,
+                "ac_charges": 26,
+                "fast_charges": 4,
+                "period_full_cycle": False,
+                "speedster": False,
+                "inferno_rider": True,
+                "ice_road_trucker": False,
+                "first_spark": True,
+                "cities": 8,
+                "counties": 12,
+                "states": 2,
+                "max_home_dist_km": 350.0,
+                "total_climb_m": 12000,
+                "sc_junkie": True,
+                "period_sc_junkie": True,
+                "living_on_edge": True,
+                "sub_zero": False,
+            }
+
+    db = MockDB()
+    now = datetime.now()
+    res = asyncio.run(get_achievements_analytics(db, now - timedelta(days=30), now, car_id=1))
+
+    assert res["has_data"] is True
+    assert res["total_unlocked"] > 0
+    assert res["total_achievements"] == len(ACHIEVEMENT_DEFINITIONS)
+    assert 0 < res["unlocked_pct"] <= 100
+    assert len(res["highlighted"]) > 0
+    assert len(res["categories"]) > 0
+
+    # Verify specific unlocks from our mock
+    unlocked_ids = {b["id"] for b in res["all_badges"] if b["unlocked"]}
+    assert "hypermiler" in unlocked_ids
+    assert "supercharger_junkie" in unlocked_ids
+    assert "local_explorer" in unlocked_ids
+    assert "regional_explorer" in unlocked_ids
+    assert "total_marathoner" in unlocked_ids
+    assert "adventurer" in unlocked_ids
+    assert "mountaineer" in unlocked_ids
+
+

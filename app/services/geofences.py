@@ -236,6 +236,7 @@ def get_grafana_dashboard_urls(
         "grafana_visited_url": _url(getattr(cfg, "visited", "RG_DxSmgk/visited"), add_car=False),
         "grafana_updates_url": _url(getattr(cfg, "updates", "IiC07mgWz/updates")),
         "grafana_timeline_url": _url(getattr(cfg, "timeline", "SUBgwtigz/timeline")),
+        "grafana_achievements_url": _url(getattr(cfg, "achievements", "c6020bdb-a2c7-4b1c-ab2c-fd34ab836c6e/achievements")),
     }
 
 
@@ -316,6 +317,8 @@ async def discover_grafana_dashboards(grafana_base_url: str, api_token: Optional
             mapped["overview"] = path
         elif "mileage" in t_low:
             mapped["mileage"] = path
+        elif "achievement" in t_low or "gamif" in t_low:
+            mapped["achievements"] = path
 
     return {
         "success": True,

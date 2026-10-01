@@ -16,6 +16,7 @@ from app.analytics.efficiency import get_driving_efficiency_analytics
 from app.analytics.compliance import get_charge_compliance_analytics
 from app.analytics.work_mileage import get_work_mileage_analytics
 from app.analytics.wrapped import get_year_in_review_analytics
+from app.analytics.achievements import get_achievements_analytics
 from app.themes import get_theme
 from app.services.geofences import get_effective_service_urls, get_grafana_dashboard_urls
 from app.services.homeassistant import fetch_solar_summary
@@ -73,6 +74,13 @@ async def build_digest_report(
         commute_target_car_id=getattr(config, "commute_target_car_id", None),
         config=config
     )
+
+    achievements = {}
+    if getattr(config.modules, "achievements", True):
+        try:
+            achievements = await get_achievements_analytics(db, start_date, end_date, car_id)
+        except Exception as e:
+            print(f"[Report] Error fetching achievements analytics: {e}")
 
     cars = await db.get_cars()
     car_name = "Fleet"
@@ -218,6 +226,7 @@ async def build_digest_report(
         efficiency=efficiency,
         compliance=compliance,
         work_mileage=work_mileage,
+        achievements=achievements,
         show_battery_health=show_battery_health,
         modules=config.modules,
         rates=config.rates,

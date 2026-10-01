@@ -748,6 +748,7 @@ async def settings_save(
     dash_battery: Optional[str] = Form(None),
     dash_drives: Optional[str] = Form(None),
     dash_vampire: Optional[str] = Form(None),
+    dash_achievements: Optional[str] = Form(None),
     excluded_locations: str = Form("Home"),
     tire_rotation_interval_mi: int = Form(6250),
     schedule_enabled: Optional[str] = Form(None),
@@ -776,6 +777,7 @@ async def settings_save(
     mod_snow_tire_reminder: Optional[str] = Form(None),
     mod_embedded_charts: Optional[str] = Form(None),
     mod_solar_production: Optional[str] = Form(None),
+    mod_achievements: Optional[str] = Form(None),
     ha_enabled: Optional[str] = Form(None),
     ha_url: Optional[str] = Form(""),
     ha_token: Optional[str] = Form(""),
@@ -819,6 +821,8 @@ async def settings_save(
         cfg.grafana_dashboards.drives = dash_drives.strip()
     if dash_vampire is not None and dash_vampire.strip():
         cfg.grafana_dashboards.vampire_drain = dash_vampire.strip()
+    if dash_achievements is not None and dash_achievements.strip():
+        cfg.grafana_dashboards.achievements = dash_achievements.strip()
     cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
 
     if getattr(cfg, "homeassistant", None) is None:
@@ -946,6 +950,7 @@ async def settings_save(
         cfg.modules.snow_tire_reminder = bool(mod_snow_tire_reminder)
         cfg.modules.embedded_charts = bool(mod_embedded_charts)
         cfg.modules.solar_production = bool(mod_solar_production)
+        cfg.modules.achievements = bool(mod_achievements)
 
     save_config(cfg)
     setup_scheduler(cfg)

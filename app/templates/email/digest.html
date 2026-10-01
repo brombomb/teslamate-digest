@@ -667,6 +667,96 @@
                 </div>
                 {% endif %}
 
+                <!-- SECTION 4B: DRIVING ACHIEVEMENTS & TROPHY ROOM -->
+                {% if modules.achievements and achievements and achievements.has_data %}
+                <div class="card">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0;">
+                          <span style="margin-right: 8px;">🏆</span> Driving Achievements & Badges
+                        </div>
+                      </td>
+                      {% if grafana_achievements_url %}
+                      <td align="right" style="vertical-align: middle;">
+                        <a href="{{ grafana_achievements_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Trophy Room &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
+
+                  <!-- Progress Summary -->
+                  <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px; border-radius: 8px; border: 1px solid {{ theme.card_inner_border }}; margin-bottom: 12px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="vertical-align: middle;">
+                          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: {{ theme.text_muted }}; font-weight: 700;">Gamification Progress</div>
+                          <div style="font-size: 22px; font-weight: 800; color: {{ theme.text_primary }}; margin-top: 2px;">
+                            {{ achievements.total_unlocked }} <span style="font-size: 14px; font-weight: 500; color: {{ theme.text_muted }};">/ {{ achievements.total_achievements }} Badges Unlocked</span>
+                          </div>
+                        </td>
+                        <td align="right" style="vertical-align: middle;">
+                          <div style="font-size: 24px; font-weight: 800; color: {{ theme.accent_green }};">{{ achievements.unlocked_pct }}%</div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }}; text-transform: uppercase;">Completed</div>
+                        </td>
+                      </tr>
+                    </table>
+                    <!-- Progress Bar -->
+                    <div style="background-color: {{ theme.table_row_alt }}; border-radius: 999px; height: 8px; width: 100%; overflow: hidden; margin-top: 10px;">
+                      <div style="background: linear-gradient(90deg, {{ theme.accent_blue }}, {{ theme.accent_green }}); height: 100%; width: {{ achievements.unlocked_pct }}%; border-radius: 999px;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Category Breakdown Chips -->
+                  {% if achievements.categories %}
+                  <div style="margin-bottom: 12px;">
+                    <div style="font-size: 11px; font-weight: 700; color: {{ theme.text_muted }}; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Categories</div>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size: 11px; color: {{ theme.text_secondary }}; line-height: 1.8;">
+                          {% for c in achievements.categories %}
+                          <span style="display: inline-block; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 4px; padding: 2px 7px; margin: 2px 3px 2px 0;">
+                            <strong>{{ c.icon }} {{ c.name }}:</strong> {{ c.unlocked }}/{{ c.total }} ({{ c.pct }}%)
+                          </span>
+                          {% endfor %}
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                  {% endif %}
+
+                  <!-- Highlighted Badges -->
+                  {% if achievements.highlighted %}
+                  <div style="font-size: 11px; font-weight: 700; color: {{ theme.text_muted }}; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Featured Unlocked Badges</div>
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    {% for b in achievements.highlighted %}
+                    <tr>
+                      <td style="padding: 6px 0; border-bottom: 1px solid {{ theme.card_inner_border }};">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td width="32" style="font-size: 20px; vertical-align: middle;">{{ b.icon }}</td>
+                            <td style="vertical-align: middle; padding-left: 6px;">
+                              <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_primary }};">
+                                {{ b.name }}
+                                {% if b.period_active %}
+                                <span style="font-size: 9px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.accent_green }}; padding: 1px 5px; border-radius: 999px; margin-left: 6px; text-transform: uppercase;">Active This Period</span>
+                                {% endif %}
+                              </div>
+                              <div style="font-size: 11px; color: {{ theme.text_muted }}; margin-top: 1px;">{{ b.description }}</div>
+                            </td>
+                            <td align="right" style="vertical-align: middle; white-space: nowrap;">
+                              <span style="font-size: 11px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; padding: 2px 6px; border-radius: 4px;">🏆 Unlocked</span>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </table>
+                  {% endif %}
+                </div>
+                {% endif %}
+
                 <!-- SECTION 5: VEHICLE HEALTH, TPMS & TIRE ROTATION -->
                 {% if modules.maintenance_alerts %}
                 <div class="card">
