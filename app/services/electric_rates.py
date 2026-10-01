@@ -739,7 +739,7 @@ async def search_electric_rate_plans(
     Always supplements or falls back to curated regional tariff profiles so
     a complete top 5 list is guaranteed.
     """
-    clean_zip = zip_code.strip() or "80005"
+    clean_zip = zip_code.strip() or "12345"
     if not force_refresh:
         cached = get_cached_plans(clean_zip)
         if cached and len(cached) >= 5:

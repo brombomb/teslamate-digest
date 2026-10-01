@@ -63,7 +63,7 @@ class RatesSettings(BaseModel):
     weekends_are_off_peak: bool = True
     supercharger_fallback_cost: float = 0.36
     gas_price_per_gal: float = 3.50
-    zip_code: str = ""
+    zip_code: str = "12345"
     auto_gas_price: bool = True
     baseline_ice_mpg: float = 26.0
     eia_api_key: str = ""

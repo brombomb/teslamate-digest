@@ -17,6 +17,7 @@ from app.config import (
     load_maintenance_log,
     save_maintenance_log,
     AppConfig,
+    SMTPSettings,
     WorkRouteItem,
     ScheduleItem
 )
@@ -149,7 +150,7 @@ async def health():
 async def sync_gas_price(request: Request):
     cfg = load_config()
     data = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    zip_code = data.get("zip_code") or cfg.rates.zip_code or "80005"
+    zip_code = data.get("zip_code") or cfg.rates.zip_code or "12345"
     eia_key = data.get("eia_api_key") or cfg.rates.eia_api_key
 
     details = await fetch_gas_price_details(
@@ -177,7 +178,7 @@ async def sync_gas_price(request: Request):
 async def sync_electric_rates(request: Request):
     cfg = load_config()
     data = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    zip_code = data.get("zip_code") or cfg.rates.zip_code or "80005"
+    zip_code = data.get("zip_code") or cfg.rates.zip_code or "12345"
     openei_key = data.get("openei_api_key") or cfg.rates.openei_api_key
     eia_key = data.get("eia_api_key") or cfg.rates.eia_api_key
 
@@ -219,7 +220,7 @@ async def sync_electric_rates(request: Request):
 async def search_electric_rates_api(request: Request):
     cfg = load_config()
     data = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    zip_code = (data.get("zip_code") or cfg.rates.zip_code or "80005").strip()
+    zip_code = (data.get("zip_code") or cfg.rates.zip_code or "12345").strip()
     openei_key = data.get("openei_api_key") or cfg.rates.openei_api_key
     eia_key = data.get("eia_api_key") or cfg.rates.eia_api_key
 
@@ -380,6 +381,43 @@ async def send_test(
         return RedirectResponse(url=f"/preview?period={period}&car_id={car_id or ''}&theme={theme or ''}&sent=failed&err={err_msg}", status_code=303)
 
 
+@app.post("/api/verify-smtp")
+async def verify_smtp_api(request: Request):
+    """Test SMTP connection and credentials with current or passed configuration."""
+    cfg = load_config()
+    try:
+        data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    except Exception:
+        data = {}
+
+    host = data.get("host") if "host" in data and data.get("host") is not None else cfg.smtp.host
+    port_val = data.get("port") if "port" in data and data.get("port") is not None else cfg.smtp.port
+    try:
+        port = int(port_val)
+    except (ValueError, TypeError):
+        port = 587
+    user = data.get("user") if "user" in data and data.get("user") is not None else cfg.smtp.user
+    password = data.get("password") if data.get("password") else cfg.smtp.password
+    use_tls = bool(data.get("use_tls")) if "use_tls" in data else cfg.smtp.use_tls
+    use_ssl = bool(data.get("use_ssl")) if "use_ssl" in data else cfg.smtp.use_ssl
+    sender_email = (data.get("sender_email") or "").strip() or cfg.smtp.sender_email or user
+
+    test_settings = SMTPSettings(
+        enabled=True,
+        host=str(host).strip(),
+        port=port,
+        user=str(user).strip(),
+        password=str(password).strip(),
+        sender_email=str(sender_email).strip(),
+        use_tls=use_tls,
+        use_ssl=use_ssl
+    )
+
+    mailer = Mailer(test_settings)
+    result = mailer.verify_smtp()
+    return JSONResponse(content=result)
+
+
 # TEMPLATE BUILDER ROUTES & STARTER GENERATION
 def generate_theme_starter(theme_name: str) -> str:
     digest_path = Path(__file__).resolve().parent / "templates" / "email" / "digest.html"
@@ -521,8 +559,11 @@ async def settings_save(
     smtp_port: int = Form(587),
     smtp_user: str = Form(""),
     smtp_password: str = Form(""),
+    sender_email: Optional[str] = Form(""),
     recipient_email: str = Form(""),
     sender_name: str = Form("TeslaMate Digest"),
+    use_tls: Optional[str] = Form(None),
+    use_ssl: Optional[str] = Form(None),
     email_theme: str = Form("pearl_white"),
     rate_mode: str = Form("tou"),
     tariff_preset: str = Form("standard_tou"),
@@ -579,14 +620,17 @@ async def settings_save(
     cfg = load_config()
 
     cfg.smtp.enabled = bool(smtp_enabled)
-    cfg.smtp.host = smtp_host
+    cfg.smtp.host = smtp_host.strip()
     cfg.smtp.port = smtp_port
-    cfg.smtp.user = smtp_user
+    cfg.smtp.user = smtp_user.strip()
     if smtp_password.strip():
         cfg.smtp.password = smtp_password.strip()
-    cfg.smtp.sender_email = smtp_user
-    cfg.smtp.recipient_email = recipient_email
-    cfg.smtp.sender_name = sender_name
+    clean_sender = (sender_email or "").strip()
+    cfg.smtp.sender_email = clean_sender if clean_sender else cfg.smtp.user
+    cfg.smtp.recipient_email = recipient_email.strip()
+    cfg.smtp.sender_name = sender_name.strip() or "TeslaMate Digest"
+    cfg.smtp.use_tls = bool(use_tls)
+    cfg.smtp.use_ssl = bool(use_ssl)
 
     cfg.email_theme = email_theme
     cfg.dashboard_url = dashboard_url.strip() or "http://localhost:8660"

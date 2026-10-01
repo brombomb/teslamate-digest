@@ -20,44 +20,76 @@
 
     <!-- 1. EMAIL DELIVERY (SMTP) -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
-      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 gap-3">
         <div>
           <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <span>✉️</span> Email Delivery Configuration
           </h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Configure your SMTP server or Gmail credentials to dispatch digests to your inbox.</p>
         </div>
-        <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
-          <input type="checkbox" name="smtp_enabled" {% if config.smtp.enabled %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
-          <span class="text-slate-700 dark:text-slate-200">Enable SMTP</span>
-        </label>
+        <div class="flex items-center space-x-3 self-start sm:self-auto">
+          <button type="button" onclick="testSmtpConnection()" id="test-smtp-btn" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition shadow-sm">
+            <span>🔌</span> Test Connection
+          </button>
+          <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
+            <input type="checkbox" name="smtp_enabled" {% if config.smtp.enabled %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+            <span class="text-slate-700 dark:text-slate-200">Enable SMTP</span>
+          </label>
+        </div>
       </div>
+
+      <!-- Test Connection Result Notification -->
+      <div id="smtp-test-result" class="hidden text-xs rounded-lg p-3 transition"></div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Primary Recipient Email</label>
-          <input type="email" name="recipient_email" value="{{ config.smtp.recipient_email }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white" placeholder="you@example.com">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Gmail Address (Username)</label>
-          <input type="email" name="smtp_user" value="{{ config.smtp.user }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Google App Password</label>
-          <input type="password" name="smtp_password" value="{{ config.smtp.password }}" placeholder="16-character app password" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <input type="email" id="smtp_recipient_email" name="recipient_email" value="{{ config.smtp.recipient_email }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white" placeholder="you@example.com">
+          <span class="text-[10px] text-slate-400 mt-1 block">Default destination mailbox for scheduled and test digests.</span>
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Sender Name</label>
-          <input type="text" name="sender_name" value="{{ config.smtp.sender_name }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <input type="text" id="smtp_sender_name" name="sender_name" value="{{ config.smtp.sender_name }}" placeholder="TeslaMate Digest" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <span class="text-[10px] text-slate-400 mt-1 block">Friendly name displayed in email client headers.</span>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Server</label>
-          <input type="text" name="smtp_host" value="{{ config.smtp.host }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Sender Email ("From" Address)</label>
+          <input type="email" id="smtp_sender_email" name="sender_email" value="{{ config.smtp.sender_email }}" placeholder="e.g. digest@yourdomain.com or you@gmail.com" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <span class="text-[10px] text-slate-400 mt-1 block">Address used in email "From:" envelope. Falls back to username if left blank.</span>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Port</label>
-          <input type="number" name="smtp_port" value="{{ config.smtp.port }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Username / Email</label>
+          <input type="text" id="smtp_user" name="smtp_user" value="{{ config.smtp.user }}" autocomplete="username" placeholder="your_email@gmail.com or API user" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <span class="text-[10px] text-slate-400 mt-1 block">Authentication username or email address for your SMTP server.</span>
         </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Password</label>
+          <input type="password" id="smtp_password" name="smtp_password" value="{{ config.smtp.password }}" placeholder="16-character app password or secret" autocomplete="current-password" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          <span class="text-[10px] text-slate-400 mt-1 block">Google App Password or SMTP server account password.</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Server (Host)</label>
+            <input type="text" id="smtp_host" name="smtp_host" value="{{ config.smtp.host }}" placeholder="smtp.gmail.com" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">SMTP Port</label>
+            <input type="number" id="smtp_port" name="smtp_port" value="{{ config.smtp.port }}" onchange="handleSmtpPortChange(this.value)" placeholder="587" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+          </div>
+        </div>
+      </div>
+
+      <!-- Security / Encryption Toggles -->
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center gap-6 text-xs">
+        <span class="font-semibold text-slate-500 dark:text-slate-400">Security & Encryption:</span>
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" id="use_tls" name="use_tls" {% if config.smtp.use_tls %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+          <span class="text-slate-700 dark:text-slate-300 font-medium">STARTTLS (Standard for Port 587)</span>
+        </label>
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" id="use_ssl" name="use_ssl" {% if config.smtp.use_ssl %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+          <span class="text-slate-700 dark:text-slate-300 font-medium">SSL / TLS (Direct TLS, standard for Port 465)</span>
+        </label>
       </div>
     </div>
 
@@ -299,7 +331,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
           <div>
             <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Local ZIP Code</label>
-            <input type="text" id="rates_zip_code" name="zip_code" value="{{ config.rates.zip_code }}" placeholder="e.g. 80005" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
+            <input type="text" id="rates_zip_code" name="zip_code" value="{{ config.rates.zip_code }}" placeholder="e.g. 12345" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
             <span class="text-[10px] text-slate-400 mt-1 block">Identifies your local energy market.</span>
           </div>
 
@@ -1473,7 +1505,73 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-// --- 6. INITIALIZATION & GLOBAL CLICK DISMISS ---
+// --- 6. SMTP PORT LOGIC & CONNECTION TEST ---
+function handleSmtpPortChange(portVal) {
+  const p = parseInt(portVal, 10);
+  const tlsBox = document.getElementById('use_tls');
+  const sslBox = document.getElementById('use_ssl');
+  if (p === 465) {
+    if (sslBox) sslBox.checked = true;
+    if (tlsBox) tlsBox.checked = false;
+  } else if (p === 587) {
+    if (tlsBox) tlsBox.checked = true;
+    if (sslBox) sslBox.checked = false;
+  }
+}
+
+async function testSmtpConnection() {
+  const btn = document.getElementById('test-smtp-btn');
+  const resEl = document.getElementById('smtp-test-result');
+  if (!btn || !resEl) return;
+
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Connecting...';
+  resEl.className = 'text-xs rounded-lg p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center gap-2';
+  resEl.innerHTML = '<span>⏳</span> Contacting SMTP server and verifying credentials...';
+  resEl.classList.remove('hidden');
+
+  const host = document.getElementById('smtp_host')?.value.trim() || '';
+  const port = parseInt(document.getElementById('smtp_port')?.value.trim() || '587', 10);
+  const user = document.getElementById('smtp_user')?.value.trim() || '';
+  const password = document.getElementById('smtp_password')?.value || '';
+  const senderEmail = document.getElementById('smtp_sender_email')?.value.trim() || '';
+  const useTls = document.getElementById('use_tls')?.checked ?? true;
+  const useSsl = document.getElementById('use_ssl')?.checked ?? false;
+
+  try {
+    const resp = await fetch('/api/verify-smtp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        host: host,
+        port: port,
+        user: user,
+        password: password,
+        sender_email: senderEmail,
+        use_tls: useTls,
+        use_ssl: useSsl
+      })
+    });
+    const result = await resp.json();
+    if (result.success) {
+      resEl.className = 'text-xs rounded-lg p-3 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
+      resEl.innerHTML = `<strong>✓ Success:</strong> ${escapeHtml(result.message)}`;
+    } else {
+      resEl.className = 'text-xs rounded-lg p-3 bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30';
+      resEl.innerHTML = `<strong>✕ Verification Failed:</strong> ${escapeHtml(result.message)}`;
+    }
+  } catch (err) {
+    resEl.className = 'text-xs rounded-lg p-3 bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30';
+    resEl.innerHTML = `<strong>✕ Network Error:</strong> Could not connect to backend (${escapeHtml(err.message)})`;
+  } finally {
+    resEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+// --- 7. INITIALIZATION & GLOBAL CLICK DISMISS ---
 document.addEventListener('DOMContentLoaded', () => {
   // Init existing schedules frequency visibility
   document.querySelectorAll('.sched-freq').forEach(updateFreqVisibility);

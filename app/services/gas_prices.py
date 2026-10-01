@@ -60,7 +60,7 @@ def set_cached_gas_price_data(zip_code: str, price_data: Dict[str, Any]) -> None
 
 
 async def fetch_gas_price_details(
-    zip_code: str = "80005",
+    zip_code: str = "12345",
     api_key: Optional[str] = None,
     fallback: float = 3.50,
     force_refresh: bool = False

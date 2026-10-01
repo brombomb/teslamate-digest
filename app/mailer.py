@@ -23,10 +23,17 @@ class Mailer:
         if not self.smtp.password:
             raise ValueError("SMTP password is empty. Please enter your Gmail App Password in Settings.")
 
+        sender_addr = (self.smtp.sender_email or "").strip() or (self.smtp.user or "").strip()
+        if not sender_addr:
+            raise ValueError("Sender email is missing. Please configure Sender Email or SMTP Username in Settings.")
+
         to_email = recipient or self.smtp.recipient_email
+        if not to_email:
+            raise ValueError("Recipient email is empty. Please configure Primary Recipient in Settings.")
+
         msg = MIMEMultipart("related")
         msg["Subject"] = subject
-        msg["From"] = f"{self.smtp.sender_name} <{self.smtp.sender_email}>"
+        msg["From"] = f"{self.smtp.sender_name} <{sender_addr}>"
         msg["To"] = to_email
 
         # HTML body
@@ -54,8 +61,9 @@ class Mailer:
                 if self.smtp.use_tls:
                     server.starttls()
 
-            server.login(self.smtp.user, self.smtp.password)
-            server.sendmail(self.smtp.sender_email, [to_email], msg.as_string())
+            if self.smtp.user and self.smtp.password:
+                server.login(self.smtp.user, self.smtp.password)
+            server.sendmail(sender_addr, [to_email], msg.as_string())
             server.quit()
             print(f"[Mailer] Successfully delivered digest to {to_email}")
             return True
@@ -66,6 +74,9 @@ class Mailer:
     def verify_smtp(self) -> Dict[str, Any]:
         """Test SMTP connection and credentials"""
         try:
+            if not self.smtp.host:
+                return {"success": False, "message": "SMTP host is empty. Please enter an SMTP server."}
+
             if self.smtp.use_ssl:
                 server = smtplib.SMTP_SSL(self.smtp.host, self.smtp.port, timeout=15)
             else:
