@@ -158,7 +158,7 @@ async def build_digest_report(
 
     dashboard_url = getattr(config, "dashboard_url", None) or f"http://localhost:{os.getenv('PORT', '8660')}"
     teslamate_url, grafana_url = await get_effective_service_urls(db, config)
-    grafana_dashboards = get_grafana_dashboard_urls(grafana_url, car_id)
+    grafana_dashboards = get_grafana_dashboard_urls(grafana_url, car_id, getattr(config, "grafana_dashboards", None))
 
     html_content = tmpl.render(
         report_title=report_title,

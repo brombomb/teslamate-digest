@@ -745,34 +745,26 @@
 
     <!-- 5. SERVICE URLS & DASHBOARD OPTIONS -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div>
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>🔗</span> Service URLs &amp; Dashboards (TeslaMate &amp; Grafana)
-          </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Configure host URLs used in emails to link directly to TeslaMate and interactive Grafana dashboards.
-          </p>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          <span id="urls-autodetect-status" class="text-xs text-slate-400"></span>
-          <button type="button" id="btn-autodetect-urls" onclick="autoDetectServiceUrls()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
-            <span>⚡</span> Auto-Detect from TeslaMate DB
-          </button>
-        </div>
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🔗</span> Service URLs &amp; Dashboards (TeslaMate &amp; Grafana)
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          By default, URLs are read dynamically from your TeslaMate database settings. Enter overrides below only if you access them via an alternate hostname, reverse proxy, or custom port.
+        </p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">TeslaMate Web UI URL</label>
-          <input type="text" name="teslamate_url" id="teslamate_url_input" value="{{ config.teslamate_url or '' }}" placeholder="http://192.168.1.15:4000" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
-          <p class="text-[11px] text-slate-400 mt-1">TeslaMate web interface (linked in email header and footer).</p>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">TeslaMate Web UI URL (Override)</label>
+          <input type="text" name="teslamate_url" id="teslamate_url_input" value="{{ config.teslamate_url or '' }}" placeholder="Auto: {{ db_tm_url }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+          <p class="text-[11px] text-slate-400 mt-1">Default from DB: <span class="font-mono text-emerald-600 dark:text-emerald-400">{{ db_tm_url }}</span>. Leave blank to auto-use database setting.</p>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Grafana Dashboards URL</label>
-          <input type="text" name="grafana_url" id="grafana_url_input" value="{{ config.grafana_url or '' }}" placeholder="http://192.168.1.15:3000" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
-          <p class="text-[11px] text-slate-400 mt-1">Grafana dashboards URL (charts and cards in emails link directly here).</p>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Grafana Dashboards URL (Override)</label>
+          <input type="text" name="grafana_url" id="grafana_url_input" value="{{ config.grafana_url or '' }}" placeholder="Auto: {{ db_graf_url }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+          <p class="text-[11px] text-slate-400 mt-1">Default from DB: <span class="font-mono text-emerald-600 dark:text-emerald-400">{{ db_graf_url }}</span>. Leave blank to auto-use database setting.</p>
         </div>
 
         <div>
@@ -781,6 +773,61 @@
           <p class="text-[11px] text-slate-400 mt-1">Link in email footers back to this TeslaMate Digest portal.</p>
         </div>
       </div>
+
+      <!-- DYNAMIC GRAFANA DASHBOARDS (OPTIONAL / CUSTOM INSTALLS) -->
+      <details class="group rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 p-4 transition-all">
+        <summary class="flex items-center justify-between cursor-pointer select-none font-semibold text-xs text-slate-700 dark:text-slate-300">
+          <span class="flex items-center gap-2">
+            <span>⚙️</span> Dynamic Grafana Dashboard Paths &amp; UIDs
+          </span>
+          <span class="text-[11px] text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div class="mt-4 space-y-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs">
+          <p class="text-slate-500 dark:text-slate-400">
+            By default, TeslaMate-Digest dynamically routes to standard TeslaMate Grafana dashboards. If your installation uses custom dashboards (such as CarlosCuezva's custom dashboards or renamed slugs), customize the individual paths below or provide a Service Account / API Token to scan them automatically.
+          </p>
+          
+          <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div class="flex-1">
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Grafana API / Service Account Token (Optional)</label>
+              <input type="password" name="grafana_api_token" id="grafana_api_token_input" value="{{ config.grafana_api_token or '' }}" placeholder="glsa_... or eyJ..." class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div class="sm:pt-5">
+              <button type="button" id="btn-discover-grafana" onclick="discoverGrafanaDashboards()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+                <span>🔍</span> Scan / Discover Dashboards
+              </button>
+            </div>
+          </div>
+          <div id="grafana-discover-status" class="text-xs text-slate-400"></div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Charging Stats Path/UID</label>
+              <input type="text" name="dash_charging" id="dash_charging_input" value="{{ config.grafana_dashboards.charging }}" placeholder="-pkIkhmRz/charging-stats" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Charge Level Path/UID</label>
+              <input type="text" name="dash_charge_level" id="dash_charge_level_input" value="{{ config.grafana_dashboards.charge_level }}" placeholder="WopVO_mgz/charge-level" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Efficiency Path/UID</label>
+              <input type="text" name="dash_efficiency" id="dash_efficiency_input" value="{{ config.grafana_dashboards.efficiency }}" placeholder="fu4SiQgWz/efficiency" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Battery Health Path/UID</label>
+              <input type="text" name="dash_battery" id="dash_battery_input" value="{{ config.grafana_dashboards.battery_health }}" placeholder="jchmRiqUfXgTM/battery-health" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Drives / Trips Path/UID</label>
+              <input type="text" name="dash_drives" id="dash_drives_input" value="{{ config.grafana_dashboards.drives }}" placeholder="Y8upc6ZRk/drives" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Vampire Drain Path/UID</label>
+              <input type="text" name="dash_vampire" id="dash_vampire_input" value="{{ config.grafana_dashboards.vampire_drain }}" placeholder="zhHx2Fggk/vampire-drain" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+          </div>
+        </div>
+      </details>
 
       <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
         <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Excluded Locations from Top Destinations</label>
@@ -1686,45 +1733,71 @@ async function syncTeslaMateGeofences() {
   }
 }
 
-async function autoDetectServiceUrls() {
-  const btn = document.getElementById('btn-autodetect-urls');
-  const status = document.getElementById('urls-autodetect-status');
+async function discoverGrafanaDashboards() {
+  const btn = document.getElementById('btn-discover-grafana');
+  const status = document.getElementById('grafana-discover-status');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span>⏳</span> Detecting...`;
+    btn.innerHTML = `<span>⏳</span> Scanning...`;
   }
   if (status) {
-    status.textContent = 'Querying TeslaMate database...';
+    status.textContent = 'Contacting Grafana API to discover dashboards...';
     status.className = 'text-xs text-blue-500 font-medium';
   }
 
   try {
-    const res = await fetch('/api/system/urls');
+    const grafUrl = (document.getElementById('grafana_url_input')?.value || '').trim();
+    const token = (document.getElementById('grafana_api_token_input')?.value || '').trim();
+    const res = await fetch('/api/grafana/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grafana_url: grafUrl, grafana_api_token: token })
+    });
     const data = await res.json();
-    if (data.teslamate_url || data.grafana_url) {
-      const tmInput = document.getElementById('teslamate_url_input');
-      const grafInput = document.getElementById('grafana_url_input');
-      if (tmInput && data.teslamate_url) tmInput.value = data.teslamate_url;
-      if (grafInput && data.grafana_url) grafInput.value = data.grafana_url;
+    if (data.success && data.mapped) {
+      if (data.mapped.charging) {
+        const el = document.getElementById('dash_charging_input');
+        if (el) el.value = data.mapped.charging;
+      }
+      if (data.mapped.charge_level) {
+        const el = document.getElementById('dash_charge_level_input');
+        if (el) el.value = data.mapped.charge_level;
+      }
+      if (data.mapped.efficiency) {
+        const el = document.getElementById('dash_efficiency_input');
+        if (el) el.value = data.mapped.efficiency;
+      }
+      if (data.mapped.battery_health) {
+        const el = document.getElementById('dash_battery_input');
+        if (el) el.value = data.mapped.battery_health;
+      }
+      if (data.mapped.drives) {
+        const el = document.getElementById('dash_drives_input');
+        if (el) el.value = data.mapped.drives;
+      }
+      if (data.mapped.vampire_drain) {
+        const el = document.getElementById('dash_vampire_input');
+        if (el) el.value = data.mapped.vampire_drain;
+      }
       if (status) {
-        status.textContent = `✓ Auto-detected! TM: ${data.teslamate_url} | Grafana: ${data.grafana_url}`;
+        status.textContent = `✓ Discovered ${data.count} dashboards in Grafana! Mapped ${Object.keys(data.mapped).length} paths.`;
         status.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
       }
     } else {
       if (status) {
-        status.textContent = 'No URLs found in TeslaMate database settings.';
+        status.textContent = `⚠️ Discovery note: ${data.error || 'No dashboards found'}. Standard fallback paths will be used.`;
         status.className = 'text-xs text-amber-500 font-medium';
       }
     }
   } catch (err) {
     if (status) {
-      status.textContent = `Detection failed: ${err.message}`;
+      status.textContent = `Scan failed: ${err.message}`;
       status.className = 'text-xs text-red-500 font-medium';
     }
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `<span>⚡</span> Auto-Detect from TeslaMate DB`;
+      btn.innerHTML = `<span>🔍</span> Scan / Discover Dashboards`;
     }
   }
 }

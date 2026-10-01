@@ -193,29 +193,135 @@ async def get_effective_service_urls(db: Database, config: Optional[AppConfig] =
     return teslamate_url, grafana_url
 
 
-def get_grafana_dashboard_urls(grafana_base_url: str, car_id: Optional[int] = None) -> Dict[str, str]:
+def get_grafana_dashboard_urls(
+    grafana_base_url: str,
+    car_id: Optional[int] = None,
+    dashboards_config: Optional[Any] = None
+) -> Dict[str, str]:
     """
     Returns direct URLs for all TeslaMate Grafana dashboards with vehicle filtering.
+    Dynamically uses configured or discovered dashboard paths/UIDs.
     """
     base = grafana_base_url.rstrip("/")
     car_param = f"?var-car_id={car_id}" if car_id else ""
+
+    from app.config import GrafanaDashboardsConfig
+    cfg = dashboards_config or GrafanaDashboardsConfig()
+    if isinstance(cfg, dict):
+        cfg = GrafanaDashboardsConfig(**cfg)
+
+    def _url(path: str, add_car: bool = True) -> str:
+        p = (path or "").strip().lstrip("/")
+        if not p:
+            return ""
+        if not p.startswith("d/"):
+            p = f"d/{p}"
+        param = car_param if add_car else ""
+        return f"{base}/{p}{param}"
+
     return {
         "grafana_base_url": base,
-        "grafana_charging_url": f"{base}/d/-pkIkhmRz/charging-stats{car_param}",
-        "grafana_charge_level_url": f"{base}/d/WopVO_mgz/charge-level{car_param}",
-        "grafana_charges_url": f"{base}/d/TSmNYvRRk/charges{car_param}",
-        "grafana_drives_url": f"{base}/d/Y8upc6ZRk/drives{car_param}",
-        "grafana_drive_stats_url": f"{base}/d/_7WkNSyWk/drive-stats{car_param}",
-        "grafana_efficiency_url": f"{base}/d/fu4SiQgWz/efficiency{car_param}",
-        "grafana_battery_url": f"{base}/d/jchmRiqUfXgTM/battery-health{car_param}",
-        "grafana_vampire_url": f"{base}/d/zhHx2Fggk/vampire-drain{car_param}",
-        "grafana_overview_url": f"{base}/d/kOuP_Fggz/overview{car_param}",
-        "grafana_mileage_url": f"{base}/d/NjtMTFggz/mileage{car_param}",
-        "grafana_trip_url": f"{base}/d/FkUpJpQZk/trip{car_param}",
-        "grafana_locations_url": f"{base}/d/ZzhF-aRWz/locations",
-        "grafana_visited_url": f"{base}/d/RG_DxSmgk/visited",
-        "grafana_updates_url": f"{base}/d/IiC07mgWz/updates{car_param}",
-        "grafana_timeline_url": f"{base}/d/SUBgwtigz/timeline{car_param}",
+        "grafana_charging_url": _url(getattr(cfg, "charging", "-pkIkhmRz/charging-stats")),
+        "grafana_charge_level_url": _url(getattr(cfg, "charge_level", "WopVO_mgz/charge-level")),
+        "grafana_charges_url": _url(getattr(cfg, "charges", "TSmNYvRRk/charges")),
+        "grafana_drives_url": _url(getattr(cfg, "drives", "Y8upc6ZRk/drives")),
+        "grafana_drive_stats_url": _url(getattr(cfg, "drive_stats", "_7WkNSyWk/drive-stats")),
+        "grafana_efficiency_url": _url(getattr(cfg, "efficiency", "fu4SiQgWz/efficiency")),
+        "grafana_battery_url": _url(getattr(cfg, "battery_health", "jchmRiqUfXgTM/battery-health")),
+        "grafana_vampire_url": _url(getattr(cfg, "vampire_drain", "zhHx2Fggk/vampire-drain")),
+        "grafana_overview_url": _url(getattr(cfg, "overview", "kOuP_Fggz/overview")),
+        "grafana_mileage_url": _url(getattr(cfg, "mileage", "NjtMTFggz/mileage")),
+        "grafana_trip_url": _url(getattr(cfg, "trip", "FkUpJpQZk/trip")),
+        "grafana_locations_url": _url(getattr(cfg, "locations", "ZzhF-aRWz/locations"), add_car=False),
+        "grafana_visited_url": _url(getattr(cfg, "visited", "RG_DxSmgk/visited"), add_car=False),
+        "grafana_updates_url": _url(getattr(cfg, "updates", "IiC07mgWz/updates")),
+        "grafana_timeline_url": _url(getattr(cfg, "timeline", "SUBgwtigz/timeline")),
+    }
+
+
+async def discover_grafana_dashboards(grafana_base_url: str, api_token: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Dynamically queries Grafana's search API (/api/search?type=dash-db) to find
+    all installed dashboards and map their exact UIDs and paths.
+    """
+    import httpx
+
+    token = (api_token or "").strip()
+    headers = {"Accept": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    candidate_hosts = []
+    if grafana_base_url:
+        candidate_hosts.append(grafana_base_url.rstrip("/"))
+    candidate_hosts.append("http://grafana:3000")
+    candidate_hosts.append("http://localhost:3000")
+
+    dashboards = []
+    error_msg = ""
+    async with httpx.AsyncClient(timeout=4.0) as client:
+        for host in candidate_hosts:
+            url = f"{host}/api/search?type=dash-db"
+            try:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if isinstance(data, list):
+                        dashboards = data
+                        break
+                elif resp.status_code == 401:
+                    error_msg = "Grafana API requires a Service Account or API Token (401 Unauthorized)."
+                    break
+                elif resp.status_code == 403:
+                    error_msg = "Grafana API token lacks search permissions (403 Forbidden)."
+                    break
+                else:
+                    if not error_msg:
+                        error_msg = f"Grafana returned status {resp.status_code}"
+            except Exception as e:
+                if not error_msg:
+                    error_msg = str(e)
+
+    if not dashboards:
+        return {"success": False, "error": error_msg or "Could not connect to Grafana API", "dashboards": [], "mapped": {}}
+
+    mapped: Dict[str, str] = {}
+    items_list = []
+    for d in dashboards:
+        uid = d.get("uid")
+        title = d.get("title", "")
+        slug = d.get("slug") or title.lower().replace(" ", "-")
+        d_url = d.get("url", "")
+        path = d_url.replace("/d/", "", 1) if d_url.startswith("/d/") else f"{uid}/{slug}"
+        items_list.append({"uid": uid, "title": title, "path": path, "url": d_url})
+
+        t_low = title.lower()
+        if "charging" in t_low and ("stat" in t_low or "cost" in t_low):
+            mapped["charging"] = path
+        elif "charge" in t_low and "level" in t_low:
+            mapped["charge_level"] = path
+        elif "charges" in t_low:
+            mapped["charges"] = path
+        elif "efficiency" in t_low or "consumption" in t_low:
+            mapped["efficiency"] = path
+        elif "battery" in t_low or "degradation" in t_low:
+            mapped["battery_health"] = path
+        elif "drive" in t_low and "stat" in t_low:
+            mapped["drive_stats"] = path
+        elif "drive" in t_low or "trip" in t_low:
+            mapped.setdefault("drives", path)
+        elif "vampire" in t_low or "phantom" in t_low:
+            mapped["vampire_drain"] = path
+        elif "overview" in t_low:
+            mapped["overview"] = path
+        elif "mileage" in t_low:
+            mapped["mileage"] = path
+
+    return {
+        "success": True,
+        "count": len(items_list),
+        "dashboards": items_list,
+        "mapped": mapped
     }
 
 

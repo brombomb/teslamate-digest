@@ -25,7 +25,11 @@ from app.config import (
 )
 from app.themes import EMAIL_THEMES, get_theme
 from app.analytics.work_mileage import get_available_locations_for_work
-from app.services.geofences import sync_geofences_with_teslamate, get_effective_service_urls
+from app.services.geofences import (
+    sync_geofences_with_teslamate,
+    get_effective_service_urls,
+    discover_grafana_dashboards,
+)
 from app.db import Database
 from app.scheduler import (
     setup_scheduler,
@@ -228,8 +232,26 @@ async def api_get_system_urls(request: Request):
     return JSONResponse(content={
         "teslamate_url": tm_url,
         "grafana_url": graf_url,
-        "dashboard_url": cfg.dashboard_url
+        "dashboard_url": cfg.dashboard_url,
+        "grafana_dashboards": cfg.grafana_dashboards.model_dump()
     })
+
+
+@app.post("/api/grafana/discover")
+async def api_discover_grafana_dashboards(request: Request):
+    """
+    Dynamically queries Grafana search API to discover installed dashboards.
+    """
+    db: Database = request.app.state.db
+    cfg = load_config()
+    data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+
+    _, default_graf_url = await get_effective_service_urls(db, cfg)
+    graf_url = (data.get("grafana_url") or cfg.grafana_url or default_graf_url).strip()
+    api_token = (data.get("grafana_api_token") or cfg.grafana_api_token or "").strip()
+
+    result = await discover_grafana_dashboards(graf_url, api_token)
+    return JSONResponse(content=result)
 
 
 @app.post("/api/sync-gas-price")
@@ -622,12 +644,8 @@ async def settings_view(request: Request):
     cfg = load_config()
     db: Database = request.app.state.db
 
-    # Auto-detect service URLs if empty
-    tm_url, graf_url = await get_effective_service_urls(db, cfg)
-    if not cfg.teslamate_url:
-        cfg.teslamate_url = tm_url
-    if not cfg.grafana_url:
-        cfg.grafana_url = graf_url
+    # Dynamic defaults directly from TeslaMate DB for display/placeholder
+    db_tm_url, db_graf_url = await get_effective_service_urls(db, None)
 
     # Auto-sync geofences with TeslaMate
     try:
@@ -643,6 +661,8 @@ async def settings_view(request: Request):
             "request": request,
             "active_nav": "settings",
             "config": cfg,
+            "db_tm_url": db_tm_url,
+            "db_graf_url": db_graf_url,
             "cars": cars,
             "locations": locations,
             "themes": EMAIL_THEMES,
@@ -691,6 +711,14 @@ async def settings_save(
     dashboard_url: str = Form("http://localhost:8660"),
     teslamate_url: Optional[str] = Form(""),
     grafana_url: Optional[str] = Form(""),
+    grafana_api_token: Optional[str] = Form(""),
+    dash_charging: Optional[str] = Form(None),
+    dash_charge_level: Optional[str] = Form(None),
+    dash_charges: Optional[str] = Form(None),
+    dash_efficiency: Optional[str] = Form(None),
+    dash_battery: Optional[str] = Form(None),
+    dash_drives: Optional[str] = Form(None),
+    dash_vampire: Optional[str] = Form(None),
     excluded_locations: str = Form("Home"),
     tire_rotation_interval_mi: int = Form(6250),
     schedule_enabled: Optional[str] = Form(None),
@@ -739,6 +767,21 @@ async def settings_save(
     cfg.dashboard_url = dashboard_url.strip() or "http://localhost:8660"
     cfg.teslamate_url = (teslamate_url or "").strip()
     cfg.grafana_url = (grafana_url or "").strip()
+    cfg.grafana_api_token = (grafana_api_token or "").strip()
+    if dash_charging is not None and dash_charging.strip():
+        cfg.grafana_dashboards.charging = dash_charging.strip()
+    if dash_charge_level is not None and dash_charge_level.strip():
+        cfg.grafana_dashboards.charge_level = dash_charge_level.strip()
+    if dash_charges is not None and dash_charges.strip():
+        cfg.grafana_dashboards.charges = dash_charges.strip()
+    if dash_efficiency is not None and dash_efficiency.strip():
+        cfg.grafana_dashboards.efficiency = dash_efficiency.strip()
+    if dash_battery is not None and dash_battery.strip():
+        cfg.grafana_dashboards.battery_health = dash_battery.strip()
+    if dash_drives is not None and dash_drives.strip():
+        cfg.grafana_dashboards.drives = dash_drives.strip()
+    if dash_vampire is not None and dash_vampire.strip():
+        cfg.grafana_dashboards.vampire_drain = dash_vampire.strip()
     cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
 
     cfg.rates.rate_mode = rate_mode.strip().lower() or "tou"
@@ -852,6 +895,7 @@ async def settings_save(
     db: Database = request.app.state.db
     cars = await db.get_cars()
     locations = await get_available_locations_for_work(db)
+    db_tm_url, db_graf_url = await get_effective_service_urls(db, None)
 
     return templates.TemplateResponse(
         "settings.html",
@@ -859,6 +903,8 @@ async def settings_save(
             "request": request,
             "active_nav": "settings",
             "config": cfg,
+            "db_tm_url": db_tm_url,
+            "db_graf_url": db_graf_url,
             "cars": cars,
             "locations": locations,
             "themes": EMAIL_THEMES,

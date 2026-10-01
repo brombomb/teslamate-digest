@@ -247,9 +247,9 @@ def test_email_template_grafana_and_teslamate_links():
     from app.themes import get_theme
     from app.config import RatesSettings
 
-    tmpl_path = Path("/home/brombomb/dev/teslamate-digest/app/templates/email/digest.html")
+    tmpl_path = Path(__file__).resolve().parent.parent / "app" / "templates" / "email" / "digest.html"
     if not tmpl_path.exists():
-        tmpl_path = Path("/app/templates/email/digest.html")
+        tmpl_path = Path("/app/app/templates/email/digest.html")
     
     with open(tmpl_path, "r") as f:
         tmpl = Template(f.read())
@@ -326,5 +326,53 @@ def test_email_template_grafana_and_teslamate_links():
     assert '<a href="http://192.168.1.15:3000/d/jchmRiqUfXgTM/battery-health?var-car_id=1"' in rendered
     assert '<img src="cid:chart_spend"' in rendered
     assert '<img src="cid:chart_battery"' in rendered
+
+
+def test_get_grafana_dashboard_urls_custom_config():
+    from app.services.geofences import get_grafana_dashboard_urls
+    from app.config import GrafanaDashboardsConfig
+
+    custom_cfg = GrafanaDashboardsConfig(
+        charging="custom-uid/custom-charging",
+        efficiency="d/my-efficiency-slug",
+        battery_health="carlos/battery-degradation"
+    )
+    urls = get_grafana_dashboard_urls("http://grafana.lan:3000", car_id=2, dashboards_config=custom_cfg)
+    assert urls["grafana_charging_url"] == "http://grafana.lan:3000/d/custom-uid/custom-charging?var-car_id=2"
+    assert urls["grafana_efficiency_url"] == "http://grafana.lan:3000/d/my-efficiency-slug?var-car_id=2"
+    assert urls["grafana_battery_url"] == "http://grafana.lan:3000/d/carlos/battery-degradation?var-car_id=2"
+    # Unconfigured ones use default
+    assert urls["grafana_vampire_url"] == "http://grafana.lan:3000/d/zhHx2Fggk/vampire-drain?var-car_id=2"
+
+
+def test_discover_grafana_dashboards_mocked():
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from app.services.geofences import discover_grafana_dashboards
+
+    mock_search_data = [
+        {"uid": "carlos-charge", "title": "Charging Stats and Cost", "url": "/d/carlos-charge/charging-stats-and-cost"},
+        {"uid": "carlos-deg", "title": "Battery Degradation", "url": "/d/carlos-deg/battery-degradation"},
+        {"uid": "carlos-eff", "title": "Consumption and Efficiency", "url": "/d/carlos-eff/consumption-and-efficiency"},
+        {"uid": "carlos-trips", "title": "Tracking Drives and Trips", "url": "/d/carlos-trips/tracking-drives"},
+        {"uid": "carlos-vamp", "title": "Phantom / Vampire Drain", "url": "/d/carlos-vamp/phantom-drain"},
+    ]
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = mock_search_data
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = mock_response
+
+        res = asyncio.run(discover_grafana_dashboards("http://localhost:3000", "my_token"))
+        assert res["success"] is True
+        assert res["count"] == 5
+        assert res["mapped"]["charging"] == "carlos-charge/charging-stats-and-cost"
+        assert res["mapped"]["battery_health"] == "carlos-deg/battery-degradation"
+        assert res["mapped"]["efficiency"] == "carlos-eff/consumption-and-efficiency"
+        assert res["mapped"]["drives"] == "carlos-trips/tracking-drives"
+        assert res["mapped"]["vampire_drain"] == "carlos-vamp/phantom-drain"
+
 
 

@@ -136,6 +136,24 @@ class ModuleToggles(BaseModel):
             self.mountain_regen = self.colorado_mountain_regen
 
 
+class GrafanaDashboardsConfig(BaseModel):
+    charging: str = "-pkIkhmRz/charging-stats"
+    charge_level: str = "WopVO_mgz/charge-level"
+    charges: str = "TSmNYvRRk/charges"
+    drives: str = "Y8upc6ZRk/drives"
+    drive_stats: str = "_7WkNSyWk/drive-stats"
+    efficiency: str = "fu4SiQgWz/efficiency"
+    battery_health: str = "jchmRiqUfXgTM/battery-health"
+    vampire_drain: str = "zhHx2Fggk/vampire-drain"
+    overview: str = "kOuP_Fggz/overview"
+    mileage: str = "NjtMTFggz/mileage"
+    trip: str = "FkUpJpQZk/trip"
+    locations: str = "ZzhF-aRWz/locations"
+    visited: str = "RG_DxSmgk/visited"
+    updates: str = "IiC07mgWz/updates"
+    timeline: str = "SUBgwtigz/timeline"
+
+
 class AppConfig(BaseModel):
     database_host: str = Field(default_factory=lambda: os.getenv("DATABASE_HOST", "database"))
     database_port: int = Field(default_factory=lambda: int(os.getenv("DATABASE_PORT", "5432")))
@@ -145,6 +163,7 @@ class AppConfig(BaseModel):
     timezone: str = Field(default_factory=lambda: os.getenv("TZ", "UTC"))
     grafana_url: str = Field(default_factory=lambda: os.getenv("GRAFANA_URL", ""))
     grafana_api_token: str = Field(default_factory=lambda: os.getenv("GRAFANA_API_TOKEN", ""))
+    grafana_dashboards: GrafanaDashboardsConfig = Field(default_factory=GrafanaDashboardsConfig)
 
     smtp: SMTPSettings = Field(default_factory=SMTPSettings)
     schedules: list[ScheduleItem] = Field(default_factory=lambda: [
