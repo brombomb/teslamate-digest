@@ -555,6 +555,86 @@ async def verify_smtp_api(request: Request):
     return JSONResponse(content=result)
 
 
+@app.post("/api/send-test-email")
+async def send_test_email_api(request: Request):
+    """Sends a sample test email to verify end-to-end inbox delivery."""
+    cfg = load_config()
+    try:
+        data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    except Exception:
+        data = {}
+
+    recipient = (data.get("recipient") or "").strip() or cfg.smtp.recipient_email
+    if not recipient:
+        return JSONResponse(content={"success": False, "message": "Primary recipient email is empty."}, status_code=400)
+
+    # Use live form values if provided, falling back to saved config
+    smtp_settings = cfg.smtp
+    if data.get("host"):
+        smtp_settings.host = data["host"].strip()
+    if data.get("port"):
+        try:
+            smtp_settings.port = int(data["port"])
+        except ValueError:
+            pass
+    if data.get("user"):
+        smtp_settings.user = data["user"].strip()
+    if data.get("password"):
+        smtp_settings.password = data["password"]
+    if data.get("sender_email"):
+        smtp_settings.sender_email = data["sender_email"].strip()
+    if data.get("sender_name"):
+        smtp_settings.sender_name = data["sender_name"].strip()
+    if "use_tls" in data:
+        smtp_settings.use_tls = bool(data["use_tls"])
+    if "use_ssl" in data:
+        smtp_settings.use_ssl = bool(data["use_ssl"])
+    smtp_settings.enabled = True
+
+    try:
+        mailer = Mailer(smtp_settings)
+        test_subject = "⚡ TeslaMate Digest: SMTP Verification Test"
+        test_html = f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #0f172a; margin-top: 0;">⚡ TeslaMate Digest</h2>
+          <p style="color: #334155; font-size: 15px; line-height: 1.6;">
+            <strong>SMTP Verification Successful!</strong>
+          </p>
+          <p style="color: #64748b; font-size: 13px; line-height: 1.6;">
+            This test message confirms that your SMTP server connection and credentials are delivering emails to this mailbox.
+          </p>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-top: 16px; font-size: 12px; color: #475569;">
+            <div><strong>Host:</strong> {smtp_settings.host}:{smtp_settings.port}</div>
+            <div><strong>Sender:</strong> {smtp_settings.sender_email or smtp_settings.user}</div>
+            <div><strong>Destination:</strong> {recipient}</div>
+          </div>
+        </div>
+        """
+        mailer.send_email(subject=test_subject, html_content=test_html, recipient=recipient)
+        return JSONResponse(content={"success": True, "message": f"Test email successfully dispatched to {recipient}!"})
+    except Exception as e:
+        return JSONResponse(content={"success": False, "message": f"Failed to send email: {e}"}, status_code=500)
+
+
+@app.post("/api/schedules/run-now")
+async def run_schedule_now_api(request: Request):
+    """Manually dispatches a configured schedule immediately."""
+    try:
+        data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    except Exception:
+        data = {}
+    schedule_id = data.get("schedule_id")
+    try:
+        await run_scheduled_digest(schedule_id=schedule_id)
+        from app.scheduler import last_run_info
+        return JSONResponse(content={
+            "success": True,
+            "message": last_run_info.get("details", "Digest successfully generated and dispatched!")
+        })
+    except Exception as e:
+        return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
+
+
 # TEMPLATE BUILDER ROUTES & STARTER GENERATION
 def generate_theme_starter(theme_name: str) -> str:
     digest_path = Path(__file__).resolve().parent / "templates" / "email" / "digest.html"
@@ -788,6 +868,7 @@ async def settings_save(
     ha_home_load: Optional[str] = Form(""),
 ):
     cfg = load_config()
+    db: Database = request.app.state.db
 
     cfg.smtp.enabled = bool(smtp_enabled)
     cfg.smtp.host = smtp_host.strip()
@@ -955,7 +1036,6 @@ async def settings_save(
     save_config(cfg)
     setup_scheduler(cfg)
 
-    db: Database = request.app.state.db
     cars = await db.get_cars()
     locations = await get_available_locations_for_work(db)
     db_tm_url, db_graf_url = await get_effective_service_urls(db, None)

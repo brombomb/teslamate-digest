@@ -27,9 +27,12 @@
           </h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Configure your SMTP server or Gmail credentials to dispatch digests to your inbox.</p>
         </div>
-        <div class="flex items-center space-x-3 self-start sm:self-auto">
+        <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <button type="button" onclick="testSmtpConnection()" id="test-smtp-btn" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition shadow-sm">
             <span>🔌</span> Test Connection
+          </button>
+          <button type="button" onclick="sendTestEmail()" id="send-test-btn" class="px-3.5 py-1.5 bg-tesla hover:bg-red-700 text-white text-xs font-bold rounded-lg border border-transparent flex items-center gap-1.5 transition shadow-sm">
+            <span>📧</span> Send Test Email
           </button>
           <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
             <input type="checkbox" name="smtp_enabled" {% if config.smtp.enabled %}checked{% endif %} class="rounded bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
@@ -107,6 +110,8 @@
         </button>
       </div>
 
+      <div id="schedule-run-result" class="hidden text-xs rounded-lg p-3 transition"></div>
+
       <input type="hidden" name="schedules_json" id="schedules_json" value="">
 
       <!-- SCHEDULE CARDS CONTAINER -->
@@ -121,9 +126,14 @@
               </label>
               <input type="text" class="sched-name bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-white flex-1 max-w-sm" placeholder="Schedule Name (e.g. Monthly Fleet Retrospective)" value="{{ s.name }}">
             </div>
-            <button type="button" onclick="removeScheduleRow(this)" class="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-500/10 transition" title="Delete Schedule">
-              ✕ Remove
-            </button>
+            <div class="flex items-center space-x-2">
+              <button type="button" onclick="runScheduleNow(this)" class="sched-run-btn text-xs bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold px-2.5 py-1 rounded transition flex items-center gap-1 shadow-sm" title="Dispatch this schedule immediately">
+                <span>🚀</span> Run Now
+              </button>
+              <button type="button" onclick="removeScheduleRow(this)" class="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-500/10 transition" title="Delete Schedule">
+                ✕ Remove
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-4 sm:grid-cols-2 gap-3 text-xs">
@@ -1024,9 +1034,14 @@
         </label>
         <input type="text" class="sched-name bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-white flex-1 max-w-sm" placeholder="Schedule Name (e.g. Weekly Commute Summary)" value="New Digest Schedule">
       </div>
-      <button type="button" onclick="removeScheduleRow(this)" class="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-500/10 transition" title="Delete Schedule">
-        ✕ Remove
-      </button>
+      <div class="flex items-center space-x-2">
+        <button type="button" onclick="runScheduleNow(this)" class="sched-run-btn text-xs bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold px-2.5 py-1 rounded transition flex items-center gap-1 shadow-sm" title="Dispatch this schedule immediately">
+          <span>🚀</span> Run Now
+        </button>
+        <button type="button" onclick="removeScheduleRow(this)" class="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-500/10 transition" title="Delete Schedule">
+          ✕ Remove
+        </button>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-4 sm:grid-cols-2 gap-3 text-xs">
@@ -2163,6 +2178,109 @@ async function testSmtpConnection() {
     resEl.innerHTML = `<strong>✕ Network Error:</strong> Could not connect to backend (${escapeHtml(err.message)})`;
   } finally {
     resEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+async function sendTestEmail() {
+  const btn = document.getElementById('send-test-btn');
+  const resEl = document.getElementById('smtp-test-result');
+  if (!btn || !resEl) return;
+
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Sending...';
+  resEl.className = 'text-xs rounded-lg p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center gap-2';
+  resEl.innerHTML = '<span>⏳</span> Dispatching test email using SMTP settings...';
+  resEl.classList.remove('hidden');
+
+  const host = document.getElementById('smtp_host')?.value.trim() || '';
+  const port = parseInt(document.getElementById('smtp_port')?.value.trim() || '587', 10);
+  const user = document.getElementById('smtp_user')?.value.trim() || '';
+  const password = document.getElementById('smtp_password')?.value || '';
+  const senderEmail = document.getElementById('smtp_sender_email')?.value.trim() || '';
+  const senderName = document.getElementById('smtp_sender_name')?.value.trim() || '';
+  const recipient = document.getElementById('smtp_recipient_email')?.value.trim() || '';
+  const useTls = document.getElementById('use_tls')?.checked ?? true;
+  const useSsl = document.getElementById('use_ssl')?.checked ?? false;
+
+  try {
+    const resp = await fetch('/api/send-test-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        host: host,
+        port: port,
+        user: user,
+        password: password,
+        sender_email: senderEmail,
+        sender_name: senderName,
+        recipient: recipient,
+        use_tls: useTls,
+        use_ssl: useSsl
+      })
+    });
+    const result = await resp.json();
+    if (result.success) {
+      resEl.className = 'text-xs rounded-lg p-3 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
+      resEl.innerHTML = `<strong>✓ Email Delivered:</strong> ${escapeHtml(result.message)}`;
+    } else {
+      resEl.className = 'text-xs rounded-lg p-3 bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30';
+      resEl.innerHTML = `<strong>✕ Delivery Failed:</strong> ${escapeHtml(result.message)}`;
+    }
+  } catch (err) {
+    resEl.className = 'text-xs rounded-lg p-3 bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30';
+    resEl.innerHTML = `<strong>✕ Network Error:</strong> Could not connect to backend (${escapeHtml(err.message)})`;
+  } finally {
+    resEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+async function runScheduleNow(btn) {
+  const card = btn.closest('.schedule-card');
+  if (!card) return;
+  const scheduleId = card.dataset.id;
+  const schedName = card.querySelector('.sched-name')?.value || 'Digest Schedule';
+  const resEl = document.getElementById('schedule-run-result');
+
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Sending...';
+
+  if (resEl) {
+    resEl.className = 'text-xs rounded-lg p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center gap-2';
+    resEl.innerHTML = `<span>⏳</span> Generating and dispatching "${escapeHtml(schedName)}"...`;
+    resEl.classList.remove('hidden');
+  }
+
+  try {
+    const resp = await fetch('/api/schedules/run-now', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schedule_id: scheduleId })
+    });
+    const result = await resp.json();
+    if (result.success) {
+      if (resEl) {
+        resEl.className = 'text-xs rounded-lg p-3 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
+        resEl.innerHTML = `<strong>✓ Dispatched:</strong> ${escapeHtml(result.message || 'Digest successfully dispatched to your inbox!')}`;
+      }
+    } else {
+      if (resEl) {
+        resEl.className = 'text-xs rounded-lg p-3 bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30';
+        resEl.innerHTML = `<strong>✕ Dispatch Failed:</strong> ${escapeHtml(result.message || 'Unknown error occurred.')}`;
+      }
+    }
+  } catch (err) {
+    if (resEl) {
+      resEl.className = 'text-xs rounded-lg p-3 bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30';
+      resEl.innerHTML = `<strong>✕ Network Error:</strong> Could not connect to backend (${escapeHtml(err.message)})`;
+    }
+  } finally {
+    if (resEl) resEl.classList.remove('hidden');
     btn.disabled = false;
     btn.innerHTML = originalHtml;
   }

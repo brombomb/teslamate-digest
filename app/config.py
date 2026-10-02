@@ -37,6 +37,16 @@ class ScheduleItem(BaseModel):
     recipient_email: str = ""  # override or empty for default SMTP recipient
     theme: str = "pearl_white"
 
+    @field_validator("target_car_id", mode="before")
+    @classmethod
+    def parse_target_car_id(cls, v: Any) -> Optional[int]:
+        if v is None or v == "" or v == "null" or v == "None":
+            return None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
+
 
 class ScheduleSettings(BaseModel):
     enabled: bool = True
@@ -112,6 +122,16 @@ class WorkRouteItem(BaseModel):
     point_b: str
     bidirectional: bool = True
     target_car_id: Optional[int] = None
+
+    @field_validator("target_car_id", mode="before")
+    @classmethod
+    def parse_target_car_id(cls, v: Any) -> Optional[int]:
+        if v is None or v == "" or v == "null" or v == "None":
+            return None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
 
 
 class ModuleToggles(BaseModel):
@@ -210,6 +230,16 @@ class AppConfig(BaseModel):
     irs_mileage_rate: float = 0.67
     commute_target_car_id: Optional[int] = None
 
+    @field_validator("commute_target_car_id", mode="before")
+    @classmethod
+    def parse_commute_target_car_id(cls, v: Any) -> Optional[int]:
+        if v is None or v == "" or v == "null" or v == "None":
+            return None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
+
 
 def load_config() -> AppConfig:
     from app.storage import load_config_data, save_config_data
@@ -254,7 +284,8 @@ def load_config() -> AppConfig:
                     pass
             return cfg
         except Exception as e:
-            print(f"[Config] Error parsing config from storage: {e}. Using defaults.")
+            print(f"[Config] Error parsing config from storage: {e}. Preserving raw storage and returning fallback in-memory config.")
+            return AppConfig()
 
     cfg = AppConfig()
     save_config(cfg)
