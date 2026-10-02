@@ -220,7 +220,7 @@ def generate_tou_chart(
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
 
 
-def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[Dict[str, Any]] = None, as_bytes: bool = False):
+def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[Dict[str, Any]] = None, as_bytes: bool = False, unit: str = "mi"):
     """
     Battery health trend chart showing estimated 100% rated range over time per car.
     Styled according to active theme.
@@ -238,17 +238,17 @@ def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[D
         if len(trend) >= 2:
             has_data = True
             months = [t["month"].split("-")[1] + "/" + t["month"].split("-")[0][2:] for t in trend]
-            ranges = [t["avg_range_mi"] for t in trend]
+            ranges = [t.get("avg_range_km", round(t["avg_range_mi"] / 0.621371, 1)) if unit == "km" else t["avg_range_mi"] for t in trend]
             color = car_palette[idx % len(car_palette)]
             ax.plot(months, ranges, marker="o", markersize=5, linewidth=2, color=color, label=f"{car['car_name']} ({car['model']})", zorder=3)
-            ax.annotate(f"{ranges[-1]:.0f} mi", (months[-1], ranges[-1]), textcoords="offset points", xytext=(8, -2), color=color, fontweight="bold", fontsize=8.5)
+            ax.annotate(f"{ranges[-1]:.0f} {unit}", (months[-1], ranges[-1]), textcoords="offset points", xytext=(8, -2), color=color, fontweight="bold", fontsize=8.5)
 
     if not has_data:
         for idx, car in enumerate(cars):
             color = car_palette[idx % len(car_palette)]
-            cur_r = car.get("current_estimated_range_mi", 280)
-            ax.bar(car["car_name"], cur_r, color=color, width=0.4, label=f"{car['car_name']} ({cur_r:.0f} mi)")
-        ax.set_ylabel("100% Rated Range (mi)", color=c["muted"], fontsize=8.5)
+            cur_r = car.get("current_estimated_range_km", car.get("current_estimated_range_mi", 280) / 0.621371) if unit == "km" else car.get("current_estimated_range_mi", 280)
+            ax.bar(car["car_name"], cur_r, color=color, width=0.4, label=f"{car['car_name']} ({cur_r:.0f} {unit})")
+        ax.set_ylabel(f"100% Rated Range ({unit})", color=c["muted"], fontsize=8.5)
 
     ax.tick_params(axis="both", colors=c["muted"], labelsize=8.5, length=0)
     for spine in ax.spines.values():
@@ -256,7 +256,7 @@ def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[D
 
     ax.grid(axis="y", color=c["grid"], linestyle="--", alpha=0.7, zorder=1)
     ax.legend(facecolor=c["plot_bg"], edgecolor=c["grid"], labelcolor=c["text"], fontsize=8, loc="upper right")
-    ax.set_title("100% Battery Rated Range Trend (mi)", color=c["text"], fontsize=10.5, fontweight="bold", pad=10, loc="left")
+    ax.set_title(f"100% Battery Rated Range Trend ({unit})", color=c["text"], fontsize=10.5, fontweight="bold", pad=10, loc="left")
 
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
 

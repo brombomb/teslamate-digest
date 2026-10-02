@@ -156,6 +156,7 @@ async def get_work_mileage_analytics(
             "target_car_id": route_car_id,
             "trip_count": matching_trips,
             "total_miles": round(matching_miles, 1),
+            "total_km": round(matching_miles / 0.621371, 1),
             "irs_deduction": round(deduction, 2)
         })
 
@@ -166,6 +167,7 @@ async def get_work_mileage_analytics(
         "total_routes": len(route_results),
         "total_trips": overall_trips,
         "total_miles": round(overall_miles, 1),
+        "total_km": round(overall_miles / 0.621371, 1),
         "total_irs_deduction": round(total_deduction, 2),
         "irs_rate": irs_rate,
         "target_car_id": commute_target_car_id,

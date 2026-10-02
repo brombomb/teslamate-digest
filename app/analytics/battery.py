@@ -6,7 +6,8 @@ from app.db import Database
 async def get_battery_health_analytics(
     db: Database,
     end_date: datetime,
-    car_id: Optional[int] = None
+    car_id: Optional[int] = None,
+    length_unit: str = "mi"
 ) -> Dict[str, Any]:
     car_filter = "WHERE cp.car_id = $1" if car_id else ""
     args = [car_id] if car_id else []
@@ -97,7 +98,12 @@ async def get_battery_health_analytics(
             monthly_trend[m_key].append(p["range_mi"])
 
         trend_series = [
-            {"month": m, "avg_range_mi": round(sum(vals) / len(vals), 1)}
+            {
+                "month": m,
+                "avg_range_mi": round(sum(vals) / len(vals), 1),
+                "avg_range_km": round((sum(vals) / len(vals)) / 0.621371, 1),
+                "avg_range": round(sum(vals) / len(vals), 1) if length_unit == "mi" else round((sum(vals) / len(vals)) / 0.621371, 1)
+            }
             for m, vals in sorted(monthly_trend.items())
         ]
 
@@ -105,15 +111,24 @@ async def get_battery_health_analytics(
             "car_id": cid,
             "car_name": car_info["car_name"],
             "model": car_info["model"],
+            "unit": length_unit,
+            "current_estimated_range": round(current_avg, 1) if length_unit == "mi" else round(current_avg / 0.621371, 1),
             "current_estimated_range_mi": round(current_avg, 1),
+            "current_estimated_range_km": round(current_avg / 0.621371, 1),
             "prev_estimated_range_mi": round(prev_avg, 1),
+            "prev_estimated_range_km": round(prev_avg / 0.621371, 1),
             "month_over_month_delta_mi": round(month_over_month_delta, 1),
+            "month_over_month_delta_km": round(month_over_month_delta / 0.621371, 1),
+            "factory_baseline_range": round(all_time_max, 1) if length_unit == "mi" else round(all_time_max / 0.621371, 1),
             "factory_baseline_range_mi": round(all_time_max, 1),
+            "factory_baseline_range_km": round(all_time_max / 0.621371, 1),
             "degradation_pct": round(degradation_pct, 1),
             "capacity_retained_pct": round(capacity_retained_pct, 1),
             "health_grade": health_grade,
             "health_color": health_color,
+            "latest_odometer": round(latest_odometer) if length_unit == "mi" else round(latest_odometer / 0.621371),
             "latest_odometer_mi": round(latest_odometer),
+            "latest_odometer_km": round(latest_odometer / 0.621371),
             "trend_series": trend_series[-6:]  # Last 6 months
         })
 

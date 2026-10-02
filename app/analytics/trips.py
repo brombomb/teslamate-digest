@@ -53,10 +53,14 @@ async def get_trip_analytics(
         SELECT 
             d.id,
             d.start_date,
+            d.distance as distance_km,
             d.distance * 0.621371 as distance_mi,
             d.duration_min,
+            d.speed_max as speed_max_kmh,
             d.speed_max * 0.621371 as speed_max_mph,
+            d.ascent as ascent_m,
             d.ascent * 3.28084 as ascent_ft,
+            d.descent as descent_m,
             d.descent * 3.28084 as descent_ft,
             coalesce(g_start.name, a_start.name, a_start.road, 'Starting point') as start_location,
             a_start.city as start_city,
@@ -78,11 +82,16 @@ async def get_trip_analytics(
     if longest and longest["distance_mi"] is not None:
         longest_drive = {
             "distance_mi": round(float(longest["distance_mi"] or 0), 1),
+            "distance_km": round(float(longest["distance_km"] or 0), 1),
             "duration_min": int(longest["duration_min"] or 0),
             "start_location": f"{longest['start_location']}" + (f", {longest['start_city']}" if longest['start_city'] else ""),
             "end_location": f"{longest['end_location']}" + (f", {longest['end_city']}" if longest['end_city'] else ""),
             "ascent_ft": round(float(longest["ascent_ft"] or 0)),
+            "ascent_m": round(float(longest["ascent_m"] or 0)),
             "descent_ft": round(float(longest["descent_ft"] or 0)),
+            "descent_m": round(float(longest["descent_m"] or 0)),
+            "speed_max_mph": round(float(longest["speed_max_mph"] or 0), 1),
+            "speed_max_kmh": round(float(longest["speed_max_kmh"] or 0), 1),
             "date": longest["start_date"].strftime("%b %d, %Y")
         }
 
@@ -144,7 +153,9 @@ async def get_trip_analytics(
         "total_km": round(total_km, 1),
         "total_duration_hours": round(duration_min / 60.0, 1),
         "avg_trip_miles": round(total_miles / drives_count, 1) if drives_count > 0 else 0.0,
+        "avg_trip_km": round(total_km / drives_count, 1) if drives_count > 0 else 0.0,
         "top_speed_mph": round(top_speed_mph, 1),
+        "top_speed_kmh": round(float(top_speed_kmh), 1),
         "elevation": {
             "ascent_ft": round(ascent_ft),
             "descent_ft": round(descent_ft),

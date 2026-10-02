@@ -91,9 +91,10 @@ class RatesSettings(BaseModel):
 
 
 class UnitSettings(BaseModel):
-    length: str = "mi"       # mi or km
-    temp: str = "F"          # F or C
-    pressure: str = "psi"    # psi or bar
+    unit_system: str = "auto"  # auto (mirror teslamate-db), imperial, metric, custom
+    length: str = "mi"         # mi or km
+    temp: str = "F"            # F or C
+    pressure: str = "psi"      # psi or bar
     currency: str = "$"
 
 

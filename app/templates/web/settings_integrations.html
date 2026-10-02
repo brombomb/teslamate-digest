@@ -710,7 +710,62 @@
       </details>
     </div>
 
-    <!-- 6. EXCLUDED LOCATIONS & MAINTENANCE INTERVAL -->
+    <!-- 6. UNITS OF MEASUREMENT & REGIONAL SETTINGS -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>📏</span> Units of Measurement
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Control distance, tire pressure, temperature, and currency units throughout reports and web interfaces.</p>
+        </div>
+        {% if effective_units %}
+        <div class="flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono shrink-0">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>TeslaMate DB: {{ effective_units.db_length }} &bull; °{{ effective_units.db_temp }} &bull; {{ effective_units.db_pressure }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Unit System</label>
+          <select id="unit_system_select" name="unit_system" onchange="toggleCustomUnits(this.value)" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-tesla/30 focus:border-tesla">
+            <option value="auto" {% if config.units.unit_system == 'auto' or not config.units.unit_system %}selected{% endif %}>Auto (Mirror TeslaMate DB)</option>
+            <option value="imperial" {% if config.units.unit_system == 'imperial' %}selected{% endif %}>Imperial (Miles, °F, PSI)</option>
+            <option value="metric" {% if config.units.unit_system == 'metric' %}selected{% endif %}>Metric (Kilometers, °C, Bar)</option>
+            <option value="custom" {% if config.units.unit_system == 'custom' %}selected{% endif %}>Custom Override</option>
+          </select>
+          <p class="text-[11px] text-slate-400 mt-1">"Auto" dynamically reads unit preferences set in your TeslaMate PostgreSQL database.</p>
+        </div>
+
+        <div id="custom-unit-length" class="{% if config.units.unit_system != 'custom' %}opacity-60 pointer-events-none{% endif %} transition-opacity">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Distance &amp; Speed</label>
+          <select id="unit_length_select" name="unit_length" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-medium">
+            <option value="mi" {% if effective_units.length == 'mi' %}selected{% endif %}>Miles (mi / mph / ft)</option>
+            <option value="km" {% if effective_units.length == 'km' %}selected{% endif %}>Kilometers (km / km/h / m)</option>
+          </select>
+          <p class="text-[11px] text-slate-400 mt-1">Active: {{ effective_units.length }} ({{ effective_units.speed }})</p>
+        </div>
+
+        <div id="custom-unit-pressure" class="{% if config.units.unit_system != 'custom' %}opacity-60 pointer-events-none{% endif %} transition-opacity">
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Tire Pressure (TPMS)</label>
+          <select id="unit_pressure_select" name="unit_pressure" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-medium">
+            <option value="psi" {% if effective_units.pressure == 'psi' %}selected{% endif %}>PSI (Pounds per sq in)</option>
+            <option value="bar" {% if effective_units.pressure == 'bar' %}selected{% endif %}>Bar</option>
+          </select>
+          <p class="text-[11px] text-slate-400 mt-1">Active: {{ effective_units.pressure }}</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Currency Symbol</label>
+          <input type="text" name="unit_currency" value="{{ config.units.currency or '$' }}" maxlength="4" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono text-center">
+          <p class="text-[11px] text-slate-400 mt-1">Prefix for all costs &amp; savings (e.g. $, €, £, C$).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. EXCLUDED LOCATIONS & MAINTENANCE INTERVAL -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
       <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
         <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -752,6 +807,31 @@
 </div>
 
 <script>
+// --- 0. UNITS OF MEASUREMENT ---
+function toggleCustomUnits(mode) {
+  const isCustom = (mode === 'custom');
+  const lengthDiv = document.getElementById('custom-unit-length');
+  const pressureDiv = document.getElementById('custom-unit-pressure');
+  if (isCustom) {
+    if (lengthDiv) { lengthDiv.classList.remove('opacity-60', 'pointer-events-none'); }
+    if (pressureDiv) { pressureDiv.classList.remove('opacity-60', 'pointer-events-none'); }
+  } else {
+    if (lengthDiv) { lengthDiv.classList.add('opacity-60', 'pointer-events-none'); }
+    if (pressureDiv) { pressureDiv.classList.add('opacity-60', 'pointer-events-none'); }
+    if (mode === 'imperial') {
+      const lSel = document.getElementById('unit_length_select');
+      const pSel = document.getElementById('unit_pressure_select');
+      if (lSel) lSel.value = 'mi';
+      if (pSel) pSel.value = 'psi';
+    } else if (mode === 'metric') {
+      const lSel = document.getElementById('unit_length_select');
+      const pSel = document.getElementById('unit_pressure_select');
+      if (lSel) lSel.value = 'km';
+      if (pSel) pSel.value = 'bar';
+    }
+  }
+}
+
 // --- 1. RATE STRUCTURE & PRESETS ---
 function switchRateMode(mode) {
   const modeInput = document.getElementById('rate_mode_input');

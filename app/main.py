@@ -42,6 +42,7 @@ from app.mailer import Mailer
 from app.services.gas_prices import fetch_gas_price_details
 from app.services.electric_rates import fetch_electric_rates, search_electric_rate_plans
 from app.services.homeassistant import verify_ha_connection, discover_ha_solar_entities
+from app.services.units import get_effective_units
 from app.storage import get_recent_dispatches
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -939,6 +940,8 @@ async def settings_integrations_view(request: Request):
         except Exception:
             locations = []
 
+    effective_units = await get_effective_units(db, cfg)
+
     return templates.TemplateResponse(
         "settings_integrations.html",
         {
@@ -946,6 +949,7 @@ async def settings_integrations_view(request: Request):
             "active_nav": "integrations",
             "active_tab": "integrations",
             "config": cfg,
+            "effective_units": effective_units,
             "db_tm_url": db_tm_url,
             "db_graf_url": db_graf_url,
             "cars": cars,
@@ -1009,9 +1013,27 @@ async def settings_integrations_save(
     ha_grid_import: Optional[str] = Form(""),
     ha_grid_export: Optional[str] = Form(""),
     ha_home_load: Optional[str] = Form(""),
+    unit_system: str = Form("auto"),
+    unit_length: Optional[str] = Form(None),
+    unit_temp: Optional[str] = Form(None),
+    unit_pressure: Optional[str] = Form(None),
+    unit_currency: Optional[str] = Form(None),
 ):
     cfg = load_config()
     db = getattr(request.app.state, "db", None)
+
+    if getattr(cfg, "units", None) is None:
+        from app.config import UnitSettings
+        cfg.units = UnitSettings()
+    cfg.units.unit_system = (unit_system or "auto").strip().lower()
+    if unit_length and unit_length.strip():
+        cfg.units.length = unit_length.strip().lower()
+    if unit_temp and unit_temp.strip():
+        cfg.units.temp = unit_temp.strip().upper()
+    if unit_pressure and unit_pressure.strip():
+        cfg.units.pressure = unit_pressure.strip().lower()
+    if unit_currency and unit_currency.strip():
+        cfg.units.currency = unit_currency.strip()
 
     cfg.dashboard_url = dashboard_url.strip() or "http://localhost:8660"
     if teslamate_url is not None:
@@ -1138,6 +1160,8 @@ async def settings_integrations_save(
         except Exception:
             pass
 
+    effective_units = await get_effective_units(db, cfg)
+
     return templates.TemplateResponse(
         "settings_integrations.html",
         {
@@ -1145,6 +1169,7 @@ async def settings_integrations_save(
             "active_nav": "integrations",
             "active_tab": "integrations",
             "config": cfg,
+            "effective_units": effective_units,
             "db_tm_url": db_tm_url,
             "db_graf_url": db_graf_url,
             "cars": cars,

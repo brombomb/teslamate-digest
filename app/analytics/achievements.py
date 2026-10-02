@@ -382,17 +382,20 @@ async def get_achievements_analytics(
     db: Database,
     start_date: datetime,
     end_date: datetime,
-    car_id: Optional[int] = None
+    car_id: Optional[int] = None,
+    units: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Evaluates driving achievements and gamification badges from TeslaMate database,
-    identifies achievements active/unlocked during this reporting period,
+    identifies achievements specifically earned/active during this reporting period,
     and returns progress breakdown across categories.
     """
+    length_unit = (units.get("length") if units else "mi") or "mi"
+    is_miles = (length_unit == "mi")
+
     c_filter = f"WHERE car_id = {car_id}" if car_id else ""
     c_and_d = f"AND d.car_id = {car_id}" if car_id else ""
     c_and_cp = f"AND cp.car_id = {car_id}" if car_id else ""
-    c_and_p = f"AND p.car_id = {car_id}" if car_id else ""
 
     p_filter_d = f"AND d.start_date >= '{start_date.isoformat()}' AND d.start_date < '{end_date.isoformat()}'"
     p_filter_cp = f"AND cp.start_date >= '{start_date.isoformat()}' AND cp.start_date < '{end_date.isoformat()}'"
@@ -410,14 +413,22 @@ async def get_achievements_analytics(
           coalesce(sum(distance) FILTER (WHERE EXTRACT(HOUR FROM start_date) BETWEEN 0 AND 6), 0) as night_dist,
           bool_or(distance > 50 AND (start_rated_range_km - end_rated_range_km) > 0 AND distance > (start_rated_range_km - end_rated_range_km)) as hypermiler,
           bool_or(EXTRACT(HOUR FROM start_date) BETWEEN 2 AND 5) as night_rider,
+          bool_or(speed_max > 180) as speedster,
+          bool_or(outside_temp_avg > 40) as inferno_rider,
+          bool_or(outside_temp_avg < -10) as ice_road_trucker,
+          coalesce(sum(ascent), 0) as total_climb_m,
           -- Period-specific drive milestones
           bool_or(distance > 50 AND (start_rated_range_km - end_rated_range_km) > 0 AND distance > (start_rated_range_km - end_rated_range_km) {p_filter_d}) as period_hypermiler,
           bool_or(EXTRACT(HOUR FROM start_date) BETWEEN 2 AND 5 {p_filter_d}) as period_night_rider,
           coalesce(sum(distance) FILTER (WHERE 1=1 {p_filter_d}), 0) as period_dist,
-          bool_or(speed_max > 180) as speedster,
-          bool_or(outside_temp_avg > 40) as inferno_rider,
-          bool_or(outside_temp_avg < -10) as ice_road_trucker,
-          coalesce(sum(ascent), 0) as total_climb_m
+          coalesce(count(*) FILTER (WHERE 1=1 {p_filter_d}), 0) as period_drives,
+          coalesce(sum(duration_min) FILTER (WHERE 1=1 {p_filter_d}), 0) as period_drive_min,
+          coalesce(sum(ascent) FILTER (WHERE 1=1 {p_filter_d}), 0) as period_climb_m,
+          bool_or(speed_max > 180 {p_filter_d}) as period_speedster,
+          bool_or(outside_temp_avg > 40 {p_filter_d}) as period_inferno_rider,
+          bool_or(outside_temp_avg < -10 {p_filter_d}) as period_ice_road_trucker,
+          bool_or(distance > 500 {p_filter_d}) as period_daily_marathoner,
+          bool_or(distance > 400 {p_filter_d}) as period_iron_butt
         FROM drives d {c_filter}
       ),
       c_stats AS (
@@ -433,6 +444,11 @@ async def get_achievements_analytics(
           count(*) FILTER (WHERE duration_min > 0 AND (charge_energy_added / NULLIF(duration_min/60.0, 0)) < 22) as ac_charges,
           count(*) FILTER (WHERE duration_min > 0 AND (charge_energy_added / NULLIF(duration_min/60.0, 0)) > 50) as fast_charges,
           -- Period-specific charging
+          coalesce(count(*) FILTER (WHERE 1=1 {p_filter_cp}), 0) as period_charges,
+          coalesce(sum(duration_min) FILTER (WHERE 1=1 {p_filter_cp}), 0) as period_charge_min,
+          coalesce(sum(charge_energy_added) FILTER (WHERE 1=1 {p_filter_cp}), 0) as period_charge_kwh,
+          coalesce(sum(charge_energy_added) FILTER (WHERE (cost = 0 OR cost IS NULL) {p_filter_cp}), 0) as period_free_kwh,
+          count(*) FILTER (WHERE end_battery_level BETWEEN 80 AND 90 {p_filter_cp}) as period_opt_charges,
           bool_or(start_battery_level < 10 AND end_battery_level > 95 {p_filter_cp}) as period_full_cycle
         FROM charging_processes cp {c_filter}
       ),
@@ -446,12 +462,21 @@ async def get_achievements_analytics(
         WHERE 1=1 {c_and_d}
       ),
       home_dist AS (
-        SELECT coalesce(max(
-          6371 * acos(LEAST(1.0, GREATEST(-1.0,
-            cos(radians(g.latitude)) * cos(radians(p.latitude)) * cos(radians(p.longitude) - radians(g.longitude)) +
-            sin(radians(g.latitude)) * sin(radians(p.latitude))
-          )))
-        ), 0) as max_home_dist_km
+        SELECT 
+          coalesce(max(
+            6371 * acos(LEAST(1.0, GREATEST(-1.0,
+              cos(radians(g.latitude)) * cos(radians(p.latitude)) * cos(radians(p.longitude) - radians(g.longitude)) +
+              sin(radians(g.latitude)) * sin(radians(p.latitude))
+            )))
+          ), 0) as max_home_dist_km,
+          coalesce(max(
+            CASE WHEN 1=1 {p_filter_d} THEN
+              6371 * acos(LEAST(1.0, GREATEST(-1.0,
+                cos(radians(g.latitude)) * cos(radians(p.latitude)) * cos(radians(p.longitude) - radians(g.longitude)) +
+                sin(radians(g.latitude)) * sin(radians(p.latitude))
+              )))
+            ELSE 0 END
+          ), 0) as period_max_home_dist_km
         FROM drives d
         JOIN positions p ON p.id = d.end_position_id
         JOIN geofences g ON (g.name ILIKE '%Home%' OR g.name ILIKE '%Casa%')
@@ -466,13 +491,17 @@ async def get_achievements_analytics(
         WHERE 1=1 {c_and_cp}
       ),
       low_batt AS (
-        SELECT bool_or(p.battery_level < 5) as living_on_edge
+        SELECT 
+          bool_or(p.battery_level < 5) as living_on_edge,
+          bool_or(p.battery_level < 5 {p_filter_d}) as period_living_on_edge
         FROM drives d
         JOIN positions p ON p.id = d.end_position_id
         WHERE 1=1 {c_and_d}
       ),
       temp_charge AS (
-        SELECT bool_or(p.outside_temp < 0) as sub_zero
+        SELECT 
+          bool_or(p.outside_temp < 0) as sub_zero,
+          bool_or(p.outside_temp < 0 {p_filter_cp}) as period_sub_zero
         FROM charging_processes cp
         JOIN positions p ON p.id = cp.position_id
         WHERE 1=1 {c_and_cp}
@@ -571,18 +600,98 @@ async def get_achievements_analytics(
         "mountaineer": float(row.get("total_climb_m") or 0.0) >= 10000,
     }
 
-    # Achievements active/seen during this period
-    period_active_ids = set()
+    period_dist = float(row.get("period_dist") or 0.0)
+    period_drives = int(row.get("period_drives") or 0)
+    period_drive_min = float(row.get("period_drive_min") or 0.0)
+    total_drive_min = float(row.get("total_drive_min") or 0.0)
+    period_climb_m = float(row.get("period_climb_m") or 0.0)
+    total_climb_m = float(row.get("total_climb_m") or 0.0)
+    free_charge_kwh = float(row.get("free_charge_kwh") or 0.0)
+    period_free_kwh = float(row.get("period_free_kwh") or 0.0)
+    total_charge_min = float(row.get("total_charge_min") or 0.0)
+    period_charge_min = float(row.get("period_charge_min") or 0.0)
+    opt_charges = int(row.get("opt_charges") or 0)
+    period_opt_charges = int(row.get("period_opt_charges") or 0)
+
+    # Badges earned specifically during this reporting period
+    period_earned_ids = set()
+
+    # 1. Event-based achievements that triggered during this period
     if row.get("period_hypermiler"):
-        period_active_ids.add("hypermiler")
+        period_earned_ids.add("hypermiler")
     if row.get("period_sc_junkie"):
-        period_active_ids.add("supercharger_junkie")
+        period_earned_ids.add("supercharger_junkie")
+    if row.get("period_living_on_edge"):
+        period_earned_ids.add("living_on_edge")
     if row.get("period_night_rider"):
-        period_active_ids.add("night_rider")
+        period_earned_ids.add("night_rider")
+    if row.get("period_speedster"):
+        period_earned_ids.add("speedster")
+    if row.get("period_inferno_rider"):
+        period_earned_ids.add("inferno_rider")
+    if row.get("period_ice_road_trucker"):
+        period_earned_ids.add("ice_road_trucker")
+    if row.get("period_sub_zero"):
+        period_earned_ids.add("sub_zero")
     if row.get("period_full_cycle"):
-        period_active_ids.add("full_cycle")
-    if float(row.get("period_dist") or 0.0) > 0:
-        period_active_ids.add("total_marathoner")
+        period_earned_ids.add("full_cycle")
+    if row.get("period_daily_marathoner"):
+        period_earned_ids.add("daily_marathoner")
+    if row.get("period_iron_butt"):
+        period_earned_ids.add("iron_butt")
+    if float(row.get("period_max_home_dist_km") or 0.0) >= 300:
+        period_earned_ids.add("adventurer")
+    if float(row.get("period_max_home_dist_km") or 0.0) >= 500:
+        period_earned_ids.add("globetrotter")
+
+    # 2. Cumulative milestones newly crossed during this period
+    pre_dist = total_dist - period_dist
+    if total_dist >= 10000 and pre_dist < 10000:
+        period_earned_ids.add("total_marathoner")
+    if total_dist >= 40075 and pre_dist < 40075:
+        period_earned_ids.add("around_the_world")
+    if total_dist >= 42500 and pre_dist < 42500:
+        period_earned_ids.add("iss_orbiter")
+
+    pre_drive_min = total_drive_min - period_drive_min
+    if total_drive_min >= 1440 and pre_drive_min < 1440:
+        period_earned_ids.add("lemans_24h")
+    if total_drive_min >= 6000 and pre_drive_min < 6000:
+        period_earned_ids.add("road_tourist")
+    if total_drive_min >= 10080 and pre_drive_min < 10080:
+        period_earned_ids.add("week_on_road")
+
+    if total_climb_m >= 10000 and (total_climb_m - period_climb_m) < 10000:
+        period_earned_ids.add("mountaineer")
+
+    pre_co2 = pre_dist * 0.12
+    if co2_kg >= 1000 and pre_co2 < 1000:
+        period_earned_ids.add("planet_guardian")
+    if co2_kg >= 5000 and pre_co2 < 5000:
+        period_earned_ids.add("climate_hero")
+    if co2_kg >= (50 * 22) and pre_co2 < (50 * 22):
+        period_earned_ids.add("personal_forest")
+    if co2_kg >= (200 * 22) and pre_co2 < (200 * 22):
+        period_earned_ids.add("amazon_rainforest")
+
+    if free_charge_kwh >= 100 and (free_charge_kwh - period_free_kwh) < 100:
+        period_earned_ids.add("bounty_hunter")
+    if free_charge_kwh >= 1000 and (free_charge_kwh - period_free_kwh) < 1000:
+        period_earned_ids.add("freeloader")
+
+    pre_charge_min = total_charge_min - period_charge_min
+    if total_charge_min >= 600 and pre_charge_min < 600:
+        period_earned_ids.add("patient_lvl1")
+    if total_charge_min >= 3000 and pre_charge_min < 3000:
+        period_earned_ids.add("patient_lvl2")
+    if total_charge_min >= 6000 and pre_charge_min < 6000:
+        period_earned_ids.add("patient_lvl3")
+
+    if opt_charges >= 100 and (opt_charges - period_opt_charges) < 100:
+        period_earned_ids.add("the_optimizer")
+
+    if total_drives > 0 and (total_drives - period_drives) == 0:
+        period_earned_ids.add("first_spark")
 
     all_badges = []
     unlocked_count = 0
@@ -591,7 +700,7 @@ async def get_achievements_analytics(
     for ach in ACHIEVEMENT_DEFINITIONS:
         aid = ach["id"]
         is_unlocked = unlocked_map.get(aid, False)
-        is_period = aid in period_active_ids
+        is_period = aid in period_earned_ids
         if is_unlocked:
             unlocked_count += 1
 
@@ -599,6 +708,7 @@ async def get_achievements_analytics(
             **ach,
             "unlocked": is_unlocked,
             "period_active": is_period,
+            "earned_this_period": is_period and is_unlocked,
         }
         all_badges.append(badge)
 
@@ -621,15 +731,88 @@ async def get_achievements_analytics(
         cat["pct"] = int((unlocked / total) * 100) if total > 0 else 0
         categories_list.append(cat)
 
-    # Highlight top unlocked badges (prioritizing period active and iconic badges)
-    highlighted = sorted(
-        [b for b in all_badges if b["unlocked"]],
-        key=lambda x: (x.get("period_active", False), x["category"]),
-        reverse=True
-    )[:6]
+    # Badges earned during this period ONLY
+    earned_this_period = [b for b in all_badges if b["unlocked"] and b.get("period_active")]
 
-    # Recent period highlights
-    recent_unlocked = [b for b in all_badges if b["unlocked"] and b.get("period_active")]
+    # Calculate next milestone targets if no badges earned this period
+    next_milestones = []
+    milestone_candidates = [
+        {
+            "id": "total_marathoner",
+            "name": "Total Marathoner",
+            "icon": "🏃",
+            "current": total_dist * (0.621371 if is_miles else 1.0),
+            "target": 6214.0 if is_miles else 10000.0,
+            "unit": "mi" if is_miles else "km"
+        },
+        {
+            "id": "around_the_world",
+            "name": "Around the World",
+            "icon": "🌍",
+            "current": total_dist * (0.621371 if is_miles else 1.0),
+            "target": 24901.0 if is_miles else 40075.0,
+            "unit": "mi" if is_miles else "km"
+        },
+        {
+            "id": "mountaineer",
+            "name": "Mountaineer",
+            "icon": "⛰️",
+            "current": total_climb_m * (3.28084 if is_miles else 1.0),
+            "target": 32808.0 if is_miles else 10000.0,
+            "unit": "ft" if is_miles else "m"
+        },
+        {
+            "id": "planet_guardian",
+            "name": "Planet Guardian",
+            "icon": "🛡️",
+            "current": co2_kg,
+            "target": 1000.0,
+            "unit": "kg CO2"
+        },
+        {
+            "id": "the_optimizer",
+            "name": "The Optimizer",
+            "icon": "📐",
+            "current": opt_charges,
+            "target": 100.0,
+            "unit": "opt charges"
+        },
+        {
+            "id": "bounty_hunter",
+            "name": "Bounty Hunter",
+            "icon": "🆓",
+            "current": free_charge_kwh,
+            "target": 100.0,
+            "unit": "kWh free"
+        },
+        {
+            "id": "lemans_24h",
+            "name": "24h Le Mans",
+            "icon": "🏎️",
+            "current": total_drive_min / 60.0,
+            "target": 24.0,
+            "unit": "hours driving"
+        },
+        {
+            "id": "road_tourist",
+            "name": "Road Tourist",
+            "icon": "📸",
+            "current": total_drive_min / 60.0,
+            "target": 100.0,
+            "unit": "hours driving"
+        }
+    ]
+
+    for mc in milestone_candidates:
+        if not unlocked_map.get(mc["id"], False):
+            pct = min(99, int((mc["current"] / max(mc["target"], 1.0)) * 100))
+            curr_str = f"{mc['current']:,.0f}" if mc["current"] >= 10 else f"{mc['current']:.1f}"
+            tgt_str = f"{mc['target']:,.0f}"
+            mc["pct"] = pct
+            mc["progress_text"] = f"{curr_str} / {tgt_str} {mc['unit']} • {pct}%"
+            next_milestones.append(mc)
+
+    next_milestones = sorted(next_milestones, key=lambda x: x["pct"], reverse=True)[:3]
 
     total_ach = len(ACHIEVEMENT_DEFINITIONS)
     completion_pct = int((unlocked_count / max(total_ach, 1)) * 100)
@@ -639,8 +822,11 @@ async def get_achievements_analytics(
         "total_unlocked": unlocked_count,
         "total_achievements": total_ach,
         "unlocked_pct": completion_pct,
-        "highlighted": highlighted,
-        "recent_unlocked": recent_unlocked,
+        "earned_this_period": earned_this_period,
+        "has_earned_this_period": len(earned_this_period) > 0,
+        "highlighted": earned_this_period,
+        "next_milestones": next_milestones,
+        "recent_unlocked": earned_this_period,
         "categories": categories_list,
         "all_badges": all_badges,
     }

@@ -86,19 +86,19 @@
                   <tr>
                     <td width="25%" style="padding-right: 6px; vertical-align: top;">
                       <div class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
-                        <div class="kpi-val">{{ "{:,.0f}".format(trips.total_miles) }}</div>
-                        <div class="kpi-lbl">Miles Driven</div>
+                        <div class="kpi-val">{% if units and units.is_metric %}{{ "{:,.0f}".format(trips.total_km) }}{% else %}{{ "{:,.0f}".format(trips.total_miles) }}{% endif %}</div>
+                        <div class="kpi-lbl">{{ "Kilometers" if (units and units.is_metric) else "Miles" }} Driven</div>
                       </div>
                     </td>
                     <td width="25%" style="padding: 0 3px; vertical-align: top;">
                       <div class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center;">
-                        <div class="kpi-val">${{ "{:,.2f}".format(charging.total_spend) }}</div>
+                        <div class="kpi-val">{{ units.currency if units else "$" }}{{ "{:,.2f}".format(charging.total_spend) }}</div>
                         <div class="kpi-lbl">Electric Spend</div>
                       </div>
                     </td>
                     <td width="25%" style="padding: 0 3px; vertical-align: top;">
                       <div class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
-                        <div class="kpi-val" style="color: {{ theme.accent_green }};">+${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
+                        <div class="kpi-val" style="color: {{ theme.accent_green }};">+{{ units.currency if units else "$" }}{{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
                         <div class="kpi-lbl" style="color: {{ theme.accent_green }};">Saved vs Gas</div>
                       </div>
                     </td>
@@ -342,8 +342,20 @@
                       <td width="33%" style="padding-right: 6px; vertical-align: top;">
                         <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
                           <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Avg Consumption</div>
-                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ efficiency.avg_wh_per_mile }} <span style="font-size: 12px; font-weight: 500;">Wh/mi</span></div>
-                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ efficiency.avg_wh_per_km }} Wh/km</div>
+                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">
+                            {% if units and units.is_metric %}
+                            {{ efficiency.avg_wh_per_km }} <span style="font-size: 12px; font-weight: 500;">Wh/km</span>
+                            {% else %}
+                            {{ efficiency.avg_wh_per_mile }} <span style="font-size: 12px; font-weight: 500;">Wh/mi</span>
+                            {% endif %}
+                          </div>
+                          <div style="font-size: 10px; color: {{ theme.text_muted }};">
+                            {% if units and units.is_metric %}
+                            {{ efficiency.avg_wh_per_mile }} Wh/mi
+                            {% else %}
+                            {{ efficiency.avg_wh_per_km }} Wh/km
+                            {% endif %}
+                          </div>
                         </div>
                       </td>
                       <td width="33%" style="padding: 0 3px; vertical-align: top;">
@@ -369,8 +381,8 @@
                     {% for c in efficiency.cars_breakdown %}
                     <tr style="border-bottom: 1px solid {{ theme.card_inner_border }};">
                       <td style="color: {{ theme.text_primary }}; font-weight: 700;">{{ c.name }} (Model {{ c.model }})</td>
-                      <td align="right" style="color: {{ theme.text_muted }};">{{ c.actual_miles }} mi</td>
-                      <td align="right" style="font-weight: 700; color: {{ theme.text_primary }};">{{ c.wh_per_mile }} Wh/mi</td>
+                      <td align="right" style="color: {{ theme.text_muted }};">{% if units and units.is_metric %}{{ c.actual_km }} km{% else %}{{ c.actual_miles }} mi{% endif %}</td>
+                      <td align="right" style="font-weight: 700; color: {{ theme.text_primary }};">{% if units and units.is_metric %}{{ c.wh_per_km }} Wh/km{% else %}{{ c.wh_per_mile }} Wh/mi{% endif %}</td>
                       <td align="right" style="font-weight: 700; color: {{ theme.accent_green }};">{{ c.efficiency_pct }}% eff</td>
                     </tr>
                     {% endfor %}
@@ -447,16 +459,16 @@
                     <tr>
                       <td width="50%" style="padding-right: 6px;">
                         <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Total Business Miles</div>
-                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ work_mileage.total_miles }} mi</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Total Business {{ "Distance" if (units and units.is_metric) else "Miles" }}</div>
+                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{% if units and units.is_metric %}{{ work_mileage.total_km }} km{% else %}{{ work_mileage.total_miles }} mi{% endif %}</div>
                           <div style="font-size: 11px; color: {{ theme.text_muted }};">{{ work_mileage.total_trips }} matching trips</div>
                         </div>
                       </td>
                       <td width="50%" style="padding-left: 6px;">
                         <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; border-color: rgba(16, 185, 129, 0.4);">
-                          <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 600;">Est. IRS Mileage Deduction</div>
-                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">${{ "{:,.2f}".format(work_mileage.total_irs_deduction) }}</div>
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">@ ${{ work_mileage.irs_rate }}/mi standard rate</div>
+                          <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 600;">Est. Mileage Deduction</div>
+                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">{{ units.currency if units else "$" }}{{ "{:,.2f}".format(work_mileage.total_irs_deduction) }}</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">@ {{ units.currency if units else "$" }}{{ work_mileage.irs_rate }}/{{ units.length if units else "mi" }} standard rate</div>
                         </div>
                       </td>
                     </tr>
@@ -471,8 +483,8 @@
                         <span style="font-size: 11px; color: {{ theme.text_muted }};">{{ r.point_a }} &harr; {{ r.point_b }}</span>
                       </td>
                       <td align="right" style="color: {{ theme.text_muted }};">{{ r.trip_count }} trips</td>
-                      <td align="right" style="font-weight: 700; color: {{ theme.text_primary }};">{{ r.total_miles }} mi</td>
-                      <td align="right" style="font-weight: 700; color: {{ theme.accent_green }};">+${{ "{:,.2f}".format(r.irs_deduction) }}</td>
+                      <td align="right" style="font-weight: 700; color: {{ theme.text_primary }};">{% if units and units.is_metric %}{{ r.total_km }} km{% else %}{{ r.total_miles }} mi{% endif %}</td>
+                      <td align="right" style="font-weight: 700; color: {{ theme.accent_green }};">+{{ units.currency if units else "$" }}{{ "{:,.2f}".format(r.irs_deduction) }}</td>
                     </tr>
                     {% endfor %}
                   </table>
@@ -505,7 +517,7 @@
                           <tr>
                             <td>
                               <span style="font-weight: 700; font-size: 15px; color: {{ theme.text_primary }};">{{ c.car_name }}</span>
-                              <span style="font-size: 12px; color: {{ theme.text_muted }}; margin-left: 6px;">Model {{ c.model }} &bull; {{ "{:,.0f}".format(c.latest_odometer_mi) }} mi</span>
+                              <span style="font-size: 12px; color: {{ theme.text_muted }}; margin-left: 6px;">Model {{ c.model }} &bull; {{ "{:,.0f}".format(c.latest_odometer if c.latest_odometer is defined else (c.latest_odometer_km if (units and units.is_metric) else c.latest_odometer_mi)) }} {{ units.length if units else "mi" }}</span>
                             </td>
                             <td align="right">
                               <span class="badge" style="background-color: rgba(16, 185, 129, 0.2); color: {{ c.health_color }}; border: 1px solid {{ c.health_color }};">
@@ -516,8 +528,8 @@
                           <tr>
                             <td colspan="2" style="padding-top: 6px;">
                               <div style="font-size: 13px; color: {{ theme.text_secondary }};">
-                                100% Rated Range: <strong style="color: {{ theme.text_primary }};">{{ c.current_estimated_range_mi }} mi</strong>
-                                <span style="color: {{ theme.text_muted }}; font-size: 12px; margin-left: 8px;">(Original Max: {{ c.factory_baseline_range_mi }} mi &bull; Degradation: -{{ c.degradation_pct }}%)</span>
+                                100% Rated Range: <strong style="color: {{ theme.text_primary }};">{{ c.current_estimated_range if c.current_estimated_range is defined else (c.current_estimated_range_km if (units and units.is_metric) else c.current_estimated_range_mi) }} {{ units.length if units else "mi" }}</strong>
+                                <span style="color: {{ theme.text_muted }}; font-size: 12px; margin-left: 8px;">(Original Max: {{ c.factory_baseline_range if c.factory_baseline_range is defined else (c.factory_baseline_range_km if (units and units.is_metric) else c.factory_baseline_range_mi) }} {{ units.length if units else "mi" }} &bull; Degradation: -{{ c.degradation_pct }}%)</span>
                               </div>
                             </td>
                           </tr>
@@ -565,14 +577,14 @@
                       <td width="33%" style="padding: 0 3px;">
                         <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
                           <div style="font-size: 11px; color: {{ theme.text_muted }};">Average Trip</div>
-                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.text_primary }}; margin: 3px 0;">{{ trips.avg_trip_miles }} mi</div>
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Top speed: {{ trips.top_speed_mph }} mph</div>
+                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.text_primary }}; margin: 3px 0;">{{ trips.avg_trip_km if (units and units.is_metric) else trips.avg_trip_miles }} {{ units.length if units else "mi" }}</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Top speed: {{ trips.top_speed_kmh if (units and units.is_metric) else trips.top_speed_mph }} {{ units.speed if units else "mph" }}</div>
                         </div>
                       </td>
                       <td width="34%" style="padding-left: 6px;">
                         <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
                           <div style="font-size: 11px; color: {{ theme.text_muted }};">Elevation Climbed</div>
-                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.accent_blue }}; margin: 3px 0;">{{ "{:,.0f}".format(trips.elevation.ascent_ft) }} ft</div>
+                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.accent_blue }}; margin: 3px 0;">{{ "{:,.0f}".format(trips.elevation.ascent_m if (units and units.is_metric) else trips.elevation.ascent_ft) }} {{ units.elevation if units else "ft" }}</div>
                           <div style="font-size: 11px; color: {{ theme.accent_green }};">~{{ trips.elevation.regen_kwh_recaptured }} kWh regen</div>
                         </div>
                       </td>
@@ -585,8 +597,8 @@
                     <div style="font-size: 12px; text-transform: uppercase; color: {{ theme.accent_blue }}; font-weight: 700; margin-bottom: 4px;">Longest Journey</div>
                     <div style="font-size: 14px; font-weight: 700; color: {{ theme.text_primary }};">{{ trips.longest_drive.start_location }} &rarr; {{ trips.longest_drive.end_location }}</div>
                     <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 3px;">
-                      {{ trips.longest_drive.distance_mi }} miles &bull; {{ trips.longest_drive.duration_min }} mins &bull; {{ trips.longest_drive.date }}
-                      &bull; Ascent: {{ "{:,.0f}".format(trips.longest_drive.ascent_ft) }} ft
+                      {% if units and units.is_metric %}{{ trips.longest_drive.distance_km }} km{% else %}{{ trips.longest_drive.distance_mi }} miles{% endif %} &bull; {{ trips.longest_drive.duration_min }} mins &bull; {{ trips.longest_drive.date }}
+                      &bull; Ascent: {{ "{:,.0f}".format(trips.longest_drive.ascent_m if (units and units.is_metric) else trips.longest_drive.ascent_ft) }} {{ units.elevation if units else "ft" }}
                     </div>
                   </div>
                   {% endif %}
@@ -725,27 +737,25 @@
                   </div>
                   {% endif %}
 
-                  <!-- Highlighted Badges -->
-                  {% if achievements.highlighted %}
-                  <div style="font-size: 11px; font-weight: 700; color: {{ theme.text_muted }}; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Featured Unlocked Badges</div>
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    {% for b in achievements.highlighted %}
+                  <!-- Badges Earned This Period vs Fallback Status -->
+                  {% if achievements.earned_this_period and achievements.earned_this_period|length > 0 %}
+                  <div style="font-size: 11px; font-weight: 700; color: {{ theme.text_muted }}; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">🎖️ Badges Earned This Period ({{ achievements.earned_this_period|length }})</div>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 6px;">
+                    {% for b in achievements.earned_this_period %}
                     <tr>
-                      <td style="padding: 6px 0; border-bottom: 1px solid {{ theme.card_inner_border }};">
+                      <td style="padding: 7px 0; border-bottom: 1px solid {{ theme.card_inner_border }};">
                         <table width="100%" cellpadding="0" cellspacing="0">
                           <tr>
-                            <td width="32" style="font-size: 20px; vertical-align: middle;">{{ b.icon }}</td>
+                            <td width="32" style="font-size: 22px; vertical-align: middle;">{{ b.icon }}</td>
                             <td style="vertical-align: middle; padding-left: 6px;">
                               <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_primary }};">
                                 {{ b.name }}
-                                {% if b.period_active %}
-                                <span style="font-size: 9px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.accent_green }}; padding: 1px 5px; border-radius: 999px; margin-left: 6px; text-transform: uppercase;">Active This Period</span>
-                                {% endif %}
+                                <span style="font-size: 9px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.accent_green }}; padding: 1px 6px; border-radius: 999px; margin-left: 6px; text-transform: uppercase;">Earned This Period</span>
                               </div>
                               <div style="font-size: 11px; color: {{ theme.text_muted }}; margin-top: 1px;">{{ b.description }}</div>
                             </td>
                             <td align="right" style="vertical-align: middle; white-space: nowrap;">
-                              <span style="font-size: 11px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; padding: 2px 6px; border-radius: 4px;">🏆 Unlocked</span>
+                              <span style="font-size: 11px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.accent_green }}; padding: 2px 7px; border-radius: 4px;">🏆 Unlocked</span>
                             </td>
                           </tr>
                         </table>
@@ -753,6 +763,26 @@
                     </tr>
                     {% endfor %}
                   </table>
+                  {% else %}
+                  <!-- Fallback Status when no badges were earned this period -->
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 14px; border: 1px solid {{ theme.card_inner_border }}; text-align: center; margin-bottom: 6px;">
+                    <div style="font-size: 14px; font-weight: 800; color: {{ theme.text_primary }};">
+                      🏁 No New Badges Earned This Period
+                    </div>
+                    <div style="font-size: 11px; color: {{ theme.text_muted }}; margin-top: 4px; line-height: 1.5;">
+                      You currently hold <strong>{{ achievements.total_unlocked }}</strong> lifetime trophies ({{ achievements.unlocked_pct }}% of all badges). No new badge milestones were crossed during this digest cycle.
+                    </div>
+                    {% if achievements.next_milestones %}
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed {{ theme.card_inner_border }}; font-size: 11px; color: {{ theme.text_secondary }};">
+                      <span style="text-transform: uppercase; font-weight: 700; color: {{ theme.text_muted }}; font-size: 10px; display: block; margin-bottom: 6px;">Next Milestone Targets</span>
+                      {% for m in achievements.next_milestones %}
+                      <span style="display: inline-block; background-color: {{ theme.table_row_alt }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 5px; padding: 3px 8px; margin: 2px 3px;">
+                        {{ m.icon }} <strong>{{ m.name }}</strong> ({{ m.progress_text }})
+                      </span>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
                   {% endif %}
                 </div>
                 {% endif %}
@@ -818,16 +848,16 @@
                     <!-- TIRE ROTATION PROGRESS -->
                     <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 4px; display: flex; justify-content: space-between;">
                       <span>Tire Rotation Status</span>
-                      <strong style="color: {{ theme.text_primary }};">{{ "{:,.0f}".format(car_h.tire_rotation.miles_driven_since) }} / {{ "{:,.0f}".format(car_h.tire_rotation.interval_mi) }} mi</strong>
+                      <strong style="color: {{ theme.text_primary }};">{{ "{:,.0f}".format(car_h.tire_rotation.dist_driven_since) }} / {{ "{:,.0f}".format(car_h.tire_rotation.interval) }} {{ car_h.tire_rotation.unit }}</strong>
                     </div>
                     <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; height: 10px; width: 100%; overflow: hidden; margin-bottom: 6px;">
                       <div style="background-color: {{ car_h.tire_rotation.color }}; width: {{ car_h.tire_rotation.pct_progress }}%; height: 100%; border-radius: 8px;"></div>
                     </div>
                     <div style="font-size: 11px; color: {{ theme.text_muted }};">
                       {% if car_h.tire_rotation.is_due %}
-                      <span style="color: #f87171; font-weight: 700;">⚠️ Tire rotation recommended now!</span> ({{ "{:,.0f}".format(car_h.tire_rotation.miles_remaining) }} mi remaining)
+                      <span style="color: #f87171; font-weight: 700;">⚠️ Tire rotation recommended now!</span> ({{ "{:,.0f}".format(car_h.tire_rotation.dist_remaining) }} {{ car_h.tire_rotation.unit }} remaining)
                       {% else %}
-                      {{ "{:,.0f}".format(car_h.tire_rotation.miles_remaining) }} miles remaining until next 6,250 mi interval.
+                      {{ "{:,.0f}".format(car_h.tire_rotation.dist_remaining) }} {{ car_h.tire_rotation.unit }} remaining until next {{ "{:,.0f}".format(car_h.tire_rotation.interval) }} {{ car_h.tire_rotation.unit }} interval.
                       {% endif %}
                     </div>
                   </div>

@@ -20,6 +20,7 @@ from app.analytics.achievements import get_achievements_analytics
 from app.themes import get_theme
 from app.services.geofences import get_effective_service_urls, get_grafana_dashboard_urls
 from app.services.homeassistant import fetch_solar_summary
+from app.services.units import get_effective_units
 import app.charts as charts
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -49,6 +50,8 @@ async def build_digest_report(
     Returns: (subject, html_content, inline_image_dict)
     """
     # 1. Fetch data & check live gas price
+    units = await get_effective_units(db, config)
+
     from app.services.gas_prices import fetch_live_gas_price
     if config.rates.auto_gas_price:
         config.rates.gas_price_per_gal = await fetch_live_gas_price(
@@ -58,10 +61,11 @@ async def build_digest_report(
     trips = await get_trip_analytics(db, start_date, end_date, car_id, config.excluded_locations, config=config)
     charging = await get_charging_analytics(db, start_date, end_date, car_id, config.rates, trips["total_miles"])
     superchargers = await get_supercharger_analytics(db, start_date, end_date, car_id)
-    battery = await get_battery_health_analytics(db, end_date, car_id)
+    battery = await get_battery_health_analytics(db, end_date, car_id, length_unit=units["length"])
     health = await get_health_analytics(
         db, start_date, end_date, car_id, config.tire_rotation_interval_mi,
-        pressure_unit=getattr(config.units, "pressure", "psi")
+        pressure_unit=units["pressure"],
+        length_unit=units["length"]
     )
     vampire = await get_vampire_analytics(db, start_date, end_date, car_id, config.rates.average_kwh_cost)
     efficiency = await get_driving_efficiency_analytics(db, start_date, end_date, car_id)
@@ -78,7 +82,7 @@ async def build_digest_report(
     achievements = {}
     if getattr(config.modules, "achievements", True):
         try:
-            achievements = await get_achievements_analytics(db, start_date, end_date, car_id)
+            achievements = await get_achievements_analytics(db, start_date, end_date, car_id, units=units)
         except Exception as e:
             print(f"[Report] Error fetching achievements analytics: {e}")
 
@@ -157,7 +161,7 @@ async def build_digest_report(
             as_bytes=True
         )
         if show_battery_health:
-            battery_bytes = charts.generate_battery_trend_chart(battery, theme=theme, as_bytes=True)
+            battery_bytes = charts.generate_battery_trend_chart(battery, theme=theme, as_bytes=True, unit=units["length"])
         else:
             battery_bytes = b""
 
@@ -216,6 +220,7 @@ async def build_digest_report(
         report_title=report_title,
         date_subtitle=date_subtitle,
         car_subtitle=car_subtitle,
+        units=units,
         trips=trips,
         charging=charging,
         solar=solar,
