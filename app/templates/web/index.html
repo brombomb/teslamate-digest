@@ -22,14 +22,26 @@
     </div>
   </div>
 
+  <!-- DISPATCH NOTIFICATION BANNER -->
+  <div id="dispatch-alert" class="hidden text-xs rounded-xl p-3.5 transition shadow-sm font-medium"></div>
+
   <!-- STATUS CARDS -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- SCHEDULER STATUS -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-      <div class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Automated Schedule</div>
-      <div class="text-lg font-bold text-slate-900 dark:text-white mt-2 capitalize flex items-center gap-2">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Automated Schedules</span>
+        <a href="/settings" class="text-xs text-tesla hover:underline font-semibold">Settings &rarr;</a>
+      </div>
+      <div class="text-lg font-bold text-slate-900 dark:text-white mt-2 flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full {% if scheduler_status.is_running %}bg-emerald-500 animate-pulse{% else %}bg-amber-500{% endif %}"></span>
-        {{ config.schedule.frequency }} Dispatch
+        {% if config.schedules and config.schedules|length > 1 %}
+          {{ config.schedules|length }} Active Schedules
+        {% elif config.schedules and config.schedules|length == 1 %}
+          {{ config.schedules[0].name }}
+        {% else %}
+          {{ config.schedule.frequency | capitalize }} Dispatch
+        {% endif %}
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-400 mt-2">
         Next scheduled send: <span class="text-slate-800 dark:text-slate-200 font-mono">{{ scheduler_status.next_run }}</span>
@@ -40,9 +52,14 @@
     <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
       <div class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Last Dispatch Status</div>
       <div class="text-lg font-bold text-slate-900 dark:text-white mt-2 flex items-center gap-2">
-        <span class="px-2 py-0.5 text-xs rounded font-bold {% if scheduler_status.last_run.status == 'Success' %}bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40{% elif scheduler_status.last_run.status == 'Running' %}bg-blue-500/20 text-blue-700 dark:text-blue-400{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300{% endif %}">
+        <span class="px-2 py-0.5 text-xs rounded font-bold {% if scheduler_status.last_run.status == 'Success' %}bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40{% elif scheduler_status.last_run.status == 'Running' %}bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-500/40{% elif scheduler_status.last_run.status == 'Failed' %}bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/40{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300{% endif %}">
           {{ scheduler_status.last_run.status }}
         </span>
+        {% if scheduler_status.last_run.timestamp %}
+        <span class="text-xs font-normal text-slate-500 dark:text-slate-400 font-mono">
+          {{ scheduler_status.last_run.timestamp }}
+        </span>
+        {% endif %}
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-400 mt-2 truncate" title="{{ scheduler_status.last_run.details }}">
         {{ scheduler_status.last_run.details }}
@@ -52,18 +69,140 @@
     <!-- SMTP STATUS -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
       <div class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Delivery Channel</div>
-      <div class="text-lg font-bold text-slate-900 dark:text-white mt-2">
+      <div class="text-lg font-bold text-slate-900 dark:text-white mt-2 flex items-center gap-2">
         {% if config.smtp.enabled %}
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
         <span class="text-emerald-600 dark:text-emerald-400">Gmail SMTP Ready</span>
         {% else %}
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
         <span class="text-amber-600 dark:text-amber-400">SMTP Disabled</span>
         {% endif %}
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-400 mt-2">
-        Recipient: <span class="text-slate-800 dark:text-slate-200">{{ config.smtp.recipient_email }}</span>
+        Recipient: <span class="text-slate-800 dark:text-slate-200 font-medium">{{ config.smtp.recipient_email or "Not configured" }}</span>
       </div>
     </div>
   </div>
+
+  <!-- AUTOMATED SCHEDULES LIST -->
+  {% if config.schedules %}
+  <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
+    <div class="flex items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div>
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span>📬</span> Automated Email Schedules
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Recurring dispatches configured to deliver telemetry digests directly to your mailbox.</p>
+      </div>
+      <a href="/settings" class="text-xs text-tesla hover:underline font-semibold flex items-center gap-1">
+        <span>⚙️</span> Manage Schedules
+      </a>
+    </div>
+
+    <div class="space-y-3">
+      {% for s in config.schedules %}
+      <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full {% if s.enabled %}bg-emerald-500{% else %}bg-slate-400{% endif %}"></span>
+            <span class="text-sm font-bold text-slate-900 dark:text-white">{{ s.name }}</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              {{ s.frequency }}
+            </span>
+            {% if s.theme %}
+            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50">
+              {{ s.theme }}
+            </span>
+            {% endif %}
+          </div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-4 gap-y-1">
+            <span><strong>Target:</strong> 
+              {% if s.target_car_id %}
+                {% set found_car = False %}
+                {% for c in cars %}
+                  {% if c.id == s.target_car_id %}
+                    {{ c.name }} (Model {{ c.model }})
+                    {% set found_car = True %}
+                  {% endif %}
+                {% endfor %}
+                {% if not found_car %}Car #{{ s.target_car_id }}{% endif %}
+              {% else %}
+                All Fleet
+              {% endif %}
+            </span>
+            <span><strong>Trigger:</strong> 
+              {% if s.frequency == 'monthly' %}
+                Day {{ s.day_of_month }} at {{ "%02d:%02d"|format(s.send_hour, s.send_minute) }}
+              {% elif s.frequency == 'weekly' or s.frequency == 'bi-weekly' %}
+                Day {{ s.day_of_week }} at {{ "%02d:%02d"|format(s.send_hour, s.send_minute) }}
+              {% else %}
+                Daily at {{ "%02d:%02d"|format(s.send_hour, s.send_minute) }}
+              {% endif %}
+            </span>
+            {% if s.recipient_email %}
+            <span><strong>Recipient:</strong> {{ s.recipient_email }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 self-end sm:self-auto">
+          <button type="button" onclick="runScheduleFromDashboard('{{ s.id }}', '{{ s.name | escape }}', this)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-lg transition flex items-center gap-1.5 shadow-sm">
+            <span>🚀</span> Run Now
+          </button>
+          <a href="/preview?{% if s.target_car_id %}car_id={{ s.target_car_id }}&{% endif %}theme={{ s.theme }}" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg transition">
+            Preview &rarr;
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- RECENT DISPATCH HISTORY -->
+  {% if recent_dispatches %}
+  <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
+    <div class="flex items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div>
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span>📜</span> Recent Dispatch History
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Audit log of automated schedule deliveries and manual digest triggers.</p>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs">
+        <thead>
+          <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+            <th class="py-2.5 px-3">Timestamp</th>
+            <th class="py-2.5 px-3">Schedule</th>
+            <th class="py-2.5 px-3">Target</th>
+            <th class="py-2.5 px-3">Status</th>
+            <th class="py-2.5 px-3">Details</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+          {% for d in recent_dispatches %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
+            <td class="py-2.5 px-3 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ d.timestamp }}</td>
+            <td class="py-2.5 px-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">{{ d.schedule_name }}</td>
+            <td class="py-2.5 px-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ d.target_car }}</td>
+            <td class="py-2.5 px-3 whitespace-nowrap">
+              <span class="px-2 py-0.5 rounded text-[11px] font-bold {% if d.status == 'Success' %}bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30{% elif d.status == 'Running' %}bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30{% elif d.status == 'Failed' %}bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300{% endif %}">
+                {{ d.status }}
+              </span>
+            </td>
+            <td class="py-2.5 px-3 text-slate-600 dark:text-slate-400 truncate max-w-xs" title="{{ d.details }}">
+              {{ d.details }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- FLEET OVERVIEW -->
   <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
@@ -84,4 +223,50 @@
   </div>
 
 </div>
+
+<script>
+async function runScheduleFromDashboard(scheduleId, scheduleName, btn) {
+  const alertEl = document.getElementById('dispatch-alert');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Sending...';
+
+  if (alertEl) {
+    alertEl.className = 'text-xs rounded-xl p-3.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center gap-2';
+    alertEl.innerHTML = `<span>⏳</span> Generating and dispatching "${scheduleName}"...`;
+    alertEl.classList.remove('hidden');
+  }
+
+  try {
+    const resp = await fetch('/api/schedules/run-now', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schedule_id: scheduleId })
+    });
+    const result = await resp.json();
+    if (result.success) {
+      if (alertEl) {
+        alertEl.className = 'text-xs rounded-xl p-3.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30';
+        alertEl.innerHTML = `<strong>✓ Dispatched:</strong> ${result.message || 'Digest successfully dispatched to your inbox!'}`;
+      }
+      // Refresh page after 1.5s to display updated Last Dispatch Status and history
+      setTimeout(() => window.location.reload(), 1500);
+    } else {
+      if (alertEl) {
+        alertEl.className = 'text-xs rounded-xl p-3.5 bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30';
+        alertEl.innerHTML = `<strong>✕ Dispatch Failed:</strong> ${result.message || 'Unknown error occurred.'}`;
+      }
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  } catch (err) {
+    if (alertEl) {
+      alertEl.className = 'text-xs rounded-xl p-3.5 bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30';
+      alertEl.innerHTML = `<strong>✕ Network Error:</strong> Could not connect to backend (${err.message})`;
+    }
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+</script>
 {% endblock %}

@@ -42,6 +42,7 @@ from app.mailer import Mailer
 from app.services.gas_prices import fetch_gas_price_details
 from app.services.electric_rates import fetch_electric_rates, search_electric_rate_plans
 from app.services.homeassistant import verify_ha_connection, discover_ha_solar_entities
+from app.storage import get_recent_dispatches
 
 BASE_DIR = Path(__file__).resolve().parent
 WEB_TEMPLATES_DIR = BASE_DIR / "templates" / "web"
@@ -388,7 +389,8 @@ async def dashboard(request: Request):
             "active_nav": "dashboard",
             "config": cfg,
             "cars": cars,
-            "scheduler_status": sched_status
+            "scheduler_status": sched_status,
+            "recent_dispatches": get_recent_dispatches()
         }
     )
 

@@ -8,6 +8,7 @@ from app.config import AppConfig, load_config, ScheduleItem
 from app.db import Database
 from app.mailer import Mailer
 from app.report import build_digest_report
+from app.storage import record_dispatch_history, get_last_dispatch
 
 scheduler = AsyncIOScheduler()
 last_run_info = {
@@ -100,14 +101,51 @@ async def run_scheduled_digest(schedule_id: Optional[str] = None, frequency: Opt
         if success:
             last_run_info["status"] = "Success"
             target_desc = f"Car #{car_id}" if car_id else "All Cars (Fleet)"
-            last_run_info["details"] = f"Delivered {sched_item.name} ({freq}, {target_desc}, Theme: {theme}) to {recipient}"
+            details = f"Delivered {sched_item.name} ({freq}, {target_desc}, Theme: {theme}) to {recipient}"
+            last_run_info["details"] = details
+            record_dispatch_history(
+                status="Success",
+                details=details,
+                timestamp=last_run_info["timestamp"],
+                schedule_id=sched_item.id,
+                schedule_name=sched_item.name,
+                frequency=freq,
+                target_car_id=car_id,
+                target_car_name=target_desc,
+                recipient=recipient,
+                theme=theme
+            )
         else:
             last_run_info["status"] = "Skipped"
-            last_run_info["details"] = "Delivery skipped (SMTP disabled or password missing)."
+            details = "Delivery skipped (SMTP disabled or password missing)."
+            last_run_info["details"] = details
+            record_dispatch_history(
+                status="Skipped",
+                details=details,
+                timestamp=last_run_info["timestamp"],
+                schedule_id=sched_item.id,
+                schedule_name=sched_item.name,
+                frequency=freq,
+                target_car_id=car_id,
+                recipient=recipient,
+                theme=theme
+            )
 
     except Exception as e:
         last_run_info["status"] = "Failed"
-        last_run_info["details"] = f"Error during dispatch of {sched_item.name}: {e}"
+        details = f"Error during dispatch of {sched_item.name}: {e}"
+        last_run_info["details"] = details
+        record_dispatch_history(
+            status="Failed",
+            details=details,
+            timestamp=last_run_info["timestamp"],
+            schedule_id=sched_item.id if sched_item else None,
+            schedule_name=sched_item.name if sched_item else "Scheduled Digest",
+            frequency=freq if 'freq' in locals() else None,
+            target_car_id=car_id if 'car_id' in locals() else None,
+            recipient=recipient if 'recipient' in locals() else None,
+            theme=theme if 'theme' in locals() else None
+        )
         print(f"[Scheduler] Error: {e}")
     finally:
         await db.disconnect()
@@ -161,7 +199,8 @@ def get_scheduler_status():
     jobs = scheduler.get_jobs()
     job_statuses = []
     for j in jobs:
-        next_run = j.next_run_time.strftime("%Y-%m-%d %H:%M:%S") if j.next_run_time else "Not scheduled"
+        next_dt = getattr(j, "next_run_time", None)
+        next_run = next_dt.strftime("%Y-%m-%d %H:%M:%S") if next_dt else "Not scheduled"
         job_statuses.append({
             "id": j.id,
             "next_run": next_run
@@ -169,10 +208,16 @@ def get_scheduler_status():
 
     next_run_summary = job_statuses[0]["next_run"] if job_statuses else "No active schedules"
 
+    current_last_run = dict(last_run_info)
+    if not current_last_run.get("timestamp"):
+        persisted = get_last_dispatch()
+        if persisted and persisted.get("timestamp"):
+            current_last_run = persisted
+
     return {
         "is_running": scheduler.running,
         "next_run": next_run_summary,
         "active_jobs_count": len(jobs),
         "jobs": job_statuses,
-        "last_run": last_run_info
+        "last_run": current_last_run
     }

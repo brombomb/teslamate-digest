@@ -1,8 +1,9 @@
 import json
 import os
 import sqlite3
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -37,6 +38,22 @@ def init_storage() -> None:
                     last_tire_swap_date TEXT DEFAULT '',
                     notes TEXT DEFAULT '',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS dispatch_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    schedule_id TEXT,
+                    schedule_name TEXT,
+                    frequency TEXT,
+                    target_car_id INTEGER,
+                    target_car_name TEXT,
+                    recipient TEXT,
+                    theme TEXT,
+                    status TEXT NOT NULL,
+                    details TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
             conn.commit()
@@ -216,3 +233,112 @@ def reset_maintenance_rotation(car_id: str) -> None:
                 json.dump(current, f, indent=2)
         except Exception:
             pass
+
+
+def record_dispatch_history(
+    status: str,
+    details: str,
+    timestamp: Optional[str] = None,
+    schedule_id: Optional[str] = None,
+    schedule_name: Optional[str] = None,
+    frequency: Optional[str] = None,
+    target_car_id: Optional[int] = None,
+    target_car_name: Optional[str] = None,
+    recipient: Optional[str] = None,
+    theme: Optional[str] = None
+) -> None:
+    """Records an automated or manual schedule dispatch event in SQLite."""
+    init_storage()
+    ts = timestamp or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        with get_db_connection() as conn:
+            conn.execute("""
+                INSERT INTO dispatch_history (
+                    timestamp, schedule_id, schedule_name, frequency,
+                    target_car_id, target_car_name, recipient, theme,
+                    status, details
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """, (
+                ts, schedule_id, schedule_name, frequency,
+                target_car_id, target_car_name, recipient, theme,
+                status, details
+            ))
+            # Also update latest dispatch snapshot in app_settings
+            last_run_dict = {
+                "timestamp": ts,
+                "status": status,
+                "details": details,
+                "schedule_name": schedule_name or "Scheduled Digest",
+                "target_car": target_car_name or (f"Car #{target_car_id}" if target_car_id else "Fleet"),
+                "recipient": recipient or "",
+                "theme": theme or ""
+            }
+            conn.execute("""
+                INSERT OR REPLACE INTO app_settings (key, value, updated_at)
+                VALUES ('last_dispatch', ?, CURRENT_TIMESTAMP);
+            """, (json.dumps(last_run_dict),))
+            conn.commit()
+    except Exception as e:
+        print(f"[Storage] Error recording dispatch history: {e}")
+
+
+def get_last_dispatch() -> Optional[Dict[str, Any]]:
+    """Retrieves the most recent dispatch event status, persisting across container restarts."""
+    init_storage()
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT value FROM app_settings WHERE key = 'last_dispatch' LIMIT 1;")
+            row = cursor.fetchone()
+            if row and row["value"]:
+                return json.loads(row["value"])
+
+            # Fallback to latest entry in dispatch_history table
+            cursor.execute("""
+                SELECT timestamp, schedule_name, frequency, target_car_id, target_car_name, recipient, theme, status, details
+                FROM dispatch_history
+                ORDER BY id DESC LIMIT 1;
+            """)
+            d_row = cursor.fetchone()
+            if d_row:
+                return {
+                    "timestamp": d_row["timestamp"],
+                    "status": d_row["status"],
+                    "details": d_row["details"],
+                    "schedule_name": d_row["schedule_name"] or "Scheduled Digest",
+                    "target_car": d_row["target_car_name"] or (f"Car #{d_row['target_car_id']}" if d_row["target_car_id"] else "Fleet"),
+                    "recipient": d_row["recipient"] or "",
+                    "theme": d_row["theme"] or ""
+                }
+    except Exception as e:
+        print(f"[Storage] Error getting last dispatch: {e}")
+    return None
+
+
+def get_recent_dispatches(limit: int = 5) -> List[Dict[str, Any]]:
+    """Retrieves a list of recent dispatch history events from SQLite."""
+    init_storage()
+    results = []
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, timestamp, schedule_name, frequency, target_car_id, target_car_name, recipient, theme, status, details
+                FROM dispatch_history
+                ORDER BY id DESC LIMIT ?;
+            """, (limit,))
+            for r in cursor.fetchall():
+                results.append({
+                    "id": r["id"],
+                    "timestamp": r["timestamp"],
+                    "schedule_name": r["schedule_name"] or "Manual Run",
+                    "frequency": r["frequency"] or "",
+                    "target_car": r["target_car_name"] or (f"Car #{r['target_car_id']}" if r["target_car_id"] else "Fleet"),
+                    "recipient": r["recipient"] or "",
+                    "theme": r["theme"] or "",
+                    "status": r["status"],
+                    "details": r["details"]
+                })
+    except Exception as e:
+        print(f"[Storage] Error getting recent dispatches: {e}")
+    return results

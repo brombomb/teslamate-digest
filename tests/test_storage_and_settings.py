@@ -219,3 +219,53 @@ def test_settings_pages_routing_and_isolation():
     assert cfg_after_integ.schedules[0].name == "Weekly Quick Digest"
     assert cfg_after_integ.email_theme == "cybercab"
 
+
+def test_dispatch_history_persistence():
+    from app.storage import record_dispatch_history, get_last_dispatch, get_recent_dispatches
+    from app.scheduler import get_scheduler_status, last_run_info
+
+    # Record a dispatch
+    record_dispatch_history(
+        status="Success",
+        details="Delivered Monthly Test Digest to test@example.com",
+        timestamp="2026-10-01 08:00:00",
+        schedule_id="test-sched-1",
+        schedule_name="Monthly Test Digest",
+        frequency="monthly",
+        target_car_id=1,
+        target_car_name="Model Y",
+        recipient="test@example.com",
+        theme="frost_blue"
+    )
+
+    last = get_last_dispatch()
+    assert last is not None
+    assert last["status"] == "Success"
+    assert last["timestamp"] == "2026-10-01 08:00:00"
+    assert last["schedule_name"] == "Monthly Test Digest"
+    assert "Delivered Monthly Test Digest" in last["details"]
+
+    recent = get_recent_dispatches(limit=5)
+    assert len(recent) >= 1
+    assert recent[0]["schedule_name"] == "Monthly Test Digest"
+    assert recent[0]["status"] == "Success"
+
+    # Verify get_scheduler_status falls back to persistent dispatch when in-memory timestamp is None
+    last_run_info["timestamp"] = None
+    status = get_scheduler_status()
+    assert status["last_run"]["status"] == "Success"
+    assert status["last_run"]["timestamp"] == "2026-10-01 08:00:00"
+
+
+def test_top_tab_bars_removed_from_settings_templates():
+    from pathlib import Path
+    settings_html = (Path(__file__).parent.parent / "app" / "templates" / "web" / "settings.html").read_text()
+    integrations_html = (Path(__file__).parent.parent / "app" / "templates" / "web" / "settings_integrations.html").read_text()
+
+    # Redundant tab navigation button bar must be dropped from both
+    assert "TOP TAB NAVIGATION" not in settings_html
+    assert "TOP TAB NAVIGATION" not in integrations_html
+    assert '<a href="/settings/integrations" class="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition bg-slate-100' not in settings_html
+    assert '<a href="/settings" class="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition bg-slate-100' not in integrations_html
+
+

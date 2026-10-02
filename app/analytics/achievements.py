@@ -413,7 +413,11 @@ async def get_achievements_analytics(
           -- Period-specific drive milestones
           bool_or(distance > 50 AND (start_rated_range_km - end_rated_range_km) > 0 AND distance > (start_rated_range_km - end_rated_range_km) {p_filter_d}) as period_hypermiler,
           bool_or(EXTRACT(HOUR FROM start_date) BETWEEN 2 AND 5 {p_filter_d}) as period_night_rider,
-          coalesce(sum(distance) FILTER (WHERE 1=1 {p_filter_d}), 0) as period_dist
+          coalesce(sum(distance) FILTER (WHERE 1=1 {p_filter_d}), 0) as period_dist,
+          bool_or(speed_max > 180) as speedster,
+          bool_or(outside_temp_avg > 40) as inferno_rider,
+          bool_or(outside_temp_avg < -10) as ice_road_trucker,
+          coalesce(sum(ascent), 0) as total_climb_m
         FROM drives d {c_filter}
       ),
       c_stats AS (
@@ -432,14 +436,6 @@ async def get_achievements_analytics(
           bool_or(start_battery_level < 10 AND end_battery_level > 95 {p_filter_cp}) as period_full_cycle
         FROM charging_processes cp {c_filter}
       ),
-      p_stats AS (
-        SELECT
-          bool_or(speed > 180) as speedster,
-          bool_or(outside_temp > 40) as inferno_rider,
-          bool_or(outside_temp < -10) as ice_road_trucker,
-          count(*) > 0 as first_spark
-        FROM positions p {c_filter}
-      ),
       geo_stats AS (
         SELECT
           count(distinct a.city) as cities,
@@ -456,15 +452,10 @@ async def get_achievements_analytics(
             sin(radians(g.latitude)) * sin(radians(p.latitude))
           )))
         ), 0) as max_home_dist_km
-        FROM positions p, geofences g
-        WHERE (g.name ILIKE '%Home%' OR g.name ILIKE '%Casa%') {c_and_p}
-      ),
-      elev_stats AS (
-        SELECT coalesce(sum(p_end.elevation - p_start.elevation), 0) as total_climb_m
         FROM drives d
-        JOIN positions p_start ON d.start_position_id = p_start.id
-        JOIN positions p_end ON d.end_position_id = p_end.id
-        WHERE p_end.elevation > p_start.elevation {c_and_d}
+        JOIN positions p ON p.id = d.end_position_id
+        JOIN geofences g ON (g.name ILIKE '%Home%' OR g.name ILIKE '%Casa%')
+        WHERE 1=1 {c_and_d}
       ),
       sc_power AS (
         SELECT 
@@ -487,13 +478,12 @@ async def get_achievements_analytics(
         WHERE 1=1 {c_and_cp}
       )
     SELECT 
-      d.*, c.*, p.*, g.*, h.*, e.*, sc.*, lb.*, tc.*
+      d.*, c.*, g.*, h.*, sc.*, lb.*, tc.*,
+      (d.total_drives > 0) as first_spark
     FROM d_stats d
     CROSS JOIN c_stats c
-    CROSS JOIN p_stats p
     CROSS JOIN geo_stats g
     CROSS JOIN home_dist h
-    CROSS JOIN elev_stats e
     CROSS JOIN sc_power sc
     CROSS JOIN low_batt lb
     CROSS JOIN temp_charge tc;

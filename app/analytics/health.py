@@ -35,7 +35,7 @@ async def get_health_analytics(
                 coalesce(odometer, 0) * 0.621371 as odometer_mi
             FROM positions
             WHERE car_id = $1 AND tpms_pressure_fl IS NOT NULL
-            ORDER BY date DESC
+            ORDER BY id DESC
             LIMIT 1;
         """
         latest_pos = await db.fetchrow(tpms_query, cid)
