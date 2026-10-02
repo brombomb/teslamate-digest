@@ -110,3 +110,112 @@ def test_work_routes_vehicle_isolation():
     )
     assert r1.target_car_id == 1
     assert r2.target_car_id is None
+
+
+def test_settings_pages_routing_and_isolation():
+    from starlette.testclient import TestClient
+    from app.main import app
+    from app.config import WorkRouteItem, ScheduleItem
+
+    client = TestClient(app)
+
+    # 1. Verify GET /settings renders Delivery & Schedules
+    r_deliv = client.get("/settings")
+    assert r_deliv.status_code == 200
+    assert "Email Delivery Configuration" in r_deliv.text
+    assert "Automated Dispatch Schedules" in r_deliv.text
+    assert "Electricity Rates &amp; Plan Structure" not in r_deliv.text
+
+    # 2. Verify GET /settings/integrations and /integrations render Rates & Integrations
+    r_integ = client.get("/settings/integrations")
+    assert r_integ.status_code == 200
+    assert "Electricity Rates &amp; Plan Structure" in r_integ.text
+    assert "Work &amp; Commute Mileage Routes" in r_integ.text
+    assert "Home Assistant &amp; Solar Integration" in r_integ.text
+    assert "Email Delivery Configuration" not in r_integ.text
+
+    r_alias = client.get("/integrations")
+    assert r_alias.status_code == 200
+    assert "Electricity Rates &amp; Plan Structure" in r_alias.text
+
+    # 3. Seed baseline config
+    cfg = load_config()
+    cfg.smtp.sender_name = "Delivery Baseline"
+    cfg.smtp.recipient_email = "tester@domain.com"
+    cfg.rates.gas_price_per_gal = 3.987
+    cfg.rates.zip_code = "80005"
+    cfg.homeassistant.enabled = True
+    cfg.homeassistant.url = "http://192.168.1.50:8123"
+    cfg.homeassistant.token = "preserved_secret_token_abc"
+    cfg.work_routes = [
+        WorkRouteItem(label="HQ Commute", point_a="Home", point_b="Office", bidirectional=True, target_car_id=1)
+    ]
+    cfg.schedules = [
+        ScheduleItem(id="s1", name="Monthly Retrospective", enabled=True, frequency="monthly", send_hour=8, send_minute=0, theme="pearl_white")
+    ]
+    save_config(cfg)
+
+    # 4. POST /settings (Delivery update ONLY) - must NOT reset rates, commute, or HA!
+    post_deliv = client.post("/settings", data={
+        "smtp_enabled": "on",
+        "smtp_host": "smtp.mailgun.org",
+        "smtp_port": "587",
+        "smtp_user": "postmaster@domain.com",
+        "smtp_password": "supersecretpassword",
+        "sender_email": "digest@domain.com",
+        "recipient_email": "updated_recipient@domain.com",
+        "sender_name": "Delivery Updated",
+        "use_tls": "on",
+        "email_theme": "cybercab",
+        "schedules_json": json.dumps([
+            {"id": "s1", "name": "Weekly Quick Digest", "enabled": True, "frequency": "weekly", "day_of_week": 0, "day_of_month": 1, "send_hour": 7, "send_minute": 30, "target_car_id": None, "recipient_email": "", "theme": "cybercab"}
+        ])
+    })
+    assert post_deliv.status_code == 200
+
+    cfg_after_deliv = load_config()
+    # Check that delivery fields changed:
+    assert cfg_after_deliv.smtp.sender_name == "Delivery Updated"
+    assert cfg_after_deliv.smtp.recipient_email == "updated_recipient@domain.com"
+    assert cfg_after_deliv.schedules[0].name == "Weekly Quick Digest"
+    assert cfg_after_deliv.email_theme == "cybercab"
+    # Check that rates, routes, and HA were completely preserved and NOT reset!
+    assert cfg_after_deliv.rates.gas_price_per_gal == 3.987
+    assert cfg_after_deliv.rates.zip_code == "80005"
+    assert cfg_after_deliv.homeassistant.token == "preserved_secret_token_abc"
+    assert cfg_after_deliv.homeassistant.url == "http://192.168.1.50:8123"
+    assert len(cfg_after_deliv.work_routes) == 1
+    assert cfg_after_deliv.work_routes[0].label == "HQ Commute"
+
+    # 5. POST /settings/integrations (Rates/Integrations update) - must NOT reset SMTP or schedules!
+    # Also verify empty ha_token does NOT blank out existing secret token
+    post_integ = client.post("/settings/integrations", data={
+        "rate_mode": "tou",
+        "gas_price_per_gal": "4.129",
+        "zip_code": "80007",
+        "utility_name": "Xcel Energy",
+        "ha_enabled": "on",
+        "ha_url": "http://192.168.1.99:8123",
+        "ha_token": "",  # Empty submitted: must preserve existing token!
+        "work_routes_json": json.dumps([
+            {"label": "Gym Trip", "point_a": "Home", "point_b": "Gym", "bidirectional": True, "target_car_id": None}
+        ]),
+        "tire_rotation_interval_mi": "7000"
+    })
+    assert post_integ.status_code == 200
+
+    cfg_after_integ = load_config()
+    # Check that integrations updated:
+    assert cfg_after_integ.rates.gas_price_per_gal == 4.129
+    assert cfg_after_integ.rates.zip_code == "80007"
+    assert cfg_after_integ.homeassistant.url == "http://192.168.1.99:8123"
+    assert cfg_after_integ.homeassistant.token == "preserved_secret_token_abc"  # Preserved!
+    assert len(cfg_after_integ.work_routes) == 1
+    assert cfg_after_integ.work_routes[0].label == "Gym Trip"
+    assert cfg_after_integ.tire_rotation_interval_mi == 7000
+    # Check that delivery settings and schedules were NOT clobbered!
+    assert cfg_after_integ.smtp.sender_name == "Delivery Updated"
+    assert cfg_after_integ.smtp.recipient_email == "updated_recipient@domain.com"
+    assert cfg_after_integ.schedules[0].name == "Weekly Quick Digest"
+    assert cfg_after_integ.email_theme == "cybercab"
+

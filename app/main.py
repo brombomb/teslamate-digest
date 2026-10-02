@@ -751,29 +751,21 @@ async def get_theme_palette(theme: str = Query("pearl_white")):
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_view(request: Request):
     cfg = load_config()
-    db: Database = request.app.state.db
-
-    # Dynamic defaults directly from TeslaMate DB for display/placeholder
-    db_tm_url, db_graf_url = await get_effective_service_urls(db, None)
-
-    # Auto-sync geofences with TeslaMate
-    try:
-        await sync_geofences_with_teslamate(db, cfg)
-    except Exception as e:
-        print(f"[Settings] Error auto-syncing geofences: {e}")
-
-    cars = await db.get_cars()
-    locations = await get_available_locations_for_work(db)
+    db = getattr(request.app.state, "db", None)
+    cars = []
+    if db:
+        try:
+            cars = await db.get_cars()
+        except Exception:
+            cars = []
     return templates.TemplateResponse(
         "settings.html",
         {
             "request": request,
             "active_nav": "settings",
+            "active_tab": "delivery",
             "config": cfg,
-            "db_tm_url": db_tm_url,
-            "db_graf_url": db_graf_url,
             "cars": cars,
-            "locations": locations,
             "themes": EMAIL_THEMES,
             "message": None
         }
@@ -794,53 +786,12 @@ async def settings_save(
     use_tls: Optional[str] = Form(None),
     use_ssl: Optional[str] = Form(None),
     email_theme: str = Form("pearl_white"),
-    rate_mode: str = Form("tou"),
-    tariff_preset: Optional[str] = Form(None),
-    average_kwh_cost: float = Form(0.13),
-    off_peak_kwh_cost: float = Form(0.10),
-    shoulder_kwh_cost: float = Form(0.14),
-    on_peak_kwh_cost: float = Form(0.20),
-    off_peak_start_hour: int = Form(21),
-    off_peak_end_hour: int = Form(9),
-    peak_start_hour: int = Form(13),
-    peak_end_hour: int = Form(19),
-    weekends_are_off_peak: Optional[str] = Form(None),
-    tier1_max_kwh: float = Form(500.0),
-    tier1_kwh_cost: float = Form(0.11),
-    tier2_max_kwh: float = Form(1000.0),
-    tier2_kwh_cost: float = Form(0.17),
-    tier3_kwh_cost: float = Form(0.26),
-    supercharger_fallback_cost: float = Form(0.36),
-    zip_code: str = Form(""),
-    gas_price_per_gal: float = Form(3.50),
-    baseline_ice_mpg: float = Form(26.0),
-    eia_api_key: str = Form(""),
-    openei_api_key: str = Form(""),
-    utility_name: str = Form(""),
-    dashboard_url: str = Form("http://localhost:8660"),
-    teslamate_url: Optional[str] = Form(""),
-    grafana_url: Optional[str] = Form(""),
-    grafana_api_token: Optional[str] = Form(""),
-    dash_charging: Optional[str] = Form(None),
-    dash_charge_level: Optional[str] = Form(None),
-    dash_charges: Optional[str] = Form(None),
-    dash_efficiency: Optional[str] = Form(None),
-    dash_battery: Optional[str] = Form(None),
-    dash_drives: Optional[str] = Form(None),
-    dash_vampire: Optional[str] = Form(None),
-    dash_achievements: Optional[str] = Form(None),
-    excluded_locations: str = Form("Home"),
-    tire_rotation_interval_mi: int = Form(6250),
     schedule_enabled: Optional[str] = Form(None),
     frequency: str = Form("monthly"),
     target_car_id: Optional[str] = Form(None),
     send_hour: int = Form(8),
     send_minute: int = Form(0),
     schedules_json: Optional[str] = Form(None),
-    irs_mileage_rate: float = Form(0.67),
-    commute_target_car_id: Optional[str] = Form(None),
-    work_routes_json: Optional[str] = Form(None),
-    geofences_json: Optional[str] = Form(None),
     modules_submitted: Optional[str] = Form(None),
     mod_spend_breakdown: Optional[str] = Form(None),
     mod_gas_savings: Optional[str] = Form(None),
@@ -858,17 +809,9 @@ async def settings_save(
     mod_embedded_charts: Optional[str] = Form(None),
     mod_solar_production: Optional[str] = Form(None),
     mod_achievements: Optional[str] = Form(None),
-    ha_enabled: Optional[str] = Form(None),
-    ha_url: Optional[str] = Form(""),
-    ha_token: Optional[str] = Form(""),
-    ha_solar_energy: Optional[str] = Form(""),
-    ha_solar_power: Optional[str] = Form(""),
-    ha_grid_import: Optional[str] = Form(""),
-    ha_grid_export: Optional[str] = Form(""),
-    ha_home_load: Optional[str] = Form(""),
 ):
     cfg = load_config()
-    db: Database = request.app.state.db
+    db = getattr(request.app.state, "db", None)
 
     cfg.smtp.enabled = bool(smtp_enabled)
     cfg.smtp.host = smtp_host.strip()
@@ -884,73 +827,6 @@ async def settings_save(
     cfg.smtp.use_ssl = bool(use_ssl)
 
     cfg.email_theme = email_theme
-    cfg.dashboard_url = dashboard_url.strip() or "http://localhost:8660"
-    cfg.teslamate_url = (teslamate_url or "").strip()
-    cfg.grafana_url = (grafana_url or "").strip()
-    cfg.grafana_api_token = (grafana_api_token or "").strip()
-    if dash_charging is not None and dash_charging.strip():
-        cfg.grafana_dashboards.charging = dash_charging.strip()
-    if dash_charge_level is not None and dash_charge_level.strip():
-        cfg.grafana_dashboards.charge_level = dash_charge_level.strip()
-    if dash_charges is not None and dash_charges.strip():
-        cfg.grafana_dashboards.charges = dash_charges.strip()
-    if dash_efficiency is not None and dash_efficiency.strip():
-        cfg.grafana_dashboards.efficiency = dash_efficiency.strip()
-    if dash_battery is not None and dash_battery.strip():
-        cfg.grafana_dashboards.battery_health = dash_battery.strip()
-    if dash_drives is not None and dash_drives.strip():
-        cfg.grafana_dashboards.drives = dash_drives.strip()
-    if dash_vampire is not None and dash_vampire.strip():
-        cfg.grafana_dashboards.vampire_drain = dash_vampire.strip()
-    if dash_achievements is not None and dash_achievements.strip():
-        cfg.grafana_dashboards.achievements = dash_achievements.strip()
-    cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
-
-    if getattr(cfg, "homeassistant", None) is None:
-        from app.config import HomeAssistantConfig
-        cfg.homeassistant = HomeAssistantConfig()
-
-    cfg.homeassistant.enabled = bool(ha_enabled)
-    if ha_url and ha_url.strip():
-        cfg.homeassistant.url = ha_url.strip()
-    if ha_token and ha_token.strip():
-        cfg.homeassistant.token = ha_token.strip()
-    if ha_solar_energy and ha_solar_energy.strip():
-        cfg.homeassistant.solar_energy_entity = ha_solar_energy.strip()
-    if ha_solar_power and ha_solar_power.strip():
-        cfg.homeassistant.solar_power_entity = ha_solar_power.strip()
-    if ha_grid_import and ha_grid_import.strip():
-        cfg.homeassistant.grid_import_entity = ha_grid_import.strip()
-    if ha_grid_export and ha_grid_export.strip():
-        cfg.homeassistant.grid_export_entity = ha_grid_export.strip()
-    if ha_home_load and ha_home_load.strip():
-        cfg.homeassistant.home_load_entity = ha_home_load.strip()
-
-    cfg.rates.rate_mode = rate_mode.strip().lower() or "tou"
-    if tariff_preset:
-        cfg.rates.tariff_preset = tariff_preset
-    cfg.rates.average_kwh_cost = average_kwh_cost
-    cfg.rates.off_peak_kwh_cost = off_peak_kwh_cost
-    cfg.rates.shoulder_kwh_cost = shoulder_kwh_cost
-    cfg.rates.on_peak_kwh_cost = on_peak_kwh_cost
-    cfg.rates.off_peak_start_hour = off_peak_start_hour
-    cfg.rates.off_peak_end_hour = off_peak_end_hour
-    cfg.rates.peak_start_hour = peak_start_hour
-    cfg.rates.peak_end_hour = peak_end_hour
-    cfg.rates.weekends_are_off_peak = bool(weekends_are_off_peak)
-    cfg.rates.tier1_max_kwh = tier1_max_kwh
-    cfg.rates.tier1_kwh_cost = tier1_kwh_cost
-    cfg.rates.tier2_max_kwh = tier2_max_kwh
-    cfg.rates.tier2_kwh_cost = tier2_kwh_cost
-    cfg.rates.tier3_kwh_cost = tier3_kwh_cost
-    cfg.rates.supercharger_fallback_cost = supercharger_fallback_cost
-    cfg.rates.zip_code = zip_code
-    cfg.rates.gas_price_per_gal = gas_price_per_gal
-    cfg.rates.baseline_ice_mpg = baseline_ice_mpg
-    cfg.rates.eia_api_key = eia_api_key.strip()
-    cfg.rates.openei_api_key = openei_api_key.strip()
-    cfg.rates.utility_name = utility_name.strip()
-    cfg.tire_rotation_interval_mi = tire_rotation_interval_mi
 
     # Multi-schedule configuration
     if schedules_json:
@@ -990,30 +866,6 @@ async def settings_save(
                 )
             ]
 
-    cfg.irs_mileage_rate = irs_mileage_rate
-    if commute_target_car_id and commute_target_car_id.strip():
-        try:
-            cfg.commute_target_car_id = int(commute_target_car_id)
-        except (ValueError, TypeError):
-            cfg.commute_target_car_id = None
-    else:
-        cfg.commute_target_car_id = None
-
-    if work_routes_json:
-        try:
-            parsed = json.loads(work_routes_json)
-            cfg.work_routes = [WorkRouteItem(**item) for item in parsed]
-        except Exception as e:
-            print(f"[Settings] Error parsing work routes JSON: {e}")
-
-    if geofences_json is not None:
-        try:
-            parsed_geos = json.loads(geofences_json)
-            cfg.geofences = [GeofenceItem(**item) for item in parsed_geos]
-            await sync_geofences_with_teslamate(db, cfg)
-        except Exception as e:
-            print(f"[Settings] Error parsing/syncing geofences: {e}")
-
     if modules_submitted:
         cfg.modules.spend_breakdown = bool(mod_spend_breakdown)
         cfg.modules.gas_savings = bool(mod_gas_savings)
@@ -1024,7 +876,7 @@ async def settings_save(
         cfg.modules.supercharger_explorer = bool(mod_supercharger_explorer)
         cfg.modules.top_locations = bool(mod_top_locations)
         cfg.modules.driving_milestones = bool(mod_driving_milestones)
-        cfg.modules.mountain_regen = bool(mod_mountain_regen or mod_colorado_mountain_regen)
+        cfg.modules.mountain_regen = bool(mod_mountain_regen)
         cfg.modules.colorado_mountain_regen = cfg.modules.mountain_regen
         cfg.modules.vampire_drain = bool(mod_vampire_drain)
         cfg.modules.maintenance_alerts = bool(mod_maintenance_alerts)
@@ -1036,22 +888,266 @@ async def settings_save(
     save_config(cfg)
     setup_scheduler(cfg)
 
-    cars = await db.get_cars()
-    locations = await get_available_locations_for_work(db)
-    db_tm_url, db_graf_url = await get_effective_service_urls(db, None)
+    db = getattr(request.app.state, "db", None)
+    cars = []
+    if db:
+        try:
+            cars = await db.get_cars()
+        except Exception:
+            cars = []
 
     return templates.TemplateResponse(
         "settings.html",
         {
             "request": request,
             "active_nav": "settings",
+            "active_tab": "delivery",
+            "config": cfg,
+            "cars": cars,
+            "themes": EMAIL_THEMES,
+            "message": "Delivery and schedule settings updated and saved successfully!"
+        }
+    )
+
+
+@app.get("/settings/integrations", response_class=HTMLResponse)
+@app.get("/integrations", response_class=HTMLResponse)
+async def settings_integrations_view(request: Request):
+    cfg = load_config()
+    db = getattr(request.app.state, "db", None)
+
+    db_tm_url, db_graf_url = "http://localhost:4000", "http://localhost:3000"
+    cars = []
+    locations = []
+    if db:
+        try:
+            db_tm_url, db_graf_url = await get_effective_service_urls(db, None)
+        except Exception:
+            pass
+        try:
+            await sync_geofences_with_teslamate(db, cfg)
+        except Exception as e:
+            print(f"[Integrations] Error auto-syncing geofences: {e}")
+        try:
+            cars = await db.get_cars()
+        except Exception:
+            cars = []
+        try:
+            locations = await get_available_locations_for_work(db)
+        except Exception:
+            locations = []
+
+    return templates.TemplateResponse(
+        "settings_integrations.html",
+        {
+            "request": request,
+            "active_nav": "integrations",
+            "active_tab": "integrations",
             "config": cfg,
             "db_tm_url": db_tm_url,
             "db_graf_url": db_graf_url,
             "cars": cars,
             "locations": locations,
-            "themes": EMAIL_THEMES,
-            "message": "Settings updated and saved successfully!"
+            "message": None
+        }
+    )
+
+
+@app.post("/settings/integrations", response_class=HTMLResponse)
+@app.post("/integrations", response_class=HTMLResponse)
+async def settings_integrations_save(
+    request: Request,
+    rate_mode: str = Form("tou"),
+    tariff_preset: Optional[str] = Form(None),
+    average_kwh_cost: float = Form(0.13),
+    off_peak_kwh_cost: float = Form(0.10),
+    shoulder_kwh_cost: float = Form(0.14),
+    on_peak_kwh_cost: float = Form(0.20),
+    off_peak_start_hour: int = Form(21),
+    off_peak_end_hour: int = Form(9),
+    peak_start_hour: int = Form(13),
+    peak_end_hour: int = Form(19),
+    weekends_are_off_peak: Optional[str] = Form(None),
+    tier1_max_kwh: float = Form(500.0),
+    tier1_kwh_cost: float = Form(0.11),
+    tier2_max_kwh: float = Form(1000.0),
+    tier2_kwh_cost: float = Form(0.17),
+    tier3_kwh_cost: float = Form(0.26),
+    supercharger_fallback_cost: float = Form(0.36),
+    zip_code: str = Form(""),
+    gas_price_per_gal: float = Form(3.50),
+    auto_gas_price: Optional[str] = Form(None),
+    baseline_ice_mpg: float = Form(26.0),
+    eia_api_key: str = Form(""),
+    openei_api_key: str = Form(""),
+    utility_name: str = Form(""),
+    dashboard_url: str = Form("http://localhost:8660"),
+    teslamate_url: Optional[str] = Form(""),
+    grafana_url: Optional[str] = Form(""),
+    grafana_api_token: Optional[str] = Form(""),
+    dash_charging: Optional[str] = Form(None),
+    dash_charge_level: Optional[str] = Form(None),
+    dash_charges: Optional[str] = Form(None),
+    dash_efficiency: Optional[str] = Form(None),
+    dash_battery: Optional[str] = Form(None),
+    dash_drives: Optional[str] = Form(None),
+    dash_vampire: Optional[str] = Form(None),
+    dash_achievements: Optional[str] = Form(None),
+    excluded_locations: str = Form("Home"),
+    tire_rotation_interval_mi: Optional[int] = Form(None),
+    irs_mileage_rate: float = Form(0.67),
+    commute_target_car_id: Optional[str] = Form(None),
+    work_routes_json: Optional[str] = Form(None),
+    geofences_json: Optional[str] = Form(None),
+    ha_enabled: Optional[str] = Form(None),
+    ha_url: Optional[str] = Form(""),
+    ha_token: Optional[str] = Form(""),
+    ha_solar_energy: Optional[str] = Form(""),
+    ha_solar_power: Optional[str] = Form(""),
+    ha_grid_import: Optional[str] = Form(""),
+    ha_grid_export: Optional[str] = Form(""),
+    ha_home_load: Optional[str] = Form(""),
+):
+    cfg = load_config()
+    db = getattr(request.app.state, "db", None)
+
+    cfg.dashboard_url = dashboard_url.strip() or "http://localhost:8660"
+    if teslamate_url is not None:
+        cfg.teslamate_url = teslamate_url.strip()
+    if grafana_url is not None:
+        cfg.grafana_url = grafana_url.strip()
+    if grafana_api_token is not None and grafana_api_token.strip():
+        cfg.grafana_api_token = grafana_api_token.strip()
+
+    if dash_charging is not None and dash_charging.strip():
+        cfg.grafana_dashboards.charging = dash_charging.strip()
+    if dash_charge_level is not None and dash_charge_level.strip():
+        cfg.grafana_dashboards.charge_level = dash_charge_level.strip()
+    if dash_charges is not None and dash_charges.strip():
+        cfg.grafana_dashboards.charges = dash_charges.strip()
+    if dash_efficiency is not None and dash_efficiency.strip():
+        cfg.grafana_dashboards.efficiency = dash_efficiency.strip()
+    if dash_battery is not None and dash_battery.strip():
+        cfg.grafana_dashboards.battery_health = dash_battery.strip()
+    if dash_drives is not None and dash_drives.strip():
+        cfg.grafana_dashboards.drives = dash_drives.strip()
+    if dash_vampire is not None and dash_vampire.strip():
+        cfg.grafana_dashboards.vampire_drain = dash_vampire.strip()
+    if dash_achievements is not None and dash_achievements.strip():
+        cfg.grafana_dashboards.achievements = dash_achievements.strip()
+
+    cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
+    if tire_rotation_interval_mi is not None:
+        cfg.tire_rotation_interval_mi = tire_rotation_interval_mi
+
+    if getattr(cfg, "homeassistant", None) is None:
+        from app.config import HomeAssistantConfig
+        cfg.homeassistant = HomeAssistantConfig()
+
+    cfg.homeassistant.enabled = bool(ha_enabled)
+    if ha_url is not None and ha_url.strip():
+        cfg.homeassistant.url = ha_url.strip()
+    if ha_token and ha_token.strip():
+        cfg.homeassistant.token = ha_token.strip()
+    if ha_solar_energy is not None:
+        cfg.homeassistant.solar_energy_entity = ha_solar_energy.strip()
+    if ha_solar_power is not None:
+        cfg.homeassistant.solar_power_entity = ha_solar_power.strip()
+    if ha_grid_import is not None:
+        cfg.homeassistant.grid_import_entity = ha_grid_import.strip()
+    if ha_grid_export is not None:
+        cfg.homeassistant.grid_export_entity = ha_grid_export.strip()
+    if ha_home_load is not None:
+        cfg.homeassistant.home_load_entity = ha_home_load.strip()
+
+    cfg.rates.rate_mode = rate_mode.strip().lower() or "tou"
+    if tariff_preset:
+        cfg.rates.tariff_preset = tariff_preset
+    cfg.rates.average_kwh_cost = average_kwh_cost
+    cfg.rates.off_peak_kwh_cost = off_peak_kwh_cost
+    cfg.rates.shoulder_kwh_cost = shoulder_kwh_cost
+    cfg.rates.on_peak_kwh_cost = on_peak_kwh_cost
+    cfg.rates.off_peak_start_hour = off_peak_start_hour
+    cfg.rates.off_peak_end_hour = off_peak_end_hour
+    cfg.rates.peak_start_hour = peak_start_hour
+    cfg.rates.peak_end_hour = peak_end_hour
+    cfg.rates.weekends_are_off_peak = bool(weekends_are_off_peak)
+    cfg.rates.tier1_max_kwh = tier1_max_kwh
+    cfg.rates.tier1_kwh_cost = tier1_kwh_cost
+    cfg.rates.tier2_max_kwh = tier2_max_kwh
+    cfg.rates.tier2_kwh_cost = tier2_kwh_cost
+    cfg.rates.tier3_kwh_cost = tier3_kwh_cost
+    cfg.rates.supercharger_fallback_cost = supercharger_fallback_cost
+    cfg.rates.zip_code = zip_code.strip()
+    cfg.rates.gas_price_per_gal = gas_price_per_gal
+    cfg.rates.auto_gas_price = bool(auto_gas_price)
+    cfg.rates.baseline_ice_mpg = baseline_ice_mpg
+    cfg.rates.eia_api_key = eia_api_key.strip()
+    cfg.rates.openei_api_key = openei_api_key.strip()
+    cfg.rates.utility_name = utility_name.strip()
+
+    cfg.irs_mileage_rate = irs_mileage_rate
+    if commute_target_car_id and commute_target_car_id.strip():
+        try:
+            cfg.commute_target_car_id = int(commute_target_car_id)
+        except (ValueError, TypeError):
+            cfg.commute_target_car_id = None
+    else:
+        cfg.commute_target_car_id = None
+
+    if work_routes_json is not None and work_routes_json.strip():
+        try:
+            parsed = json.loads(work_routes_json)
+            if isinstance(parsed, list):
+                cfg.work_routes = [WorkRouteItem(**item) for item in parsed]
+        except Exception as e:
+            print(f"[Settings] Error parsing work routes JSON: {e}")
+
+    if geofences_json is not None and geofences_json.strip():
+        try:
+            parsed_geos = json.loads(geofences_json)
+            if isinstance(parsed_geos, list):
+                cfg.geofences = [GeofenceItem(**item) for item in parsed_geos]
+                if db:
+                    try:
+                        await sync_geofences_with_teslamate(db, cfg)
+                    except Exception as e:
+                        print(f"[Settings] Error syncing geofences: {e}")
+        except Exception as e:
+            print(f"[Settings] Error parsing/syncing geofences: {e}")
+
+    save_config(cfg)
+
+    db = getattr(request.app.state, "db", None)
+    cars = []
+    locations = []
+    db_tm_url, db_graf_url = "http://localhost:4000", "http://localhost:3000"
+    if db:
+        try:
+            cars = await db.get_cars()
+        except Exception:
+            cars = []
+        try:
+            locations = await get_available_locations_for_work(db)
+        except Exception:
+            locations = []
+        try:
+            db_tm_url, db_graf_url = await get_effective_service_urls(db, None)
+        except Exception:
+            pass
+
+    return templates.TemplateResponse(
+        "settings_integrations.html",
+        {
+            "request": request,
+            "active_nav": "integrations",
+            "active_tab": "integrations",
+            "config": cfg,
+            "db_tm_url": db_tm_url,
+            "db_graf_url": db_graf_url,
+            "cars": cars,
+            "locations": locations,
+            "message": "Rates, commute routes, and integrations updated and saved successfully!"
         }
     )
 

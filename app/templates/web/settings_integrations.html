@@ -1,0 +1,1688 @@
+{% extends "base.html" %}
+
+{% block title %}Rates &amp; Integrations - TeslaMate Digest{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- TOP TAB NAVIGATION -->
+  <div class="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+    <a href="/settings" class="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700">
+      <span>📬</span> Delivery &amp; Schedules
+    </a>
+    <a href="/settings/integrations" class="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition bg-tesla text-white shadow-md shadow-red-950/20">
+      <span>⚡</span> Rates, Commute &amp; Integrations
+    </a>
+  </div>
+
+  <div>
+    <h2 class="text-2xl font-black text-slate-900 dark:text-white">Rates, Commute &amp; Integrations</h2>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure home electricity tariffs (OpenEI / TOU / Tiered / Flat), IRS commute mileage routes, TeslaMate geofences, Home Assistant solar telemetry, and service URLs.</p>
+  </div>
+
+  {% if message %}
+  <div class="p-4 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 text-sm">
+    {{ message }}
+  </div>
+  {% endif %}
+
+  <form id="integrations-form" method="POST" action="/settings/integrations" class="space-y-6" onsubmit="serializeGeofences(); serializeWorkRoutes(); syncExcludedLocations();">
+
+    <!-- 1. ELECTRICITY RATES & PLAN STRUCTURE -->
+    <div class="space-y-6">
+      <div id="subsection-rate-structure" class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors">
+        
+        <!-- Header -->
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-5">
+          <h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+            <span>⚡</span> Electricity Rates &amp; Plan Structure
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Configure your home charging electricity rates. Query utility tariffs via OpenEI by ZIP code, or manually configure Time-of-Use (TOU), monthly tiered thresholds, or flat rates.
+          </p>
+        </div>
+
+        <!-- Integrated OpenEI Search Box -->
+        <div class="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800/80 pb-3">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <span>🌐</span> OpenEI / NREL Utility Rate Plan Search
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Search live tariffs from the National Renewable Energy Laboratory (NREL) database by ZIP code.
+              </p>
+            </div>
+            <button type="button" onclick="syncOpenEiElectricRates()" id="btn-sync-electric" class="px-3.5 py-2 bg-tesla hover:bg-tesla/90 text-white rounded-xl text-xs font-semibold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+              <span>⚡</span> Search Utility Rate Plans
+            </button>
+          </div>
+
+          <!-- Status / Feedback Toast inside electric section -->
+          <div id="electric-rates-api-status-msg" class="hidden px-4 py-3 rounded-xl text-xs flex items-center justify-between font-medium"></div>
+
+          <!-- TOP 5 MATCHING TARIFF PLANS SELECTOR CONTAINER -->
+          <div id="matched-plans-container" class="hidden p-4 rounded-xl border border-tesla/30 bg-red-50/20 dark:bg-red-950/20 space-y-3 transition-all">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🎯</span>
+                <label class="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Top 5 Matching Utility Rate Plans for ZIP <span id="matched-plans-zip" class="text-tesla font-mono"></span>:
+                </label>
+              </div>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400">Select your best fit to populate rate structure below</span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2.5">
+              <select id="matched-plans-dropdown" onchange="onSelectMatchedPlan(this.value)" class="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white shadow-sm focus:ring-2 focus:ring-tesla/30 focus:border-tesla">
+                <!-- Options populated dynamically -->
+              </select>
+              <button type="button" onclick="applySelectedMatchedPlan()" class="px-4 py-2 bg-tesla hover:bg-tesla/90 text-white rounded-lg text-xs font-bold transition shadow flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+                <span>✓</span> Apply Selected Plan
+              </button>
+            </div>
+
+            <div id="matched-plan-details" class="text-xs text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-900/80 p-3 rounded-lg border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <!-- Summary card updated dynamically -->
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Local ZIP Code</label>
+              <input type="text" id="rates_zip_code" name="zip_code" value="{{ config.rates.zip_code }}" placeholder="e.g. 12345" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
+              <span class="text-[10px] text-slate-400 mt-1 block">Identifies your local energy market and utility provider.</span>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                OpenEI API Key (Optional)
+                <a href="https://openei.org/services/api/signup/" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
+              </label>
+              <input type="text" id="openei_api_key" name="openei_api_key" value="{{ config.rates.openei_api_key }}" placeholder="Free OpenEI / NREL Key" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400 mt-1 block">NREL Utility Rate Database API key.</span>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Detected Utility / Tariff Name</label>
+              <input type="text" id="utility_name" name="utility_name" value="{{ config.rates.utility_name }}" placeholder="e.g. Xcel Energy / Public Service Co" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white">
+              <span class="text-[10px] text-slate-400 mt-1 block">Utility rate provider name or custom identifier.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode Pill Switcher -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Rate Structure Model</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button type="button" onclick="switchRateMode('tou')" id="btn-mode-tou" class="rate-mode-btn p-3.5 rounded-xl border text-left transition flex items-start gap-3 cursor-pointer {% if config.rates.rate_mode == 'tou' or not config.rates.rate_mode %}border-tesla bg-red-50/40 dark:bg-red-950/20 text-slate-900 dark:text-white ring-1 ring-tesla{% else %}border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700{% endif %}">
+              <span class="text-xl mt-0.5">⚡</span>
+              <div>
+                <div class="font-bold text-sm">Time-of-Use (TOU)</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">Rates change by hour (Off-Peak, Shoulder, On-Peak)</div>
+              </div>
+            </button>
+
+            <button type="button" onclick="switchRateMode('tiered')" id="btn-mode-tiered" class="rate-mode-btn p-3.5 rounded-xl border text-left transition flex items-start gap-3 cursor-pointer {% if config.rates.rate_mode == 'tiered' %}border-tesla bg-red-50/40 dark:bg-red-950/20 text-slate-900 dark:text-white ring-1 ring-tesla{% else %}border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700{% endif %}">
+              <span class="text-xl mt-0.5">📊</span>
+              <div>
+                <div class="font-bold text-sm">Tiered Usage Thresholds</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">Rates step up as monthly kWh crosses baseline tiers</div>
+              </div>
+            </button>
+
+            <button type="button" onclick="switchRateMode('flat')" id="btn-mode-flat" class="rate-mode-btn p-3.5 rounded-xl border text-left transition flex items-start gap-3 cursor-pointer {% if config.rates.rate_mode == 'flat' %}border-tesla bg-red-50/40 dark:bg-red-950/20 text-slate-900 dark:text-white ring-1 ring-tesla{% else %}border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700{% endif %}">
+              <span class="text-xl mt-0.5">🏷️</span>
+              <div>
+                <div class="font-bold text-sm">Flat Rate</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">Fixed $/kWh across all hours, days, and consumption</div>
+              </div>
+            </button>
+          </div>
+          <input type="hidden" name="rate_mode" id="rate_mode_input" value="{{ config.rates.rate_mode }}">
+        </div>
+
+        <!-- 1. TIME-OF-USE PANEL -->
+        <div id="rate-mode-tou-panel" class="space-y-6 pt-2 {% if config.rates.rate_mode != 'tou' and config.rates.rate_mode %}hidden{% endif %}">
+          <!-- TOU Rates Grid -->
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+              <span>Tariff Price per kWh</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Off-Peak Rate</label>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">Cheapest</span>
+                </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="off_peak_kwh_cost" name="off_peak_kwh_cost" value="{{ config.rates.off_peak_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+                <p class="text-[11px] text-slate-400">Overnight &amp; weekend baseline charging</p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wide">Shoulder / Mid-Peak Rate</label>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300">Moderate</span>
+                </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="shoulder_kwh_cost" name="shoulder_kwh_cost" value="{{ config.rates.shoulder_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+                <p class="text-[11px] text-slate-400">Daytime hours outside peak window</p>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">On-Peak Rate</label>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">Highest</span>
+                </div>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="on_peak_kwh_cost" name="on_peak_kwh_cost" value="{{ config.rates.on_peak_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+                <p class="text-[11px] text-slate-400">Peak grid stress hours (afternoon/evening)</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOU Windows & Weekend Rules -->
+          <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+              <span>Time Windows &amp; Weekend Schedule</span>
+              <span class="text-[11px] font-normal text-slate-500 lowercase">24-hour clock (0-23)</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Off-Peak Window Start</label>
+                <select id="off_peak_start_hour" name="off_peak_start_hour" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+                  {% for h in range(24) %}
+                  <option value="{{ h }}" {% if config.rates.off_peak_start_hour == h %}selected{% endif %}>{{ "%02d:00 (%d %s)"|format(h, 12 if h in [0, 12] else h % 12, "AM" if h < 12 else "PM") }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Off-Peak Window End</label>
+                <select id="off_peak_end_hour" name="off_peak_end_hour" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+                  {% for h in range(24) %}
+                  <option value="{{ h }}" {% if config.rates.off_peak_end_hour == h %}selected{% endif %}>{{ "%02d:00 (%d %s)"|format(h, 12 if h in [0, 12] else h % 12, "AM" if h < 12 else "PM") }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Peak Window Start</label>
+                <select id="peak_start_hour" name="peak_start_hour" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+                  {% for h in range(24) %}
+                  <option value="{{ h }}" {% if config.rates.peak_start_hour == h %}selected{% endif %}>{{ "%02d:00 (%d %s)"|format(h, 12 if h in [0, 12] else h % 12, "AM" if h < 12 else "PM") }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Peak Window End</label>
+                <select id="peak_end_hour" name="peak_end_hour" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white">
+                  {% for h in range(24) %}
+                  <option value="{{ h }}" {% if config.rates.peak_end_hour == h %}selected{% endif %}>{{ "%02d:00 (%d %s)"|format(h, 12 if h in [0, 12] else h % 12, "AM" if h < 12 else "PM") }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-200 dark:border-slate-800">
+              <label class="flex items-center space-x-2.5 text-xs font-semibold cursor-pointer">
+                <input type="checkbox" id="weekends_are_off_peak" name="weekends_are_off_peak" {% if config.rates.weekends_are_off_peak %}checked{% endif %} class="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+                <span class="text-slate-800 dark:text-slate-200">Weekends are 100% Off-Peak (Saturday &amp; Sunday never incur peak or shoulder charges)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. TIERED USAGE PANEL -->
+        <div id="rate-mode-tiered-panel" class="space-y-6 pt-3 {% if config.rates.rate_mode != 'tiered' %}hidden{% endif %}">
+          <div class="p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-3.5 leading-relaxed">
+            <span class="text-2xl mt-0.5">💡</span>
+            <div>
+              <span class="font-bold text-sm block mb-1">How Monthly Tiered Billing Works</span>
+              As your total home electricity usage accumulates over each billing cycle, your rate increases through baseline blocks. Enter your monthly kWh thresholds and corresponding costs per kWh below.
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- Tier 1 -->
+            <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-2.5">
+                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Tier 1 (Baseline)</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">Initial Block</span>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Max Threshold (kWh)</label>
+                <div class="relative">
+                  <input type="number" step="1" id="tier1_max_kwh" name="tier1_max_kwh" value="{{ config.rates.tier1_max_kwh }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">kWh</span>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Usage up to this limit (e.g. 500 kWh)</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Rate ($/kWh)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="tier1_kwh_cost" name="tier1_kwh_cost" value="{{ config.rates.tier1_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+              </div>
+            </div>
+
+            <!-- Tier 2 -->
+            <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-2.5">
+                <span class="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wide">Tier 2 (Intermediate)</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300">Middle Block</span>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Max Threshold (kWh)</label>
+                <div class="relative">
+                  <input type="number" step="1" id="tier2_max_kwh" name="tier2_max_kwh" value="{{ config.rates.tier2_max_kwh }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-400">kWh</span>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Usage between Tier 1 and this ceiling</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Rate ($/kWh)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="tier2_kwh_cost" name="tier2_kwh_cost" value="{{ config.rates.tier2_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+              </div>
+            </div>
+
+            <!-- Tier 3 -->
+            <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-2.5">
+                <span class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">Tier 3 (High Usage)</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">Above Tier 2</span>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Threshold</label>
+                <div class="px-3 py-2 bg-slate-100 dark:bg-slate-900 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  All usage &gt; Tier 2 ceiling
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2">Applies to all heavy consumption</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Rate ($/kWh)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                  <input type="number" step="0.001" id="tier3_kwh_cost" name="tier3_kwh_cost" value="{{ config.rates.tier3_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. FLAT RATE PANEL -->
+        <div id="rate-mode-flat-panel" class="pt-2 {% if config.rates.rate_mode != 'flat' %}hidden{% endif %}">
+          <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 max-w-sm space-y-2">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Flat Electricity Rate ($/kWh)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+              <input type="number" step="0.001" id="average_kwh_cost" name="average_kwh_cost" value="{{ config.rates.average_kwh_cost }}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm font-semibold text-slate-900 dark:text-white">
+            </div>
+            <p class="text-[11px] text-slate-400">Fixed rate per kWh billed 24/7 across all home charging sessions.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SUBSECTION 1B: SUPERCHARGING FALLBACK & GASOLINE COMPARISON -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-5">
+          <h4 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+            <span>⛽</span> Supercharging Fallback &amp; Gasoline Comparison
+          </h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Parameters for Supercharger fallback rates (when direct costs aren't recorded in TeslaMate) and ICE fuel savings calculations. You can sync live regional gasoline prices from the <strong>U.S. EIA</strong>.
+          </p>
+        </div>
+
+        <!-- Integrated EIA Gas API Sync Box -->
+        <div class="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800/80 pb-3">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <span>🌐</span> U.S. Energy Information Administration (EIA) Live Gas Sync
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Fetches live regional retail gasoline prices using your local ZIP code.
+              </p>
+            </div>
+            <button type="button" onclick="syncEiaGasPrice()" id="btn-sync-gas" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+              <span>⛽</span> Fetch EIA Gas Price
+            </button>
+          </div>
+
+          <!-- Gas Status Toast -->
+          <div id="gas-api-status-msg" class="hidden px-4 py-3 rounded-xl text-xs flex items-center justify-between font-medium"></div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                EIA API Key (Optional)
+                <a href="https://www.eia.gov/opendata/register.php" target="_blank" rel="noopener noreferrer" class="text-tesla hover:underline font-normal ml-1">Free Key &rarr;</a>
+              </label>
+              <input type="text" id="eia_api_key" name="eia_api_key" value="{{ config.rates.eia_api_key }}" placeholder="Free EIA v2 API Key" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400 mt-1 block">U.S. Energy Information Administration API key.</span>
+            </div>
+
+            <div class="flex items-center pt-2 sm:pt-6">
+              <label class="flex items-center space-x-2.5 text-xs font-semibold cursor-pointer">
+                <input type="checkbox" name="auto_gas_price" {% if config.rates.auto_gas_price %}checked{% endif %} class="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0">
+                <span class="text-slate-800 dark:text-slate-200">Automatically sync latest EIA gas price during digest generation</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Regular Gas Price ($/gal)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+              <input type="number" step="any" id="gas_price_per_gal" name="gas_price_per_gal" value="{{ config.rates.gas_price_per_gal }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm text-slate-900 dark:text-white font-medium">
+            </div>
+            <span class="text-[11px] text-slate-400 block">Baseline price for gasoline savings comparison (supports 3+ decimals).</span>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Baseline Gas Vehicle MPG</label>
+            <div class="relative">
+              <input type="number" step="0.1" name="baseline_ice_mpg" value="{{ config.rates.baseline_ice_mpg }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-medium">
+              <span class="absolute right-3 top-2.5 text-xs text-slate-400">MPG</span>
+            </div>
+            <span class="text-[11px] text-slate-400 block">Estimated fuel economy of an equivalent ICE vehicle.</span>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Supercharger Fallback Rate ($/kWh)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+              <input type="number" step="0.001" id="supercharger_fallback_cost" name="supercharger_fallback_cost" value="{{ config.rates.supercharger_fallback_cost }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg pl-7 pr-3 py-2 text-sm text-slate-900 dark:text-white font-medium">
+            </div>
+            <span class="text-[11px] text-slate-400 block">Used when direct charging price is missing.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. WORK & COMMUTE MILEAGE TRACKER (BUSINESS LOGGING) -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>💼</span> Work &amp; Commute Mileage Routes
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Define pairs of addresses or geofences to track business/work trips, total miles, and IRS mileage tax deductions.</p>
+        </div>
+        <div class="flex items-center gap-3.5 flex-wrap">
+          <div class="flex items-center gap-1.5">
+            <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">IRS Rate ($/mi):</label>
+            <input type="number" step="0.01" name="irs_mileage_rate" value="{{ config.irs_mileage_rate }}" class="w-20 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+          </div>
+        </div>
+      </div>
+
+      <!-- ROUTES CONTAINER -->
+      <div id="work-routes-list" class="space-y-3">
+        {% for r in config.work_routes %}
+        <div class="work-route-row p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+          <div class="sm:col-span-3">
+            <input type="text" placeholder="Route Label (e.g. Office Commute)" value="{{ r.label }}" class="route-label w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+          </div>
+          <div class="sm:col-span-3 relative location-typeahead-container">
+            <input type="text" placeholder="Point A (Origin)" value="{{ r.point_a }}" class="route-point-a location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
+            <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+          </div>
+          <div class="sm:col-span-3 relative location-typeahead-container">
+            <input type="text" placeholder="Point B (Destination)" value="{{ r.point_b }}" class="route-point-b location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
+            <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+          </div>
+          <div class="sm:col-span-2">
+            <select class="route-target-car w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] text-slate-900 dark:text-white">
+              <option value="" {% if not r.target_car_id %}selected{% endif %}>Default Vehicle</option>
+              {% for c in cars %}
+              <option value="{{ c.id }}" {% if r.target_car_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="sm:col-span-1 flex items-center justify-end gap-1.5">
+            <label title="Bidirectional A &harr; B" class="flex items-center cursor-pointer">
+              <input type="checkbox" class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla" {% if r.bidirectional %}checked{% endif %}>
+              <span class="text-[10px] ml-1 text-slate-500 dark:text-slate-400 font-semibold">&harr;</span>
+            </label>
+            <button type="button" onclick="removeRouteRow(this)" class="p-1 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="pt-2">
+        <button type="button" onclick="addRouteRow()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5">
+          <span>➕</span> Add Work / Commute Route
+        </button>
+      </div>
+
+      <input type="hidden" name="work_routes_json" id="work_routes_json" value="">
+    </div>
+
+    <!-- 3. GEOFENCES & NAMED AREAS -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>📍</span> Geofences &amp; Named Areas
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Bi-directionally synced with TeslaMate's native geofences table. Define custom areas (e.g. Home, Work, Gym) with custom radii and street aliases for exclusion rules and work commute matching.
+          </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <span id="geofence-sync-status" class="text-xs text-slate-400"></span>
+          <button type="button" id="btn-sync-geofences" onclick="syncTeslaMateGeofences()" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-semibold rounded-lg border border-blue-200 dark:border-blue-800 transition flex items-center gap-1.5 whitespace-nowrap">
+            <span>🔄</span> Sync with TeslaMate
+          </button>
+        </div>
+      </div>
+
+      <!-- GEOFENCES LIST -->
+      <div id="geofences-list" class="space-y-3">
+        {% for g in config.geofences %}
+        <div class="geofence-row p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-3" data-in-teslamate="{{ 'true' if g.in_teslamate else 'false' }}">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            <div class="sm:col-span-3">
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Geofence Name</label>
+                {% if g.in_teslamate %}
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" title="Synchronized with TeslaMate PostgreSQL geofences table">✓ TeslaMate</span>
+                {% endif %}
+              </div>
+              <input type="text" placeholder="e.g. Home or Work" value="{{ g.name }}" class="geo-name w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-medium">
+            </div>
+            <div class="sm:col-span-5 relative location-typeahead-container">
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Center Address / Location (Search)</label>
+              <input type="text" placeholder="Type or search recorded address to auto-fill coordinates..." value="" class="geo-search location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
+              <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Latitude</label>
+              <input type="number" step="0.000001" placeholder="Lat" value="{{ g.latitude }}" class="geo-lat w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white">
+            </div>
+            <div class="sm:col-span-2 flex items-end gap-2">
+              <div class="flex-1">
+                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Longitude</label>
+                <input type="number" step="0.000001" placeholder="Lon" value="{{ g.longitude }}" class="geo-lon w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white">
+              </div>
+              <button type="button" onclick="removeGeofenceRow(this)" class="p-1.5 mb-0.5 text-red-500 hover:text-red-700 text-xs font-bold shrink-0" title="Delete Geofence">✕</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+            <div class="sm:col-span-4 flex items-center gap-2">
+              <label class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Radius (meters):</label>
+              <input type="number" min="50" max="5000" step="25" value="{{ g.radius_meters }}" class="geo-radius w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+              <span class="text-[10px] text-slate-400">(e.g. 350m)</span>
+            </div>
+            <div class="sm:col-span-8">
+              <div class="flex items-center gap-2">
+                <label class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Street Aliases:</label>
+                <input type="text" placeholder="Comma-separated streets e.g. Main St, Elm St" value="{{ g.address_aliases | join(', ') }}" class="geo-aliases flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="pt-2">
+        <button type="button" onclick="addGeofenceRow()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5">
+          <span>➕</span> Add Geofence / Named Area
+        </button>
+      </div>
+
+      <input type="hidden" name="geofences_json" id="geofences_json" value="">
+    </div>
+
+    <!-- 4. HOME ASSISTANT & SOLAR INTEGRATION -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>☀️</span> Home Assistant &amp; Solar Integration
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Integrate rooftop solar generation and energy metrics from Home Assistant into your email digests.</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" name="ha_enabled" id="ha_enabled" class="sr-only peer" {% if config.homeassistant.enabled %}checked{% endif %} onchange="toggleHaSection(this.checked)">
+          <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
+          <span class="ml-2 text-xs font-semibold text-slate-700 dark:text-slate-300">Enabled</span>
+        </label>
+      </div>
+
+      <div id="ha-config-container" class="space-y-4 {% if not config.homeassistant.enabled %}opacity-50 pointer-events-none{% endif %} transition-opacity">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Home Assistant Base URL</label>
+            <input type="text" name="ha_url" id="ha_url" value="{{ config.homeassistant.url }}" placeholder="http://192.168.1.15:8123" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+            <p class="text-[11px] text-slate-400 mt-1">Local or host URL of your Home Assistant instance (e.g. <span class="font-mono text-emerald-600 dark:text-emerald-400">http://192.168.1.15:8123</span>).</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400">Long-Lived Access Token</label>
+              <button type="button" onclick="togglePasswordVisibility('ha_token')" class="text-[11px] text-blue-500 hover:underline">Show/Hide</button>
+            </div>
+            <input type="password" name="ha_token" id="ha_token" value="{{ config.homeassistant.token }}" placeholder="eyJhbGciOiJIUzI1Ni..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+            <p class="text-[11px] text-slate-400 mt-1">Generated from your Home Assistant profile under Long-Lived Access Tokens.</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 pt-1">
+          <button type="button" id="btn-test-ha" onclick="testHomeAssistantConnection()" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5">
+            <span>⚡</span> Test Connection
+          </button>
+          <button type="button" id="btn-discover-ha" onclick="discoverHomeAssistantEntities()" class="px-3.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
+            <span>🔍</span> Auto-Detect Solar Entities
+          </button>
+          <div id="ha-test-status" class="text-xs"></div>
+        </div>
+
+        <!-- SOLAR & ENERGY ENTITY MAPPING -->
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Solar &amp; Grid Entity IDs</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Cumulative Solar Energy (kWh)</label>
+              <input type="text" name="ha_solar_energy" id="ha_solar_energy" value="{{ config.homeassistant.solar_energy_entity }}" placeholder="sensor.tesla_solar_production" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Total generated energy</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Instantaneous Solar Power (W / kW)</label>
+              <input type="text" name="ha_solar_power" id="ha_solar_power" value="{{ config.homeassistant.solar_power_entity }}" placeholder="sensor.1au_solar_power" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Used for peak kW generation</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Grid Import / Consumption (kWh)</label>
+              <input type="text" name="ha_grid_import" id="ha_grid_import" value="{{ config.homeassistant.grid_import_entity }}" placeholder="sensor.current_grid_consumption" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Energy pulled from utility grid</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Grid Export / Feed-in (kWh)</label>
+              <input type="text" name="ha_grid_export" id="ha_grid_export" value="{{ config.homeassistant.grid_export_entity }}" placeholder="sensor.current_grid_feed" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Clean solar pushed back to grid</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Total Home Load (kWh)</label>
+              <input type="text" name="ha_home_load" id="ha_home_load" value="{{ config.homeassistant.home_load_entity }}" placeholder="sensor.total_load_energy" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <span class="text-[10px] text-slate-400">Overall household electricity draw</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. SERVICE URLS & DASHBOARDS -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🔗</span> Service URLs &amp; Dashboards (TeslaMate &amp; Grafana)
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          By default, URLs are read dynamically from your TeslaMate database settings. Enter overrides below only if you access them via an alternate hostname, reverse proxy, or custom port.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">TeslaMate Web UI URL</label>
+          <input type="text" name="teslamate_url" id="teslamate_url_input" value="{{ config.teslamate_url or db_tm_url or '' }}" placeholder="Auto: {{ db_tm_url }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+          <p class="text-[11px] text-slate-400 mt-1">Default from DB: <span class="font-mono text-emerald-600 dark:text-emerald-400">{{ db_tm_url }}</span>.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Grafana Dashboards URL</label>
+          <input type="text" name="grafana_url" id="grafana_url_input" value="{{ config.grafana_url or db_graf_url or '' }}" placeholder="Auto: {{ db_graf_url }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+          <p class="text-[11px] text-slate-400 mt-1">Default from DB: <span class="font-mono text-emerald-600 dark:text-emerald-400">{{ db_graf_url }}</span>.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Local Digest Dashboard URL</label>
+          <input type="text" name="dashboard_url" value="{{ config.dashboard_url }}" placeholder="http://localhost:8660" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+          <p class="text-[11px] text-slate-400 mt-1">Link in email footers back to this TeslaMate Digest portal.</p>
+        </div>
+      </div>
+
+      <!-- DYNAMIC GRAFANA DASHBOARDS (OPTIONAL / CUSTOM INSTALLS) -->
+      <details class="group rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 p-4 transition-all">
+        <summary class="flex items-center justify-between cursor-pointer select-none font-semibold text-xs text-slate-700 dark:text-slate-300">
+          <span class="flex items-center gap-2">
+            <span>⚙️</span> Dynamic Grafana Dashboard Paths &amp; UIDs
+          </span>
+          <span class="text-[11px] text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div class="mt-4 space-y-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs">
+          <p class="text-slate-500 dark:text-slate-400">
+            By default, TeslaMate-Digest dynamically routes to standard TeslaMate Grafana dashboards. If your installation uses custom dashboards (such as CarlosCuezva's custom dashboards or renamed slugs), customize the individual paths below or provide a Service Account / API Token to scan them automatically.
+          </p>
+          
+          <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div class="flex-1">
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Grafana API / Service Account Token (Optional)</label>
+              <input type="password" name="grafana_api_token" id="grafana_api_token_input" value="{{ config.grafana_api_token or '' }}" placeholder="glsa_... or eyJ..." class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div class="sm:pt-5">
+              <button type="button" id="btn-discover-grafana" onclick="discoverGrafanaDashboards()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+                <span>🔍</span> Scan / Discover Dashboards
+              </button>
+            </div>
+          </div>
+          <div id="grafana-discover-status" class="text-xs text-slate-400"></div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Charging Stats Path/UID</label>
+              <input type="text" name="dash_charging" id="dash_charging_input" value="{{ config.grafana_dashboards.charging }}" placeholder="-pkIkhmRz/charging-stats" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Charge Level Path/UID</label>
+              <input type="text" name="dash_charge_level" id="dash_charge_level_input" value="{{ config.grafana_dashboards.charge_level }}" placeholder="WopVO_mgz/charge-level" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Efficiency Path/UID</label>
+              <input type="text" name="dash_efficiency" id="dash_efficiency_input" value="{{ config.grafana_dashboards.efficiency }}" placeholder="fu4SiQgWz/efficiency" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Battery Health Path/UID</label>
+              <input type="text" name="dash_battery" id="dash_battery_input" value="{{ config.grafana_dashboards.battery_health }}" placeholder="jchmRiqUfXgTM/battery-health" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Drives / Trips Path/UID</label>
+              <input type="text" name="dash_drives" id="dash_drives_input" value="{{ config.grafana_dashboards.drives }}" placeholder="Y8upc6ZRk/drives" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Vampire Drain Path/UID</label>
+              <input type="text" name="dash_vampire" id="dash_vampire_input" value="{{ config.grafana_dashboards.vampire_drain }}" placeholder="zhHx2Fggk/vampire-drain" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Achievements Path/UID</label>
+              <input type="text" name="dash_achievements" id="dash_achievements_input" value="{{ config.grafana_dashboards.achievements }}" placeholder="c6020bdb-a2c7-4b1c-ab2c-fd34ab836c6e/achievements" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- 6. EXCLUDED LOCATIONS & MAINTENANCE INTERVAL -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🛡️</span> Excluded Locations &amp; Maintenance Schedule
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Filter routine daily locations from rankings and set tire rotation thresholds.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Tire Rotation Alert Interval (Miles)</label>
+          <input type="number" step="250" name="tire_rotation_interval_mi" value="{{ config.tire_rotation_interval_mi }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+          <p class="text-[11px] text-slate-400 mt-1">Triggers maintenance badge when vehicle mileage exceeds this interval since last rotation (e.g. 6,250 miles).</p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
+        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Excluded Locations from Top Destinations</label>
+        <div class="relative" id="excluded-picker-wrapper">
+          <div id="excluded-tags-box" class="min-h-[42px] p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-tesla/30 focus-within:border-tesla transition-all cursor-text">
+            <div id="excluded-tags-list" class="flex flex-wrap items-center gap-1.5"></div>
+            <input type="text" id="excluded-search-input" placeholder="Search or type address/geofence to exclude..." class="flex-1 min-w-[180px] bg-transparent border-0 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none placeholder-slate-400 py-0.5 px-1" autocomplete="off">
+          </div>
+          <div id="excluded-typeahead-results" class="hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+          <input type="hidden" name="excluded_locations" id="excluded_locations_input" value="{{ config.excluded_locations | join(', ') }}">
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1.5">Locations to exclude from Top Places ranking (e.g. hides daily home parking). Type to search or press Enter/comma to add.</p>
+      </div>
+    </div>
+
+    <!-- SAVE BUTTON -->
+    <div class="flex justify-end space-x-4">
+      <button type="submit" class="px-6 py-2.5 bg-tesla hover:bg-red-700 text-white font-bold rounded-lg text-sm transition shadow-lg shadow-red-950/40">
+        Save Rates &amp; Integrations
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+// --- 1. RATE STRUCTURE & PRESETS ---
+function switchRateMode(mode) {
+  const modeInput = document.getElementById('rate_mode_input');
+  if (modeInput) modeInput.value = mode;
+
+  const modes = ['tou', 'tiered', 'flat'];
+  modes.forEach(m => {
+    const btn = document.getElementById('btn-mode-' + m);
+    const panel = document.getElementById('rate-mode-' + m + '-panel');
+    if (m === mode) {
+      if (btn) {
+        btn.classList.add('border-tesla', 'bg-red-50/40', 'dark:bg-red-950/20', 'text-slate-900', 'dark:text-white', 'ring-1', 'ring-tesla');
+        btn.classList.remove('border-slate-200', 'dark:border-slate-800', 'bg-slate-50', 'dark:bg-slate-950', 'text-slate-700', 'dark:text-slate-300');
+      }
+      if (panel) panel.classList.remove('hidden');
+    } else {
+      if (btn) {
+        btn.classList.remove('border-tesla', 'bg-red-50/40', 'dark:bg-red-950/20', 'text-slate-900', 'dark:text-white', 'ring-1', 'ring-tesla');
+        btn.classList.add('border-slate-200', 'dark:border-slate-800', 'bg-slate-50', 'dark:bg-slate-950', 'text-slate-700', 'dark:text-slate-300');
+      }
+      if (panel) panel.classList.add('hidden');
+    }
+  });
+}
+
+function applyTariffPreset(preset) {
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+  const setChecked = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = Boolean(val);
+  };
+
+  if (preset === 'standard_tou') {
+    switchRateMode('tou');
+    setVal('off_peak_kwh_cost', '0.10');
+    setVal('shoulder_kwh_cost', '0.14');
+    setVal('on_peak_kwh_cost', '0.20');
+    setVal('average_kwh_cost', '0.13');
+    setVal('off_peak_start_hour', '21');
+    setVal('off_peak_end_hour', '9');
+    setVal('peak_start_hour', '13');
+    setVal('peak_end_hour', '19');
+    setChecked('weekends_are_off_peak', true);
+  } else if (preset === 'xcel_colorado_tou') {
+    switchRateMode('tou');
+    setVal('off_peak_kwh_cost', '0.09');
+    setVal('shoulder_kwh_cost', '0.13');
+    setVal('on_peak_kwh_cost', '0.19');
+    setVal('average_kwh_cost', '0.11');
+    setVal('off_peak_start_hour', '21');
+    setVal('off_peak_end_hour', '9');
+    setVal('peak_start_hour', '13');
+    setVal('peak_end_hour', '19');
+    setChecked('weekends_are_off_peak', true);
+  } else if (preset === 'standard_tiered') {
+    switchRateMode('tiered');
+    setVal('tier1_max_kwh', '500');
+    setVal('tier1_kwh_cost', '0.11');
+    setVal('tier2_max_kwh', '1000');
+    setVal('tier2_kwh_cost', '0.18');
+    setVal('tier3_kwh_cost', '0.25');
+  } else if (preset === 'california_tiered') {
+    switchRateMode('tiered');
+    setVal('tier1_max_kwh', '350');
+    setVal('tier1_kwh_cost', '0.32');
+    setVal('tier2_max_kwh', '800');
+    setVal('tier2_kwh_cost', '0.41');
+    setVal('tier3_kwh_cost', '0.50');
+  } else if (preset === 'flat_rate') {
+    switchRateMode('flat');
+    setVal('average_kwh_cost', '0.13');
+  }
+}
+
+async function syncEiaGasPrice() {
+  const btn = document.getElementById('btn-sync-gas');
+  const statusEl = document.getElementById('gas-api-status-msg');
+  const zip = document.getElementById('rates_zip_code')?.value.trim() || '';
+  const eiaKey = document.getElementById('eia_api_key')?.value.trim() || '';
+
+  if (!btn || !statusEl) return;
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Syncing...';
+  statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 block';
+  statusEl.textContent = 'Querying live EIA gasoline prices...';
+
+  try {
+    const res = await fetch('/api/sync-gas-price', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zip_code: zip, eia_api_key: eiaKey })
+    });
+    const data = await res.json();
+    if (data.success && data.price !== undefined) {
+      const gasInput = document.getElementById('gas_price_per_gal');
+      if (gasInput) gasInput.value = data.price;
+      statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 block';
+      statusEl.innerHTML = `✅ <strong>EIA Gas Price Synced:</strong> $${data.price}/gal (${escapeHtml(data.area_name || 'Regional Market')}) &mdash; Source: ${escapeHtml(data.source || 'U.S. EIA')}`;
+    } else {
+      throw new Error(data.message || 'Could not fetch price from EIA');
+    }
+  } catch (err) {
+    statusEl.className = 'px-3 py-2 rounded-lg text-xs bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 block';
+    statusEl.textContent = '❌ Failed to sync gas price: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+  }
+}
+
+let _matchedRatePlans = [];
+
+async function syncOpenEiElectricRates() {
+  const btn = document.getElementById('btn-sync-electric');
+  const statusEl = document.getElementById('electric-rates-api-status-msg');
+  const zip = document.getElementById('rates_zip_code')?.value.trim() || '';
+  const openeiKey = document.getElementById('openei_api_key')?.value.trim() || '';
+  const eiaKey = document.getElementById('eia_api_key')?.value.trim() || '';
+
+  if (!btn || !statusEl) return;
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Searching Plans...';
+  statusEl.className = 'px-4 py-3 rounded-xl text-xs bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 block';
+  statusEl.textContent = 'Searching OpenEI URDB & regional electric rate plans...';
+
+  try {
+    const res = await fetch('/api/search-electric-rates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zip_code: zip, openei_api_key: openeiKey, eia_api_key: eiaKey })
+    });
+    const data = await res.json();
+    if (data.success && data.plans && data.plans.length > 0) {
+      _matchedRatePlans = data.plans;
+      renderMatchedPlansDropdown(data.plans, data.zip_code);
+      applyMatchedPlanIndex(0);
+
+      statusEl.className = 'px-4 py-3 rounded-xl text-xs bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 block';
+      statusEl.innerHTML = `✅ <strong>Found ${data.plans.length} matching plans!</strong> Select your best fit from the dropdown below to auto-populate your rate structure.`;
+    } else {
+      throw new Error(data.message || 'No matching electric rate plans found.');
+    }
+  } catch (err) {
+    statusEl.className = 'px-4 py-3 rounded-xl text-xs bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 block';
+    statusEl.textContent = '❌ Failed to search electric rates: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+  }
+}
+
+function renderMatchedPlansDropdown(plans, zip) {
+  const container = document.getElementById('matched-plans-container');
+  const dropdown = document.getElementById('matched-plans-dropdown');
+  const zipSpan = document.getElementById('matched-plans-zip');
+  if (!container || !dropdown) return;
+
+  if (zipSpan) zipSpan.textContent = zip;
+
+  dropdown.innerHTML = plans.map((p, idx) => `
+    <option value="${idx}">
+      ${idx + 1}. [${escapeHtml(p.badge)}] ${escapeHtml(p.plan_name)} — ${escapeHtml(p.utility_name)}
+    </option>
+  `).join('');
+
+  container.classList.remove('hidden');
+  updateMatchedPlanDetails(0);
+}
+
+function updateMatchedPlanDetails(index) {
+  const detailsEl = document.getElementById('matched-plan-details');
+  if (!detailsEl || !_matchedRatePlans || !_matchedRatePlans[index]) return;
+  const p = _matchedRatePlans[index];
+
+  const badgeColor = p.rate_mode === 'tou' 
+    ? 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border-sky-300'
+    : (p.rate_mode === 'tiered'
+      ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300'
+      : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300');
+
+  detailsEl.innerHTML = `
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeColor}">${escapeHtml(p.badge)}</span>
+      <span class="font-bold text-slate-900 dark:text-white">${escapeHtml(p.plan_name)}</span>
+      <span class="text-slate-500 dark:text-slate-400">(${escapeHtml(p.utility_name)})</span>
+    </div>
+    <div class="text-[11px] text-slate-600 dark:text-slate-300 font-mono">
+      ${escapeHtml(p.description)}
+    </div>
+  `;
+}
+
+function onSelectMatchedPlan(indexVal) {
+  const idx = parseInt(indexVal, 10);
+  if (isNaN(idx)) return;
+  updateMatchedPlanDetails(idx);
+  applyMatchedPlanIndex(idx);
+}
+
+function applySelectedMatchedPlan() {
+  const dropdown = document.getElementById('matched-plans-dropdown');
+  const idx = dropdown ? parseInt(dropdown.value, 10) : 0;
+  applyMatchedPlanIndex(idx);
+  
+  const rateSection = document.getElementById('subsection-rate-structure');
+  if (rateSection) {
+    rateSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    rateSection.classList.add('ring-2', 'ring-tesla');
+    setTimeout(() => rateSection.classList.remove('ring-2', 'ring-tesla'), 1800);
+  }
+}
+
+function applyMatchedPlanIndex(idx) {
+  if (!_matchedRatePlans || !_matchedRatePlans[idx]) return;
+  const p = _matchedRatePlans[idx];
+
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined) el.value = val;
+  };
+
+  if (p.rate_mode) {
+    switchRateMode(p.rate_mode);
+  }
+
+  if (p.utility_name) setVal('utility_name', p.utility_name);
+  if (p.off_peak_kwh_cost !== undefined) setVal('off_peak_kwh_cost', p.off_peak_kwh_cost);
+  if (p.shoulder_kwh_cost !== undefined) setVal('shoulder_kwh_cost', p.shoulder_kwh_cost);
+  if (p.on_peak_kwh_cost !== undefined) setVal('on_peak_kwh_cost', p.on_peak_kwh_cost);
+  if (p.off_peak_start_hour !== undefined) setVal('off_peak_start_hour', p.off_peak_start_hour);
+  if (p.off_peak_end_hour !== undefined) setVal('off_peak_end_hour', p.off_peak_end_hour);
+  if (p.peak_start_hour !== undefined) setVal('peak_start_hour', p.peak_start_hour);
+  if (p.peak_end_hour !== undefined) setVal('peak_end_hour', p.peak_end_hour);
+  if (p.weekends_are_off_peak !== undefined) {
+    const w = document.getElementById('weekends_are_off_peak');
+    if (w) w.checked = Boolean(p.weekends_are_off_peak);
+  }
+  if (p.tier1_max_kwh !== undefined) setVal('tier1_max_kwh', p.tier1_max_kwh);
+  if (p.tier1_kwh_cost !== undefined) setVal('tier1_kwh_cost', p.tier1_kwh_cost);
+  if (p.tier2_max_kwh !== undefined) setVal('tier2_max_kwh', p.tier2_max_kwh);
+  if (p.tier2_kwh_cost !== undefined) setVal('tier2_kwh_cost', p.tier2_kwh_cost);
+  if (p.tier3_kwh_cost !== undefined) setVal('tier3_kwh_cost', p.tier3_kwh_cost);
+  if (p.average_kwh_cost !== undefined) setVal('average_kwh_cost', p.average_kwh_cost);
+}
+
+// --- 2. LOCATION SEARCH CACHE & API ---
+let searchDebounceTimers = {};
+const locationCache = new Map();
+
+async function fetchLocationMatches(query) {
+  const q = (query || '').trim();
+  if (locationCache.has(q)) {
+    return locationCache.get(q);
+  }
+  try {
+    const res = await fetch(`/api/locations/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    const items = data.items || [];
+    locationCache.set(q, items);
+    return items;
+  } catch (err) {
+    console.error('Error fetching locations:', err);
+    return [];
+  }
+}
+
+function initLocationTypeahead(container) {
+  const input = container.querySelector('.location-typeahead-input');
+  const resultsEl = container.querySelector('.location-typeahead-results');
+  if (!input || !resultsEl) return;
+
+  let activeIndex = -1;
+
+  function renderResults(items) {
+    if (!items || items.length === 0) {
+      resultsEl.innerHTML = '<div class="px-3 py-2 text-xs text-slate-400">No matching locations found</div>';
+      resultsEl.classList.remove('hidden');
+      return;
+    }
+
+    resultsEl.innerHTML = items.map((item, idx) => `
+      <div class="location-item px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between gap-2 transition-colors" data-value="${escapeHtml(item.value)}" data-index="${idx}">
+        <div class="flex items-center gap-1.5 overflow-hidden">
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${item.type === 'geofence' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">
+            ${item.type === 'geofence' ? 'Geofence' : 'Address'}
+          </span>
+          <span class="font-medium text-slate-900 dark:text-white truncate">${escapeHtml(item.name)}</span>
+        </div>
+        ${item.city ? `<span class="text-[11px] text-slate-400 shrink-0">${escapeHtml(item.city)}</span>` : (item.radius ? `<span class="text-[10px] text-blue-500 dark:text-blue-400 shrink-0 font-medium">${item.radius}m</span>` : '')}
+      </div>
+    `).join('');
+
+    resultsEl.querySelectorAll('.location-item').forEach(el => {
+      el.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        input.value = el.getAttribute('data-value');
+        resultsEl.classList.add('hidden');
+        
+        // Auto-fill coordinates if geofence row
+        const row = container.closest('.geofence-row');
+        if (row) {
+          const val = input.value;
+          const matchedItem = items.find(it => it.value === val);
+          if (matchedItem && matchedItem.latitude && matchedItem.longitude) {
+            const latInput = row.querySelector('.geo-lat');
+            const lonInput = row.querySelector('.geo-lon');
+            if (latInput && !latInput.value) latInput.value = matchedItem.latitude;
+            if (lonInput && !lonInput.value) lonInput.value = matchedItem.longitude;
+          }
+        }
+      });
+    });
+
+    resultsEl.classList.remove('hidden');
+    activeIndex = -1;
+  }
+
+  let debounceTimer;
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      const items = await fetchLocationMatches(q);
+      renderResults(items);
+    }, 220);
+  });
+
+  input.addEventListener('focus', async () => {
+    const items = await fetchLocationMatches(input.value.trim());
+    renderResults(items);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (resultsEl.classList.contains('hidden')) return;
+    const items = resultsEl.querySelectorAll('.location-item');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % items.length;
+      updateHighlight(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = (activeIndex - 1 + items.length) % items.length;
+      updateHighlight(items);
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0 && items[activeIndex]) {
+        e.preventDefault();
+        input.value = items[activeIndex].getAttribute('data-value');
+        resultsEl.classList.add('hidden');
+      }
+    } else if (e.key === 'Escape') {
+      resultsEl.classList.add('hidden');
+    }
+  });
+
+  function updateHighlight(items) {
+    items.forEach((item, idx) => {
+      if (idx === activeIndex) {
+        item.classList.add('bg-slate-100', 'dark:bg-slate-800');
+        item.scrollIntoView({ block: 'nearest' });
+      } else {
+        item.classList.remove('bg-slate-100', 'dark:bg-slate-800');
+      }
+    });
+  }
+}
+
+// --- 3. EXCLUDED LOCATIONS TAG PICKER ---
+let excludedTags = [];
+const hiddenExcludedInput = document.getElementById('excluded_locations_input');
+const excludedTagsList = document.getElementById('excluded-tags-list');
+const excludedSearchInput = document.getElementById('excluded-search-input');
+const excludedResultsEl = document.getElementById('excluded-typeahead-results');
+let excludedActiveIndex = -1;
+
+function renderExcludedTags() {
+  if (!hiddenExcludedInput || !excludedTagsList) return;
+  const raw = hiddenExcludedInput.value || '';
+  excludedTags = raw.split(',').map(s => s.trim()).filter(Boolean);
+  
+  excludedTagsList.innerHTML = excludedTags.map(tag => `
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
+      <span>${escapeHtml(tag)}</span>
+      <button type="button" onclick="removeExcludedTag('${escapeHtml(tag)}')" class="text-slate-400 hover:text-red-500 font-bold ml-0.5">✕</button>
+    </span>
+  `).join('');
+}
+
+function addExcludedTag(name) {
+  const clean = (name || '').trim();
+  if (!clean) return;
+  if (!excludedTags.includes(clean)) {
+    excludedTags.push(clean);
+    syncExcludedLocations();
+  }
+  if (excludedSearchInput) excludedSearchInput.value = '';
+  if (excludedResultsEl) excludedResultsEl.classList.add('hidden');
+}
+
+function removeExcludedTag(name) {
+  excludedTags = excludedTags.filter(t => t !== name);
+  syncExcludedLocations();
+}
+
+function syncExcludedLocations() {
+  if (hiddenExcludedInput) {
+    hiddenExcludedInput.value = excludedTags.join(', ');
+  }
+  renderExcludedTags();
+}
+
+function initExcludedTypeahead() {
+  renderExcludedTags();
+
+  if (!excludedSearchInput || !excludedResultsEl) return;
+
+  document.getElementById('excluded-tags-box')?.addEventListener('click', (e) => {
+    if (e.target !== excludedSearchInput) {
+      excludedSearchInput.focus();
+    }
+  });
+
+  function renderExcludedResults(items) {
+    if (!items || items.length === 0) {
+      excludedResultsEl.innerHTML = '<div class="px-3 py-2 text-xs text-slate-400">No matching locations found in database</div>';
+      excludedResultsEl.classList.remove('hidden');
+      return;
+    }
+
+    excludedResultsEl.innerHTML = items.map((item, idx) => `
+      <div class="excluded-item px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between gap-2 transition-colors select-none" data-value="${escapeHtml(item.value)}" data-index="${idx}">
+        <div class="flex items-center gap-1.5 overflow-hidden">
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${item.type === 'geofence' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">
+            ${item.type === 'geofence' ? 'Geofence' : 'Address'}
+          </span>
+          <span class="font-medium text-slate-900 dark:text-white truncate">${escapeHtml(item.name)}</span>
+        </div>
+        ${item.city ? `<span class="text-[11px] text-slate-400 shrink-0">${escapeHtml(item.city)}</span>` : (item.radius ? `<span class="text-[10px] text-blue-500 dark:text-blue-400 shrink-0 font-medium">${item.radius}m</span>` : '')}
+      </div>
+    `).join('');
+
+    excludedResultsEl.querySelectorAll('.excluded-item').forEach(el => {
+      el.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        addExcludedTag(el.getAttribute('data-value'));
+      });
+    });
+
+    excludedResultsEl.classList.remove('hidden');
+    excludedActiveIndex = -1;
+  }
+
+  let excludedDebounce;
+  excludedSearchInput.addEventListener('input', () => {
+    const q = excludedSearchInput.value.trim();
+    clearTimeout(excludedDebounce);
+    excludedDebounce = setTimeout(async () => {
+      const items = await fetchLocationMatches(q);
+      renderExcludedResults(items);
+    }, 220);
+  });
+
+  excludedSearchInput.addEventListener('focus', async () => {
+    const items = await fetchLocationMatches(excludedSearchInput.value.trim());
+    renderExcludedResults(items);
+  });
+
+  excludedSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      if (!excludedResultsEl.classList.contains('hidden') && excludedActiveIndex >= 0) {
+        const items = excludedResultsEl.querySelectorAll('.excluded-item');
+        if (items[excludedActiveIndex]) {
+          addExcludedTag(items[excludedActiveIndex].getAttribute('data-value'));
+          return;
+        }
+      }
+      if (excludedSearchInput.value.trim()) {
+        addExcludedTag(excludedSearchInput.value);
+      }
+    } else if (e.key === 'Backspace' && !excludedSearchInput.value && excludedTags.length > 0) {
+      removeExcludedTag(excludedTags[excludedTags.length - 1]);
+    } else if (e.key === 'ArrowDown') {
+      if (excludedResultsEl.classList.contains('hidden')) return;
+      const items = excludedResultsEl.querySelectorAll('.excluded-item');
+      if (!items.length) return;
+      e.preventDefault();
+      excludedActiveIndex = (excludedActiveIndex + 1) % items.length;
+      updateExcludedHighlight(items);
+    } else if (e.key === 'ArrowUp') {
+      if (excludedResultsEl.classList.contains('hidden')) return;
+      const items = excludedResultsEl.querySelectorAll('.excluded-item');
+      if (!items.length) return;
+      e.preventDefault();
+      excludedActiveIndex = (excludedActiveIndex - 1 + items.length) % items.length;
+      updateExcludedHighlight(items);
+    } else if (e.key === 'Escape') {
+      excludedResultsEl.classList.add('hidden');
+    }
+  });
+
+  function updateExcludedHighlight(items) {
+    items.forEach((item, idx) => {
+      if (idx === excludedActiveIndex) {
+        item.classList.add('bg-slate-100', 'dark:bg-slate-800');
+        item.scrollIntoView({ block: 'nearest' });
+      } else {
+        item.classList.remove('bg-slate-100', 'dark:bg-slate-800');
+      }
+    });
+  }
+}
+
+// --- 4. GEOFENCES MANAGEMENT ---
+function addGeofenceRow() {
+  const container = document.getElementById('geofences-list');
+  const div = document.createElement('div');
+  div.className = 'geofence-row p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-3';
+  div.innerHTML = `
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+      <div class="sm:col-span-3">
+        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Geofence Name</label>
+        <input type="text" placeholder="e.g. Home or Work" class="geo-name w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-medium">
+      </div>
+      <div class="sm:col-span-5 relative location-typeahead-container">
+        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Center Address / Location (Search)</label>
+        <input type="text" placeholder="Type or search recorded address to auto-fill coordinates..." class="geo-search location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
+        <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Latitude</label>
+        <input type="number" step="0.000001" placeholder="Lat" class="geo-lat w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white">
+      </div>
+      <div class="sm:col-span-2 flex items-end gap-2">
+        <div class="flex-1">
+          <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Longitude</label>
+          <input type="number" step="0.000001" placeholder="Lon" class="geo-lon w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white">
+        </div>
+        <button type="button" onclick="removeGeofenceRow(this)" class="p-1.5 mb-0.5 text-red-500 hover:text-red-700 text-xs font-bold shrink-0" title="Delete Geofence">✕</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+      <div class="sm:col-span-4 flex items-center gap-2">
+        <label class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Radius (meters):</label>
+        <input type="number" min="50" max="5000" step="25" value="350" class="geo-radius w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+        <span class="text-[10px] text-slate-400">(e.g. 350m)</span>
+      </div>
+      <div class="sm:col-span-8">
+        <div class="flex items-center gap-2">
+          <label class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Street Aliases:</label>
+          <input type="text" placeholder="Comma-separated streets e.g. Main St, Elm St" class="geo-aliases flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
+        </div>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+
+  div.querySelectorAll('.location-typeahead-container').forEach(initLocationTypeahead);
+}
+
+function removeGeofenceRow(btn) {
+  const row = btn.closest('.geofence-row');
+  if (row) row.remove();
+}
+
+function serializeGeofences() {
+  const rows = document.querySelectorAll('.geofence-row');
+  const geos = [];
+  rows.forEach(r => {
+    const name = r.querySelector('.geo-name')?.value.trim();
+    const latStr = r.querySelector('.geo-lat')?.value.trim();
+    const lonStr = r.querySelector('.geo-lon')?.value.trim();
+    const radiusStr = r.querySelector('.geo-radius')?.value.trim();
+    const aliasesStr = r.querySelector('.geo-aliases')?.value.trim() || '';
+    const inTeslaMate = r.getAttribute('data-in-teslamate') === 'true';
+    if (name && latStr && lonStr) {
+      const lat = parseFloat(latStr);
+      const lon = parseFloat(lonStr);
+      const radius = radiusStr ? parseInt(radiusStr, 10) : 350;
+      if (!isNaN(lat) && !isNaN(lon)) {
+        geos.push({
+          name: name,
+          latitude: lat,
+          longitude: lon,
+          radius_meters: isNaN(radius) ? 350 : radius,
+          address_aliases: aliasesStr ? aliasesStr.split(',').map(s => s.trim()).filter(Boolean) : [],
+          in_teslamate: inTeslaMate
+        });
+      }
+    }
+  });
+  const hiddenInput = document.getElementById('geofences_json');
+  if (hiddenInput) {
+    hiddenInput.value = JSON.stringify(geos);
+  }
+}
+
+async function syncTeslaMateGeofences() {
+  const syncBtn = document.getElementById('btn-sync-geofences');
+  const syncStatus = document.getElementById('geofence-sync-status');
+  if (syncBtn) {
+    syncBtn.disabled = true;
+    syncBtn.innerHTML = `<span>⏳</span> Syncing...`;
+  }
+  if (syncStatus) syncStatus.textContent = 'Contacting TeslaMate database...';
+
+  try {
+    const res = await fetch('/api/geofences/sync', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      if (syncStatus) {
+        syncStatus.textContent = `✓ Synced ${data.synced_count || 0} geofences!`;
+        syncStatus.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
+      }
+      setTimeout(() => { window.location.reload(); }, 900);
+    } else {
+      if (syncStatus) {
+        syncStatus.textContent = `Sync failed: ${data.message || 'Error'}`;
+        syncStatus.className = 'text-xs text-red-500 font-medium';
+      }
+    }
+  } catch (err) {
+    if (syncStatus) {
+      syncStatus.textContent = `Sync error: ${err.message}`;
+      syncStatus.className = 'text-xs text-red-500 font-medium';
+    }
+  } finally {
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = `<span>🔄</span> Sync with TeslaMate`;
+    }
+  }
+}
+
+// --- 5. GRAFANA DISCOVERY ---
+async function discoverGrafanaDashboards() {
+  const btn = document.getElementById('btn-discover-grafana');
+  const status = document.getElementById('grafana-discover-status');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>⏳</span> Scanning...`;
+  }
+  if (status) {
+    status.textContent = 'Connecting to Grafana API...';
+    status.className = 'text-xs text-blue-500 font-medium';
+  }
+
+  try {
+    const grafUrl = (document.getElementById('grafana_url_input')?.value || '').trim();
+    const token = (document.getElementById('grafana_api_token_input')?.value || '').trim();
+    const res = await fetch('/api/grafana/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grafana_url: grafUrl, token: token })
+    });
+    const data = await res.json();
+    if (data.success && data.dashboards) {
+      const d = data.dashboards;
+      if (d.charging) document.getElementById('dash_charging_input').value = d.charging;
+      if (d.charge_level) document.getElementById('dash_charge_level_input').value = d.charge_level;
+      if (d.charges) document.getElementById('dash_charges_input').value = d.charges;
+      if (d.efficiency) document.getElementById('dash_efficiency_input').value = d.efficiency;
+      if (d.battery_health) document.getElementById('dash_battery_input').value = d.battery_health;
+      if (d.drives) document.getElementById('dash_drives_input').value = d.drives;
+      if (d.vampire_drain) document.getElementById('dash_vampire_input').value = d.vampire_drain;
+      if (d.achievements) document.getElementById('dash_achievements_input').value = d.achievements;
+
+      if (status) {
+        status.textContent = `✓ Successfully discovered and auto-mapped ${Object.keys(d).length} Grafana dashboard UIDs!`;
+        status.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
+      }
+    } else {
+      if (status) {
+        status.textContent = `Scan note: ${data.message || 'No dashboards found or unauthorized'}`;
+        status.className = 'text-xs text-amber-500 font-medium';
+      }
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = `Scan error: ${err.message}`;
+      status.className = 'text-xs text-red-500 font-medium';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>🔍</span> Scan / Discover Dashboards`;
+    }
+  }
+}
+
+// --- 6. HOME ASSISTANT CONNECTION & DISCOVERY ---
+function toggleHaSection(enabled) {
+  const container = document.getElementById('ha-config-container');
+  if (!container) return;
+  if (enabled) {
+    container.classList.remove('opacity-50', 'pointer-events-none');
+  } else {
+    container.classList.add('opacity-50', 'pointer-events-none');
+  }
+}
+
+function togglePasswordVisibility(id) {
+  const input = document.getElementById(id);
+  if (input) {
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+}
+
+async function testHomeAssistantConnection() {
+  const btn = document.getElementById('btn-test-ha');
+  const status = document.getElementById('ha-test-status');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>⏳</span> Connecting...`;
+  }
+  if (status) {
+    status.textContent = 'Testing connection to Home Assistant...';
+    status.className = 'text-xs text-blue-500 font-medium';
+  }
+
+  try {
+    const url = (document.getElementById('ha_url')?.value || '').trim();
+    const token = (document.getElementById('ha_token')?.value || '').trim();
+    const res = await fetch('/api/homeassistant/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, token })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (status) {
+        status.textContent = `✓ ${data.message || 'Connected successfully!'}`;
+        status.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
+      }
+    } else {
+      if (status) {
+        status.textContent = `✗ Connection failed: ${data.error || 'Check URL and token'}`;
+        status.className = 'text-xs text-red-500 font-medium';
+      }
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = `Test error: ${err.message}`;
+      status.className = 'text-xs text-red-500 font-medium';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>⚡</span> Test Connection`;
+    }
+  }
+}
+
+async function discoverHomeAssistantEntities() {
+  const btn = document.getElementById('btn-discover-ha');
+  const status = document.getElementById('ha-test-status');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>⏳</span> Scanning...`;
+  }
+  if (status) {
+    status.textContent = 'Scanning Home Assistant entities...';
+    status.className = 'text-xs text-blue-500 font-medium';
+  }
+
+  try {
+    const url = (document.getElementById('ha_url')?.value || '').trim();
+    const token = (document.getElementById('ha_token')?.value || '').trim();
+    const res = await fetch('/api/homeassistant/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, token })
+    });
+    const data = await res.json();
+    if (data.success && data.suggested) {
+      const s = data.suggested;
+      if (s.solar_energy_entity) {
+        const el = document.getElementById('ha_solar_energy');
+        if (el) el.value = s.solar_energy_entity;
+      }
+      if (s.solar_power_entity) {
+        const el = document.getElementById('ha_solar_power');
+        if (el) el.value = s.solar_power_entity;
+      }
+      if (s.grid_import_entity) {
+        const el = document.getElementById('ha_grid_import');
+        if (el) el.value = s.grid_import_entity;
+      }
+      if (s.grid_export_entity) {
+        const el = document.getElementById('ha_grid_export');
+        if (el) el.value = s.grid_export_entity;
+      }
+      if (s.home_load_entity) {
+        const el = document.getElementById('ha_home_load');
+        if (el) el.value = s.home_load_entity;
+      }
+      if (status) {
+        status.textContent = `✓ Auto-detected solar entities from Home Assistant!`;
+        status.className = 'text-xs text-emerald-600 dark:text-emerald-400 font-medium';
+      }
+    } else {
+      if (status) {
+        status.textContent = `⚠️ Discovery note: ${data.error || 'No entities found'}`;
+        status.className = 'text-xs text-amber-500 font-medium';
+      }
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = `Discovery error: ${err.message}`;
+      status.className = 'text-xs text-red-500 font-medium';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>🔍</span> Auto-Detect Solar Entities`;
+    }
+  }
+}
+
+// --- 7. WORK ROUTES MANAGEMENT ---
+function addRouteRow() {
+  const container = document.getElementById('work-routes-list');
+  const div = document.createElement('div');
+  div.className = 'work-route-row p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center';
+  div.innerHTML = `
+    <div class="sm:col-span-3">
+      <input type="text" placeholder="Route Label (e.g. Office Commute)" class="route-label w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
+    </div>
+    <div class="sm:col-span-3 relative location-typeahead-container">
+      <input type="text" placeholder="Point A (Origin)" class="route-point-a location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
+      <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+    </div>
+    <div class="sm:col-span-3 relative location-typeahead-container">
+      <input type="text" placeholder="Point B (Destination)" class="route-point-b location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
+      <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
+    </div>
+    <div class="sm:col-span-2">
+      <select class="route-target-car w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] text-slate-900 dark:text-white">
+        <option value="">Default Vehicle</option>
+        {% for c in cars %}
+        <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="sm:col-span-1 flex items-center justify-end gap-1.5">
+      <label title="Bidirectional A &harr; B" class="flex items-center cursor-pointer">
+        <input type="checkbox" checked class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
+        <span class="text-[10px] ml-1 text-slate-500 dark:text-slate-400 font-semibold">&harr;</span>
+      </label>
+      <button type="button" onclick="removeRouteRow(this)" class="p-1 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
+    </div>
+  `;
+  container.appendChild(div);
+
+  div.querySelectorAll('.location-typeahead-container').forEach(initLocationTypeahead);
+}
+
+function removeRouteRow(btn) {
+  const row = btn.closest('.work-route-row');
+  if (row) row.remove();
+}
+
+function serializeWorkRoutes() {
+  const rows = document.querySelectorAll('.work-route-row');
+  const routes = [];
+  rows.forEach(r => {
+    let label = r.querySelector('.route-label')?.value.trim();
+    const ptA = r.querySelector('.route-point-a')?.value.trim();
+    const ptB = r.querySelector('.route-point-b')?.value.trim();
+    const bidi = r.querySelector('.route-bidirectional')?.checked ?? true;
+    const carVal = r.querySelector('.route-target-car')?.value;
+    const targetCarId = carVal ? parseInt(carVal, 10) : null;
+    
+    if (!label && ptA && ptB) {
+      label = `${ptA} to ${ptB}`;
+    }
+    if (label && ptA && ptB) {
+      routes.push({
+        label: label,
+        point_a: ptA,
+        point_b: ptB,
+        bidirectional: bidi,
+        target_car_id: isNaN(targetCarId) ? null : targetCarId
+      });
+    }
+  });
+  document.getElementById('work_routes_json').value = JSON.stringify(routes);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// --- 8. INITIALIZATION & GLOBAL CLICK DISMISS ---
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.location-typeahead-container').forEach(initLocationTypeahead);
+  initExcludedTypeahead();
+});
+
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.location-typeahead-container').forEach(cnt => {
+    if (!cnt.contains(e.target)) {
+      cnt.querySelector('.location-typeahead-results')?.classList.add('hidden');
+    }
+  });
+
+  const exPicker = document.getElementById('excluded-picker-wrapper');
+  if (exPicker && !exPicker.contains(e.target)) {
+    document.getElementById('excluded-typeahead-results')?.classList.add('hidden');
+  }
+});
+</script>
+{% endblock %}
