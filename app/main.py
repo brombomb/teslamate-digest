@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple, Dict, Any
 
 from fastapi import FastAPI, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, PlainTextResponse, FileResponse
@@ -38,6 +38,7 @@ from app.scheduler import (
     run_scheduled_digest
 )
 from app.report import build_digest_report, build_wrapped_report
+from app.cache import clear_report_cache, report_cache
 from app.mailer import Mailer
 from app.services.gas_prices import fetch_gas_price_details
 from app.services.electric_rates import fetch_electric_rates, search_electric_rate_plans
@@ -302,6 +303,7 @@ async def sync_gas_price(request: Request):
     if "area_name" in details:
         cfg.rates.zip_code = zip_code
     save_config(cfg)
+    clear_report_cache()
 
     return JSONResponse(content={
         "success": True,
@@ -348,6 +350,7 @@ async def sync_electric_rates(request: Request):
     if "tier3_kwh_cost" in rates:
         cfg.rates.tier3_kwh_cost = float(rates["tier3_kwh_cost"])
     save_config(cfg)
+    clear_report_cache()
 
     return JSONResponse(content={
         "success": True,
@@ -396,13 +399,34 @@ async def dashboard(request: Request):
     )
 
 
+def resolve_period_dates(period: str, now: Optional[datetime] = None) -> Tuple[datetime, datetime]:
+    if now is None:
+        now = datetime.now()
+    if period == "this_month":
+        start_date = datetime(now.year, now.month, 1, 0, 0, 0)
+        end_date = now
+    elif period == "last_week":
+        end_date = datetime(now.year, now.month, now.day, 0, 0, 0)
+        start_date = end_date - timedelta(days=7)
+    elif period == "yesterday":
+        end_date = datetime(now.year, now.month, now.day, 0, 0, 0)
+        start_date = end_date - timedelta(days=1)
+    else:  # last_month (default)
+        first_of_this_month = datetime(now.year, now.month, 1)
+        last_day_of_prev = first_of_this_month - timedelta(days=1)
+        start_date = datetime(last_day_of_prev.year, last_day_of_prev.month, 1, 0, 0, 0)
+        end_date = first_of_this_month
+    return start_date, end_date
+
+
 @app.get("/preview", response_class=HTMLResponse)
 async def preview(
     request: Request,
     period: str = Query("last_month"),
     car_id: Optional[str] = Query(None),
     theme: Optional[str] = Query(None),
-    sent: Optional[str] = Query(None)
+    sent: Optional[str] = Query(None),
+    nocache: Optional[str] = Query(None)
 ):
     cfg = load_config()
     db: Database = request.app.state.db
@@ -410,6 +434,7 @@ async def preview(
     now = datetime.now()
 
     cid = int(car_id) if car_id and car_id.isdigit() else None
+    force_refresh = bool(nocache and nocache.lower() in ("1", "true", "yes"))
 
     rendered_html = ""
     subject = ""
@@ -421,24 +446,11 @@ async def preview(
             config=cfg,
             year=year,
             car_id=cid,
-            for_email=False
+            for_email=False,
+            force_refresh=force_refresh
         )
     else:
-        if period == "this_month":
-            start_date = datetime(now.year, now.month, 1, 0, 0, 0)
-            end_date = now
-        elif period == "last_week":
-            end_date = datetime(now.year, now.month, now.day, 0, 0, 0)
-            start_date = end_date - timedelta(days=7)
-        elif period == "yesterday":
-            end_date = datetime(now.year, now.month, now.day, 0, 0, 0)
-            start_date = end_date - timedelta(days=1)
-        else:  # last_month (default)
-            first_of_this_month = datetime(now.year, now.month, 1)
-            last_day_of_prev = first_of_this_month - timedelta(days=1)
-            start_date = datetime(last_day_of_prev.year, last_day_of_prev.month, 1, 0, 0, 0)
-            end_date = first_of_this_month
-
+        start_date, end_date = resolve_period_dates(period, now)
         subject, rendered_html, _ = await build_digest_report(
             db=db,
             config=cfg,
@@ -446,7 +458,8 @@ async def preview(
             end_date=end_date,
             car_id=cid,
             for_email=False,
-            theme_override=theme
+            theme_override=theme,
+            force_refresh=force_refresh
         )
 
     send_status = None
@@ -474,6 +487,57 @@ async def preview(
     )
 
 
+@app.get("/api/preview/render")
+async def preview_render_api(
+    request: Request,
+    period: str = Query("last_month"),
+    car_id: Optional[str] = Query(None),
+    theme: Optional[str] = Query(None),
+    nocache: Optional[str] = Query(None)
+):
+    try:
+        cfg = load_config()
+        db: Database = request.app.state.db
+        now = datetime.now()
+        cid = int(car_id) if car_id and car_id.isdigit() else None
+        force_refresh = bool(nocache and nocache.lower() in ("1", "true", "yes"))
+
+        if period == "wrapped":
+            year = now.year
+            subject, rendered_html, _ = await build_wrapped_report(
+                db=db,
+                config=cfg,
+                year=year,
+                car_id=cid,
+                for_email=False,
+                force_refresh=force_refresh
+            )
+        else:
+            start_date, end_date = resolve_period_dates(period, now)
+            subject, rendered_html, _ = await build_digest_report(
+                db=db,
+                config=cfg,
+                start_date=start_date,
+                end_date=end_date,
+                car_id=cid,
+                for_email=False,
+                theme_override=theme if theme else None,
+                force_refresh=force_refresh
+            )
+
+        return JSONResponse({
+            "success": True,
+            "subject": subject,
+            "html": rendered_html,
+            "period": period,
+            "car_id": car_id or "",
+            "theme": theme or cfg.email_theme
+        })
+    except Exception as e:
+        print(f"[API] Error rendering preview: {e}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+
 @app.post("/api/send-test")
 async def send_test(
     request: Request,
@@ -492,21 +556,7 @@ async def send_test(
                 db=db, config=cfg, year=now.year, car_id=cid, for_email=True
             )
         else:
-            if period == "this_month":
-                start_date = datetime(now.year, now.month, 1, 0, 0, 0)
-                end_date = now
-            elif period == "last_week":
-                end_date = datetime(now.year, now.month, now.day, 0, 0, 0)
-                start_date = end_date - timedelta(days=7)
-            elif period == "yesterday":
-                end_date = datetime(now.year, now.month, now.day, 0, 0, 0)
-                start_date = end_date - timedelta(days=1)
-            else:
-                first_of_this_month = datetime(now.year, now.month, 1)
-                last_day_of_prev = first_of_this_month - timedelta(days=1)
-                start_date = datetime(last_day_of_prev.year, last_day_of_prev.month, 1, 0, 0, 0)
-                end_date = first_of_this_month
-
+            start_date, end_date = resolve_period_dates(period, now)
             subject, html, inline_imgs = await build_digest_report(
                 db=db, config=cfg, start_date=start_date, end_date=end_date, car_id=cid, for_email=True, theme_override=theme if theme else None
             )
@@ -923,6 +973,7 @@ async def settings_save(
         cfg.modules.achievements = bool(mod_achievements)
 
     save_config(cfg)
+    clear_report_cache()
     setup_scheduler(cfg)
 
     db = getattr(request.app.state, "db", None)
@@ -1184,6 +1235,7 @@ async def settings_integrations_save(
             print(f"[Settings] Error parsing/syncing geofences: {e}")
 
     save_config(cfg)
+    clear_report_cache()
 
     db = getattr(request.app.state, "db", None)
     cars = []
@@ -1341,12 +1393,14 @@ async def quick_rotate(request: Request, car_id: str = Form(...)):
     log[cid_str]["last_tire_rotation_odometer"] = curr_odo
     log[cid_str]["last_tire_rotation_date"] = datetime.now().strftime("%Y-%m-%d")
     save_maintenance_log(log)
+    clear_report_cache()
     return RedirectResponse(url="/maintenance?msg=rotated", status_code=303)
 
 
 @app.post("/maintenance/reset-rotate")
 async def reset_rotate(request: Request, car_id: str = Form(...)):
     reset_maintenance_log_rotation(str(car_id))
+    clear_report_cache()
     return RedirectResponse(url="/maintenance?msg=reset", status_code=303)
 
 
@@ -1359,6 +1413,7 @@ async def swap_tires(request: Request, car_id: str = Form(...), target_set: str 
     log[cid_str]["active_tire_set"] = target_set
     log[cid_str]["last_tire_swap_date"] = datetime.now().strftime("%Y-%m-%d")
     save_maintenance_log(log)
+    clear_report_cache()
     return RedirectResponse(url="/maintenance?msg=swapped", status_code=303)
 
 
@@ -1384,6 +1439,7 @@ async def maintenance_save(
     log[cid_str]["last_tire_swap_date"] = last_tire_swap_date
     log[cid_str]["notes"] = notes
     save_maintenance_log(log)
+    clear_report_cache()
 
     return RedirectResponse(url="/maintenance?msg=saved", status_code=303)
 

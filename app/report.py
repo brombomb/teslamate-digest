@@ -1,4 +1,5 @@
 import os
+import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
@@ -6,6 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from app.db import Database
 from app.config import AppConfig
+from app.cache import report_cache, make_telemetry_cache_key, make_report_cache_key
 from app.analytics.charging import get_charging_analytics
 from app.analytics.trips import get_trip_analytics
 from app.analytics.superchargers import get_supercharger_analytics
@@ -36,84 +38,89 @@ def get_jinja_env() -> Environment:
     return Environment(loader=loaders[0] if len(loaders) == 1 else FileSystemLoader([str(CUSTOM_TEMPLATES_DIR), str(TEMPLATES_DIR)]))
 
 
-async def build_digest_report(
+async def fetch_digest_telemetry(
     db: Database,
     config: AppConfig,
     start_date: datetime,
     end_date: datetime,
     car_id: Optional[int] = None,
-    for_email: bool = False,
-    theme_override: Optional[str] = None
-) -> Tuple[str, str, Dict[str, bytes]]:
+    force_refresh: bool = False
+) -> Dict[str, Any]:
     """
-    Builds the complete digest HTML and charts.
-    Returns: (subject, html_content, inline_image_dict)
+    Fetches all telemetry, analytics, and Home Assistant metrics.
+    Caches the aggregated dictionary so theme changes and repeated previews load in milliseconds.
+    Executes independent queries concurrently using asyncio.gather.
     """
-    # 1. Fetch data & check live gas price
+    tel_key = make_telemetry_cache_key(start_date, end_date, car_id, config)
+    if not force_refresh:
+        cached = report_cache.get(tel_key)
+        if cached is not None:
+            return cached
+
+    # 1. Effective units
     units = await get_effective_units(db, config)
 
-    from app.services.gas_prices import fetch_live_gas_price
-    if config.rates.auto_gas_price:
-        config.rates.gas_price_per_gal = await fetch_live_gas_price(
-            config.rates.zip_code, config.rates.gas_price_per_gal
-        )
+    # 2. Live gas price helper
+    async def _get_gas_price():
+        if config.rates.auto_gas_price:
+            from app.services.gas_prices import fetch_live_gas_price
+            return await fetch_live_gas_price(config.rates.zip_code, config.rates.gas_price_per_gal)
+        return config.rates.gas_price_per_gal
 
-    trips = await get_trip_analytics(db, start_date, end_date, car_id, config.excluded_locations, config=config)
-    charging = await get_charging_analytics(db, start_date, end_date, car_id, config.rates, trips["total_miles"])
-    superchargers = await get_supercharger_analytics(db, start_date, end_date, car_id)
-    battery = await get_battery_health_analytics(db, end_date, car_id, length_unit=units["length"])
-    health = await get_health_analytics(
-        db, start_date, end_date, car_id, config.tire_rotation_interval_mi,
-        pressure_unit=units["pressure"],
-        length_unit=units["length"]
-    )
-    vampire = await get_vampire_analytics(db, start_date, end_date, car_id, config.rates.average_kwh_cost)
-    efficiency = await get_driving_efficiency_analytics(db, start_date, end_date, car_id)
-    compliance = await get_charge_compliance_analytics(db, start_date, end_date, car_id)
+    # 3. Achievements helper
+    async def _get_achievements():
+        if getattr(config.modules, "achievements", True):
+            try:
+                return await get_achievements_analytics(db, start_date, end_date, car_id, units=units)
+            except Exception as e:
+                print(f"[Report] Error fetching achievements analytics: {e}")
+        return {}
 
     routes_config = [r.model_dump() if hasattr(r, 'model_dump') else r for r in getattr(config, "work_routes", [])]
-    work_mileage = await get_work_mileage_analytics(
-        db, start_date, end_date, routes_config, car_id,
-        getattr(config, "irs_mileage_rate", 0.67),
-        commute_target_car_id=getattr(config, "commute_target_car_id", None),
-        config=config
+
+    # Concurrent parallel execution of independent queries
+    (
+        gas_price,
+        trips,
+        superchargers,
+        battery,
+        health,
+        vampire,
+        efficiency,
+        compliance,
+        work_mileage,
+        achievements,
+        cars,
+    ) = await asyncio.gather(
+        _get_gas_price(),
+        get_trip_analytics(db, start_date, end_date, car_id, config.excluded_locations, config=config),
+        get_supercharger_analytics(db, start_date, end_date, car_id),
+        get_battery_health_analytics(db, end_date, car_id, length_unit=units["length"]),
+        get_health_analytics(
+            db, start_date, end_date, car_id, config.tire_rotation_interval_mi,
+            pressure_unit=units["pressure"],
+            length_unit=units["length"]
+        ),
+        get_vampire_analytics(db, start_date, end_date, car_id, config.rates.average_kwh_cost),
+        get_driving_efficiency_analytics(db, start_date, end_date, car_id),
+        get_charge_compliance_analytics(db, start_date, end_date, car_id),
+        get_work_mileage_analytics(
+            db, start_date, end_date, routes_config, car_id,
+            getattr(config, "irs_mileage_rate", 0.67),
+            commute_target_car_id=getattr(config, "commute_target_car_id", None),
+            config=config
+        ),
+        _get_achievements(),
+        db.get_cars(),
     )
 
-    achievements = {}
-    if getattr(config.modules, "achievements", True):
-        try:
-            achievements = await get_achievements_analytics(db, start_date, end_date, car_id, units=units)
-        except Exception as e:
-            print(f"[Report] Error fetching achievements analytics: {e}")
+    if config.rates.auto_gas_price and gas_price:
+        config.rates.gas_price_per_gal = gas_price
 
-    cars = await db.get_cars()
-    car_name = "Fleet"
-    if car_id:
-        for c in cars:
-            if c["id"] == car_id:
-                car_name = f"{c['name']} (Model {c['model']})"
-                break
+    # 4. Charging analytics (needs trips total_miles)
+    charging = await get_charging_analytics(db, start_date, end_date, car_id, config.rates, trips["total_miles"])
 
-    # Determine titles
-    is_monthly = (end_date - start_date).days >= 27
-    if is_monthly:
-        report_title = start_date.strftime("%B %Y") + " Report"
-    else:
-        report_title = f"Report ({start_date.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')})"
-
-    date_subtitle = f"{start_date.strftime('%b %d, %Y')} to {end_date.strftime('%b %d, %Y')}"
-    car_subtitle = car_name
-
-    subject = f"⚡ TeslaMate Digest: {report_title} [{car_name}]"
-
-    # Battery health is strictly monthly only per user requirement
-    show_battery_health = bool(config.modules.battery_health and is_monthly)
-
-    # 2. Choose Theme & Prepare Chart Styling
-    chosen_theme = theme_override or getattr(config, "email_theme", "dark_modern")
-    theme = get_theme(chosen_theme)
-
-    # 2b. Solar Energy & Home Assistant Telemetry
+    # 5. Solar Energy & Home Assistant Telemetry
     solar = {
         "has_data": False,
         "total_solar_kwh": 0.0,
@@ -141,6 +148,99 @@ async def build_digest_report(
             )
         except Exception as e:
             print(f"[Report] Error fetching solar telemetry from Home Assistant: {e}")
+
+    telemetry = {
+        "units": units,
+        "trips": trips,
+        "charging": charging,
+        "superchargers": superchargers,
+        "battery": battery,
+        "health": health,
+        "vampire": vampire,
+        "efficiency": efficiency,
+        "compliance": compliance,
+        "work_mileage": work_mileage,
+        "achievements": achievements,
+        "solar": solar,
+        "cars": cars,
+    }
+
+    # Cache telemetry: 5 minutes (300s) for recent, 1 hour (3600s) for closed past periods
+    ttl = 3600 if (datetime.now() - end_date).total_seconds() > 86400 else 300
+    report_cache.set(tel_key, telemetry, ttl=ttl)
+    return telemetry
+
+
+async def build_digest_report(
+    db: Database,
+    config: AppConfig,
+    start_date: datetime,
+    end_date: datetime,
+    car_id: Optional[int] = None,
+    for_email: bool = False,
+    theme_override: Optional[str] = None,
+    force_refresh: bool = False
+) -> Tuple[str, str, Dict[str, bytes]]:
+    """
+    Builds the complete digest HTML and charts.
+    Returns: (subject, html_content, inline_image_dict)
+    """
+    rep_key = make_report_cache_key(start_date, end_date, car_id, theme_override, for_email, config)
+    if not force_refresh and not for_email:
+        cached_rep = report_cache.get(rep_key)
+        if cached_rep is not None:
+            return cached_rep
+
+    telemetry = await fetch_digest_telemetry(
+        db=db,
+        config=config,
+        start_date=start_date,
+        end_date=end_date,
+        car_id=car_id,
+        force_refresh=force_refresh
+    )
+
+    units = telemetry["units"]
+    trips = telemetry["trips"]
+    charging = telemetry["charging"]
+    superchargers = telemetry["superchargers"]
+    battery = telemetry["battery"]
+    health = telemetry["health"]
+    vampire = telemetry["vampire"]
+    efficiency = telemetry["efficiency"]
+    compliance = telemetry["compliance"]
+    work_mileage = telemetry["work_mileage"]
+    achievements = telemetry["achievements"]
+    solar = telemetry["solar"]
+    cars = telemetry["cars"]
+
+    car_name = "Fleet"
+    if car_id:
+        for c in cars:
+            if c["id"] == car_id:
+                car_name = f"{c['name']} (Model {c['model']})"
+                break
+
+    # Determine titles
+    is_monthly = (end_date - start_date).days >= 27
+    if is_monthly:
+        report_title = start_date.strftime("%B %Y") + " Report"
+    else:
+        report_title = f"Report ({start_date.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')})"
+
+    date_subtitle = f"{start_date.strftime('%b %d, %Y')} to {end_date.strftime('%b %d, %Y')}"
+    car_subtitle = car_name
+
+    subject = f"⚡ TeslaMate Digest: {report_title} [{car_name}]"
+
+    # Battery health is strictly monthly only per user requirement
+    show_battery_health = bool(config.modules.battery_health and is_monthly)
+
+    # 2. Choose Theme & Prepare Chart Styling
+    chosen_theme = theme_override or getattr(config, "email_theme", "dark_modern")
+    theme = get_theme(chosen_theme)
+
+    ha_cfg = getattr(config, "homeassistant", None)
 
     # 3. Charts Generation
     inline_images: Dict[str, bytes] = {}
@@ -247,7 +347,12 @@ async def build_digest_report(
         **grafana_dashboards
     )
 
-    return subject, html_content, inline_images
+    res = (subject, html_content, inline_images)
+    if not for_email:
+        ttl = 3600 if (datetime.now() - end_date).total_seconds() > 86400 else 300
+        report_cache.set(rep_key, res, ttl=ttl)
+
+    return res
 
 
 async def build_wrapped_report(
@@ -255,11 +360,18 @@ async def build_wrapped_report(
     config: AppConfig,
     year: int,
     car_id: Optional[int] = None,
-    for_email: bool = False
+    for_email: bool = False,
+    force_refresh: bool = False
 ) -> Tuple[str, str, Dict[str, bytes]]:
     """
     Builds the Spotify Wrapped / Year in Review report.
     """
+    wrap_key = f"rep:wrapped:{year}:{car_id or 'all'}:{'email' if for_email else 'preview'}"
+    if not force_refresh and not for_email:
+        cached_wrap = report_cache.get(wrap_key)
+        if cached_wrap is not None:
+            return cached_wrap
+
     wrapped_data = await get_year_in_review_analytics(db, year, car_id, config.rates, config.excluded_locations)
 
     env = get_jinja_env()
@@ -272,5 +384,9 @@ async def build_wrapped_report(
 
     subject = f"🎉 Tesla Wrapped {year}: Your Year in Review!"
     html_content = tmpl.render(**wrapped_data)
+    res = (subject, html_content, {})
+    if not for_email:
+        report_cache.set(wrap_key, res, ttl=3600)
 
-    return subject, html_content, {}
+    return res
+

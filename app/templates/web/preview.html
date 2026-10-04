@@ -8,10 +8,10 @@
   <!-- CONTROLS BAR -->
   <div class="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4 transition-colors">
     <!-- FILTERS FORM -->
-    <form method="GET" action="/preview" class="flex flex-wrap items-center gap-3">
+    <form id="preview-controls-form" onsubmit="event.preventDefault(); updatePreview();" class="flex flex-wrap items-center gap-3">
       <div>
         <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Timeframe</label>
-        <select name="period" onchange="this.form.submit()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2">
+        <select id="select-period" name="period" onchange="updatePreview()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2">
           <option value="last_month" {% if period == 'last_month' %}selected{% endif %}>Last Full Month (Default)</option>
           <option value="this_month" {% if period == 'this_month' %}selected{% endif %}>Current Month to Date</option>
           <option value="last_week" {% if period == 'last_week' %}selected{% endif %}>Last 7 Days (Weekly)</option>
@@ -22,7 +22,7 @@
 
       <div>
         <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Vehicle</label>
-        <select name="car_id" onchange="this.form.submit()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2">
+        <select id="select-car-id" name="car_id" onchange="updatePreview()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2">
           <option value="" {% if not car_id %}selected{% endif %}>All Cars (Fleet View)</option>
           {% for c in cars %}
           <option value="{{ c.id }}" {% if car_id == c.id|string %}selected{% endif %}>{{ c.name }} (Model {{ c.model }})</option>
@@ -32,7 +32,7 @@
 
       <div>
         <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email Theme</label>
-        <select name="theme" onchange="this.form.submit()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2 font-semibold">
+        <select id="select-theme" name="theme" onchange="updatePreview()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2 font-semibold">
           {% for tid, tinfo in themes.items() %}
           <option value="{{ tid }}" {% if selected_theme == tid %}selected{% endif %}>{{ tinfo.name }}</option>
           {% endfor %}
@@ -43,6 +43,12 @@
 
     <!-- ACTIONS -->
     <div class="flex items-center space-x-3">
+      <!-- FORCE REFRESH / BUST CACHE -->
+      <button type="button" id="btn-refresh" onclick="updatePreview(true)" title="Force fresh query & bust cache" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg text-xs flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 shadow-sm transition">
+        <span id="refresh-icon" class="inline-block transition-transform">🔄</span>
+        <span>Refresh</span>
+      </button>
+
       <!-- VIEW WIDTH SWITCHER -->
       <div class="bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-300 dark:border-slate-800 flex space-x-1">
         <button id="view-desktop" onclick="setDeviceView('desktop')" class="px-2.5 py-1 text-xs font-semibold rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm">Desktop</button>
@@ -51,9 +57,9 @@
 
       <!-- DISPATCH TEST -->
       <form method="POST" action="/api/send-test" onsubmit="return confirm('Send this digest to {{ config.smtp.recipient_email }}?');">
-        <input type="hidden" name="period" value="{{ period }}">
-        <input type="hidden" name="car_id" value="{{ car_id or '' }}">
-        <input type="hidden" name="theme" value="{{ selected_theme or '' }}">
+        <input type="hidden" id="test-period" name="period" value="{{ period }}">
+        <input type="hidden" id="test-car-id" name="car_id" value="{{ car_id or '' }}">
+        <input type="hidden" id="test-theme" name="theme" value="{{ selected_theme or '' }}">
         <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow">
           <span>✉️</span> Send Test to Inbox
         </button>
@@ -69,7 +75,17 @@
 
   <!-- PREVIEW FRAME -->
   <div class="flex justify-center bg-slate-200 dark:bg-slate-950 p-4 sm:p-6 rounded-2xl border border-slate-300 dark:border-slate-800 overflow-hidden shadow-inner transition-colors">
-    <div id="preview-container" class="w-full transition-all duration-300" style="max-width: 720px;">
+    <div id="preview-container" class="w-full relative transition-all duration-300" style="max-width: 720px;">
+      <!-- LOADING OVERLAY -->
+      <div id="preview-loading" class="hidden absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] rounded-xl flex flex-col items-center justify-center z-10 transition-opacity">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-slate-900 dark:text-white text-xs font-semibold">
+          <svg class="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span id="preview-loading-text">Rendering preview...</span>
+        </div>
+      </div>
       <iframe id="preview-iframe" class="w-full bg-white dark:bg-[#0b0f19] rounded-xl border border-slate-300 dark:border-slate-800 shadow-md" style="min-height: 850px; height: 100vh;"></iframe>
     </div>
   </div>
@@ -77,10 +93,67 @@
 </div>
 
 <script>
-  // Populate iframe
   const iframe = document.getElementById('preview-iframe');
   const rawHtml = {{ rendered_html | tojson }};
-  iframe.srcdoc = rawHtml;
+  if (rawHtml) {
+    iframe.srcdoc = rawHtml;
+  }
+
+  let currentAbortController = null;
+
+  async function updatePreview(forceRefresh = false) {
+    const period = document.getElementById('select-period').value;
+    const carId = document.getElementById('select-car-id').value;
+    const theme = document.getElementById('select-theme').value;
+
+    // Update hidden inputs for test dispatch
+    document.getElementById('test-period').value = period;
+    document.getElementById('test-car-id').value = carId;
+    document.getElementById('test-theme').value = theme;
+
+    // Update URL in address bar without full reload
+    const urlParams = new URLSearchParams();
+    if (period) urlParams.set('period', period);
+    if (carId) urlParams.set('car_id', carId);
+    if (theme) urlParams.set('theme', theme);
+    window.history.replaceState(null, '', '/preview?' + urlParams.toString());
+
+    // Show loading spinner
+    const loader = document.getElementById('preview-loading');
+    const refreshIcon = document.getElementById('refresh-icon');
+    loader.classList.remove('hidden');
+    if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+    // Abort pending fetch
+    if (currentAbortController) {
+      currentAbortController.abort();
+    }
+    currentAbortController = new AbortController();
+
+    try {
+      let apiUrl = `/api/preview/render?period=${encodeURIComponent(period)}&car_id=${encodeURIComponent(carId)}&theme=${encodeURIComponent(theme)}`;
+      if (forceRefresh) {
+        apiUrl += '&nocache=1';
+      }
+
+      const response = await fetch(apiUrl, { signal: currentAbortController.signal });
+      if (!response.ok) throw new Error('Render request failed with status ' + response.status);
+      const data = await response.json();
+
+      if (data.success && data.html) {
+        iframe.srcdoc = data.html;
+      } else if (data.error) {
+        console.error('Render error:', data.error);
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Preview render error:', err);
+      }
+    } finally {
+      loader.classList.add('hidden');
+      if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+    }
+  }
 
   function setDeviceView(mode) {
     const container = document.getElementById('preview-container');

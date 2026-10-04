@@ -1,0 +1,198 @@
+import time
+import pytest
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, patch, MagicMock
+from starlette.testclient import TestClient
+
+from app.cache import (
+    TTLCache,
+    report_cache,
+    make_telemetry_cache_key,
+    make_report_cache_key,
+    clear_report_cache
+)
+from app.config import AppConfig, load_config
+from app.main import app, resolve_period_dates
+
+
+def test_ttl_cache_crud_and_expiry():
+    cache = TTLCache(default_ttl=10)
+    assert cache.stats()["size"] == 0
+
+    # Basic get/set
+    cache.set("key1", "val1")
+    assert cache.get("key1") == "val1"
+    assert cache.stats()["hits"] == 1
+    assert cache.stats()["misses"] == 0
+
+    # Non-existent key
+    assert cache.get("nonexistent") is None
+    assert cache.stats()["misses"] == 1
+
+    # Overwrite
+    cache.set("key1", "val2")
+    assert cache.get("key1") == "val2"
+
+    # Delete
+    assert cache.delete("key1") is True
+    assert cache.delete("key1") is False
+    assert cache.get("key1") is None
+
+    # Expiry
+    cache.set("short_lived", "data", ttl=0.05)
+    assert cache.get("short_lived") == "data"
+    time.sleep(0.06)
+    assert cache.get("short_lived") is None
+
+    # Cleanup expired
+    cache.set("k1", "v1", ttl=0.01)
+    cache.set("k2", "v2", ttl=100)
+    time.sleep(0.02)
+    cleaned = cache.cleanup()
+    assert cleaned == 1
+    assert cache.get("k2") == "v2"
+
+    # Clear
+    cache.clear()
+    assert cache.stats()["size"] == 0
+
+
+def test_telemetry_and_report_cache_keys():
+    cfg1 = AppConfig()
+    cfg2 = AppConfig()
+
+    d1 = datetime(2026, 1, 1, 0, 0, 0)
+    d2 = datetime(2026, 2, 1, 0, 0, 0)
+
+    # Identical config produces identical telemetry key
+    key1 = make_telemetry_cache_key(d1, d2, 1, cfg1)
+    key2 = make_telemetry_cache_key(d1, d2, 1, cfg2)
+    assert key1 == key2
+
+    # Different car produces different key
+    key_diff_car = make_telemetry_cache_key(d1, d2, 2, cfg1)
+    assert key1 != key_diff_car
+
+    # Different rate setting produces different key
+    cfg2.rates.off_peak_kwh_cost = 0.05
+    key_diff_rate = make_telemetry_cache_key(d1, d2, 1, cfg2)
+    assert key1 != key_diff_rate
+
+    # Report cache key varies by theme and email mode
+    rep_preview_dark = make_report_cache_key(d1, d2, 1, "dark_modern", False, cfg1)
+    rep_preview_light = make_report_cache_key(d1, d2, 1, "pearl_white", False, cfg1)
+    rep_email_dark = make_report_cache_key(d1, d2, 1, "dark_modern", True, cfg1)
+
+    assert rep_preview_dark != rep_preview_light
+    assert rep_preview_dark != rep_email_dark
+
+
+def test_clear_report_cache():
+    report_cache.set("test_key", {"data": 123})
+    assert report_cache.get("test_key") == {"data": 123}
+    clear_report_cache()
+    assert report_cache.get("test_key") is None
+
+
+def test_resolve_period_dates():
+    now = datetime(2026, 5, 15, 14, 30, 0)
+
+    # Yesterday
+    s_yest, e_yest = resolve_period_dates("yesterday", now)
+    assert e_yest == datetime(2026, 5, 15, 0, 0, 0)
+    assert s_yest == datetime(2026, 5, 14, 0, 0, 0)
+
+    # Last Week
+    s_week, e_week = resolve_period_dates("last_week", now)
+    assert e_week == datetime(2026, 5, 15, 0, 0, 0)
+    assert s_week == datetime(2026, 5, 8, 0, 0, 0)
+
+    # This Month
+    s_month, e_month = resolve_period_dates("this_month", now)
+    assert s_month == datetime(2026, 5, 1, 0, 0, 0)
+    assert e_month == now
+
+    # Last Month
+    s_lastm, e_lastm = resolve_period_dates("last_month", now)
+    assert s_lastm == datetime(2026, 4, 1, 0, 0, 0)
+    assert e_lastm == datetime(2026, 5, 1, 0, 0, 0)
+
+
+@pytest.mark.anyio
+async def test_preview_render_api_endpoint(monkeypatch):
+    mock_db = MagicMock()
+    mock_db.get_cars = AsyncMock(return_value=[{"id": 1, "name": "Model 3", "model": "3"}])
+    app.state.db = mock_db
+
+    clear_report_cache()
+
+    # Mock build_digest_report to observe caching
+    call_count = 0
+
+    async def fake_build_digest(db, config, start_date, end_date, car_id=None, for_email=False, theme_override=None, force_refresh=False):
+        nonlocal call_count
+        call_count += 1
+        return (f"Digest Report {call_count}", f"<h1>Preview HTML {call_count}</h1>", {})
+
+    with patch("app.main.build_digest_report", side_effect=fake_build_digest):
+        with TestClient(app) as client:
+            # 1. First fetch
+            res = client.get("/api/preview/render?period=last_month&car_id=1&theme=dark_modern")
+            assert res.status_code == 200
+            data = res.json()
+            assert data["success"] is True
+            assert "Digest Report 1" in data["subject"]
+            assert "<h1>Preview HTML 1</h1>" in data["html"]
+            assert call_count == 1
+
+            # 2. Force refresh via nocache=1
+            res_nocache = client.get("/api/preview/render?period=last_month&car_id=1&theme=dark_modern&nocache=1")
+            assert res_nocache.status_code == 200
+            assert call_count == 2
+            data_nocache = res_nocache.json()
+            assert "Digest Report 2" in data_nocache["subject"]
+
+
+def test_settings_and_maintenance_evict_cache():
+    mock_db = MagicMock()
+    mock_db.get_cars = AsyncMock(return_value=[])
+    mock_db.fetchrow = AsyncMock(return_value={"odometer_mi": 5000.0})
+    app.state.db = mock_db
+
+    with TestClient(app) as client:
+        # Pre-seed cache
+        report_cache.set("tel:dummy", {"some": "data"})
+        assert report_cache.stats()["size"] > 0
+
+        # POST /settings should clear cache
+        client.post("/settings", data={
+            "smtp_host": "smtp.example.com",
+            "smtp_port": "587",
+            "smtp_user": "u",
+            "smtp_password": "p",
+            "recipient_email": "r@example.com",
+            "frequency": "monthly",
+            "send_hour": "8",
+            "send_minute": "0",
+            "modules_submitted": "1"
+        })
+        assert report_cache.stats()["size"] == 0
+
+        # Pre-seed cache again
+        report_cache.set("tel:dummy", {"some": "data"})
+        assert report_cache.stats()["size"] > 0
+
+        # POST /settings/integrations should clear cache
+        client.post("/settings/integrations", data={
+            "rate_mode": "tou",
+            "average_kwh_cost": "0.15"
+        })
+        assert report_cache.stats()["size"] == 0
+
+        # Pre-seed cache again
+        report_cache.set("tel:dummy", {"some": "data"})
+        assert report_cache.stats()["size"] > 0
+
+        # POST /maintenance/quick-rotate should clear cache
+        client.post("/maintenance/quick-rotate", data={"car_id": "1"})
+        assert report_cache.stats()["size"] == 0
