@@ -16,51 +16,107 @@
     table { border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     td { vertical-align: top; }
     .wrapper { width: 100%; table-layout: fixed; background-color: #030712; padding-bottom: 50px; }
+    .wrapper-table { margin-top: 24px; }
     .main-table { width: 100%; max-width: 660px; margin: 0 auto; background-color: #0f172a; border-radius: 20px; overflow: hidden; border: 1px solid #312e81; }
     .neon-card { background: linear-gradient(145deg, #1e1b4b 0%, #0f172a 100%); border-radius: 14px; padding: 22px; margin-bottom: 20px; border: 1px solid #4338ca; }
     .badge-card { background-color: #1e1b4b; border-radius: 10px; padding: 14px; margin-bottom: 10px; border: 1px solid #6366f1; }
+
+    /* RESPONSIVE MEDIA QUERIES FOR MOBILE (<= 600px) */
+    @media only screen and (max-width: 600px) {
+      .wrapper {
+        padding-bottom: 20px !important;
+      }
+      .wrapper-table {
+        margin-top: 0 !important;
+      }
+      .main-table {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+      .hero-td {
+        padding: 24px 16px 18px 16px !important;
+      }
+      .hero-h1 {
+        font-size: 30px !important;
+      }
+      .content-td {
+        padding: 16px 12px 10px 12px !important;
+      }
+      .neon-card {
+        padding: 16px 12px !important;
+        margin-bottom: 14px !important;
+        border-radius: 10px !important;
+      }
+      .big-stat-val {
+        font-size: 36px !important;
+      }
+      .table-responsive {
+        display: block !important;
+        width: 100% !important;
+      }
+      .table-responsive > tbody, .table-responsive > tbody > tr {
+        display: block !important;
+        width: 100% !important;
+      }
+      .stack-mobile {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-bottom: 10px !important;
+      }
+      .footer-td {
+        padding: 16px 14px !important;
+        font-size: 11px !important;
+      }
+    }
   </style>
 </head>
 <body>
   <center class="wrapper">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="wrapper-table" style="margin-top: 24px;">
       <tr>
         <td align="center">
           <table role="presentation" class="main-table" cellpadding="0" cellspacing="0">
             
             <!-- HERO HEADER -->
             <tr>
-              <td style="padding: 36px 28px 24px 28px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%); text-align: center;">
+              <td class="hero-td" style="padding: 36px 28px 24px 28px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%); text-align: center;">
                 <div style="font-size: 14px; font-weight: 900; letter-spacing: 3px; color: #fdf2f8; text-transform: uppercase;">TESLA WRAPPED</div>
-                <h1 style="font-size: 40px; font-weight: 900; margin: 8px 0 4px 0; color: #ffffff; letter-spacing: -1px;">{{ year }} in Review</h1>
+                <h1 class="hero-h1" style="font-size: 40px; font-weight: 900; margin: 8px 0 4px 0; color: #ffffff; letter-spacing: -1px;">{{ year }} in Review</h1>
                 <p style="font-size: 16px; color: #ede9fe; margin: 0;">A year of electric miles, mountain climbs, and gas-free road trips.</p>
               </td>
             </tr>
 
             <!-- WRAPPED BODY -->
             <tr>
-              <td style="padding: 26px 26px 14px 26px;">
+              <td class="content-td" style="padding: 26px 26px 14px 26px;">
 
                 <!-- BIG STAT 1: MILES & EARTH -->
                 <div class="neon-card" style="text-align: center;">
                   <div style="font-size: 12px; font-weight: 800; color: #a5b4fc; text-transform: uppercase; letter-spacing: 1.5px;">TOTAL DISTANCE CONQUERED</div>
-                  <div style="font-size: 48px; font-weight: 900; color: #ffffff; margin: 8px 0 4px 0;">{{ "{:,.0f}".format(total_miles) }} <span style="font-size: 24px; color: #818cf8;">mi</span></div>
+                  <div class="big-stat-val" style="font-size: 48px; font-weight: 900; color: #ffffff; margin: 8px 0 4px 0;">{{ "{:,.0f}".format(total_miles) }} <span style="font-size: 24px; color: #818cf8;">mi</span></div>
                   <div style="font-size: 15px; color: #c7d2fe;">
                     That's equivalent to circling Earth <strong style="color: #38bdf8;">{{ earth_circumnavigations }} times</strong>! 🌍
                   </div>
                 </div>
 
                 <!-- BIG STAT 2: MOUNTAIN CLIMBS & GAS SAVED -->
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 20px;">
                   <tr>
-                    <td width="48%" style="padding-right: 8px;">
+                    <td width="48%" class="stack-mobile" style="padding-right: 8px;">
                       <div class="neon-card" style="margin-bottom: 0;">
                         <div style="font-size: 11px; font-weight: 800; color: #a5b4fc; text-transform: uppercase;">MOUNTAIN ASCENT</div>
                         <div style="font-size: 28px; font-weight: 900; color: #38bdf8; margin: 6px 0;">{{ "{:,.0f}".format(ascent_ft) }} ft</div>
                         <div style="font-size: 12px; color: #94a3b8;">Climbed the Rockies equal to <strong style="color: #f8fafc;">{{ everest_equivalents }}x Mt. Everest</strong>! 🏔️</div>
                       </div>
                     </td>
-                    <td width="48%" style="padding-left: 8px;">
+                    <td width="48%" class="stack-mobile" style="padding-left: 8px;">
                       <div class="neon-card" style="margin-bottom: 0;">
                         <div style="font-size: 11px; font-weight: 800; color: #a5b4fc; text-transform: uppercase;">GAS SAVINGS</div>
                         <div style="font-size: 28px; font-weight: 900; color: #34d399; margin: 6px 0;">${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
@@ -111,7 +167,7 @@
 
             <!-- FOOTER -->
             <tr>
-              <td style="padding: 20px; background-color: #030712; text-align: center; color: #64748b; font-size: 12px;">
+              <td class="footer-td" style="padding: 20px; background-color: #030712; text-align: center; color: #64748b; font-size: 12px;">
                 Tesla Wrapped {{ year }} &bull; Powered by TeslaMate Digest
               </td>
             </tr>
