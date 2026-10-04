@@ -119,19 +119,23 @@ def test_settings_pages_routing_and_isolation():
 
     client = TestClient(app)
 
-    # 1. Verify GET /settings renders Delivery & Schedules
+    # 1. Verify GET /settings renders Delivery
     r_deliv = client.get("/settings")
     assert r_deliv.status_code == 200
     assert "Email Delivery Configuration" in r_deliv.text
     assert "Automated Dispatch Schedules" in r_deliv.text
+    assert "Work &amp; Commute Mileage Routes" in r_deliv.text
+    assert "Excluded Locations from Top Destinations" in r_deliv.text
+    assert "Default Email Paint Theme" not in r_deliv.text
     assert "Electricity Rates &amp; Plan Structure" not in r_deliv.text
 
     # 2. Verify GET /settings/integrations and /integrations render Rates & Integrations
     r_integ = client.get("/settings/integrations")
     assert r_integ.status_code == 200
     assert "Electricity Rates &amp; Plan Structure" in r_integ.text
-    assert "Work &amp; Commute Mileage Routes" in r_integ.text
     assert "Home Assistant &amp; Solar Integration" in r_integ.text
+    assert "Work &amp; Commute Mileage Routes" not in r_integ.text
+    assert "Excluded Locations from Top Destinations" not in r_integ.text
     assert "Email Delivery Configuration" not in r_integ.text
 
     r_alias = client.get("/integrations")
@@ -218,6 +222,22 @@ def test_settings_pages_routing_and_isolation():
     assert cfg_after_integ.smtp.recipient_email == "updated_recipient@domain.com"
     assert cfg_after_integ.schedules[0].name == "Weekly Quick Digest"
     assert cfg_after_integ.email_theme == "cybercab"
+
+    # 6. POST /settings with work routes, irs rate, and excluded locations
+    post_deliv_routes = client.post("/settings", data={
+        "smtp_enabled": "on",
+        "work_routes_json": json.dumps([
+            {"label": "Direct Work Commute", "point_a": "Home", "point_b": "Tech Center", "bidirectional": True, "target_car_id": None}
+        ]),
+        "irs_mileage_rate": "0.70",
+        "excluded_locations": "Home, Secret Base"
+    })
+    assert post_deliv_routes.status_code == 200
+    cfg_deliv_routes = load_config()
+    assert len(cfg_deliv_routes.work_routes) == 1
+    assert cfg_deliv_routes.work_routes[0].label == "Direct Work Commute"
+    assert cfg_deliv_routes.irs_mileage_rate == 0.70
+    assert cfg_deliv_routes.excluded_locations == ["Home", "Secret Base"]
 
 
 def test_dispatch_history_persistence():

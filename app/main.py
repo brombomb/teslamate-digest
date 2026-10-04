@@ -756,11 +756,16 @@ async def settings_view(request: Request):
     cfg = load_config()
     db = getattr(request.app.state, "db", None)
     cars = []
+    locations = []
     if db:
         try:
             cars = await db.get_cars()
         except Exception:
             cars = []
+        try:
+            locations = await get_available_locations_for_work(db)
+        except Exception:
+            locations = []
     return templates.TemplateResponse(
         "settings.html",
         {
@@ -769,6 +774,7 @@ async def settings_view(request: Request):
             "active_tab": "delivery",
             "config": cfg,
             "cars": cars,
+            "locations": locations,
             "themes": EMAIL_THEMES,
             "message": None
         }
@@ -788,13 +794,17 @@ async def settings_save(
     sender_name: str = Form("TeslaMate Digest"),
     use_tls: Optional[str] = Form(None),
     use_ssl: Optional[str] = Form(None),
-    email_theme: str = Form("pearl_white"),
+    email_theme: Optional[str] = Form(None),
     schedule_enabled: Optional[str] = Form(None),
     frequency: str = Form("monthly"),
     target_car_id: Optional[str] = Form(None),
     send_hour: int = Form(8),
     send_minute: int = Form(0),
     schedules_json: Optional[str] = Form(None),
+    work_routes_json: Optional[str] = Form(None),
+    irs_mileage_rate: Optional[float] = Form(None),
+    commute_target_car_id: Optional[str] = Form(None),
+    excluded_locations: Optional[str] = Form(None),
     modules_submitted: Optional[str] = Form(None),
     mod_spend_breakdown: Optional[str] = Form(None),
     mod_gas_savings: Optional[str] = Form(None),
@@ -829,7 +839,8 @@ async def settings_save(
     cfg.smtp.use_tls = bool(use_tls)
     cfg.smtp.use_ssl = bool(use_ssl)
 
-    cfg.email_theme = email_theme
+    if email_theme and email_theme.strip():
+        cfg.email_theme = email_theme.strip()
 
     # Multi-schedule configuration
     if schedules_json:
@@ -869,6 +880,29 @@ async def settings_save(
                 )
             ]
 
+    # Work routes and commute mileage
+    if irs_mileage_rate is not None:
+        cfg.irs_mileage_rate = irs_mileage_rate
+    if commute_target_car_id and commute_target_car_id.strip():
+        try:
+            cfg.commute_target_car_id = int(commute_target_car_id)
+        except (ValueError, TypeError):
+            cfg.commute_target_car_id = None
+    elif commute_target_car_id is not None:
+        cfg.commute_target_car_id = None
+
+    if work_routes_json is not None and work_routes_json.strip():
+        try:
+            parsed = json.loads(work_routes_json)
+            if isinstance(parsed, list):
+                cfg.work_routes = [WorkRouteItem(**item) for item in parsed]
+        except Exception as e:
+            print(f"[Settings] Error parsing work routes JSON: {e}")
+
+    # Excluded locations
+    if excluded_locations is not None:
+        cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
+
     if modules_submitted:
         cfg.modules.spend_breakdown = bool(mod_spend_breakdown)
         cfg.modules.gas_savings = bool(mod_gas_savings)
@@ -893,11 +927,16 @@ async def settings_save(
 
     db = getattr(request.app.state, "db", None)
     cars = []
+    locations = []
     if db:
         try:
             cars = await db.get_cars()
         except Exception:
             cars = []
+        try:
+            locations = await get_available_locations_for_work(db)
+        except Exception:
+            locations = []
 
     return templates.TemplateResponse(
         "settings.html",
@@ -907,8 +946,9 @@ async def settings_save(
             "active_tab": "delivery",
             "config": cfg,
             "cars": cars,
+            "locations": locations,
             "themes": EMAIL_THEMES,
-            "message": "Delivery and schedule settings updated and saved successfully!"
+            "message": "Delivery settings updated and saved successfully!"
         }
     )
 
@@ -999,9 +1039,9 @@ async def settings_integrations_save(
     dash_drives: Optional[str] = Form(None),
     dash_vampire: Optional[str] = Form(None),
     dash_achievements: Optional[str] = Form(None),
-    excluded_locations: str = Form("Home"),
+    excluded_locations: Optional[str] = Form(None),
     tire_rotation_interval_mi: Optional[int] = Form(None),
-    irs_mileage_rate: float = Form(0.67),
+    irs_mileage_rate: Optional[float] = Form(None),
     commute_target_car_id: Optional[str] = Form(None),
     work_routes_json: Optional[str] = Form(None),
     geofences_json: Optional[str] = Form(None),
@@ -1060,7 +1100,8 @@ async def settings_integrations_save(
     if dash_achievements is not None and dash_achievements.strip():
         cfg.grafana_dashboards.achievements = dash_achievements.strip()
 
-    cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
+    if excluded_locations is not None:
+        cfg.excluded_locations = [x.strip() for x in excluded_locations.split(",") if x.strip()]
     if tire_rotation_interval_mi is not None:
         cfg.tire_rotation_interval_mi = tire_rotation_interval_mi
 
@@ -1110,14 +1151,16 @@ async def settings_integrations_save(
     cfg.rates.openei_api_key = openei_api_key.strip()
     cfg.rates.utility_name = utility_name.strip()
 
-    cfg.irs_mileage_rate = irs_mileage_rate
-    if commute_target_car_id and commute_target_car_id.strip():
-        try:
-            cfg.commute_target_car_id = int(commute_target_car_id)
-        except (ValueError, TypeError):
+    if irs_mileage_rate is not None:
+        cfg.irs_mileage_rate = irs_mileage_rate
+    if commute_target_car_id is not None:
+        if commute_target_car_id.strip():
+            try:
+                cfg.commute_target_car_id = int(commute_target_car_id)
+            except (ValueError, TypeError):
+                cfg.commute_target_car_id = None
+        else:
             cfg.commute_target_car_id = None
-    else:
-        cfg.commute_target_car_id = None
 
     if work_routes_json is not None and work_routes_json.strip():
         try:

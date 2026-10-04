@@ -17,7 +17,7 @@
   </div>
   {% endif %}
 
-  <form id="integrations-form" method="POST" action="/settings/integrations" class="space-y-6" onsubmit="serializeGeofences(); serializeWorkRoutes(); syncExcludedLocations();">
+  <form id="integrations-form" method="POST" action="/settings/integrations" class="space-y-6" onsubmit="serializeGeofences();">
 
     <!-- 1. ELECTRICITY RATES & PLAN STRUCTURE -->
     <div class="space-y-6">
@@ -404,67 +404,7 @@
       </div>
     </div>
 
-    <!-- 2. WORK & COMMUTE MILEAGE TRACKER (BUSINESS LOGGING) -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div>
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>💼</span> Work &amp; Commute Mileage Routes
-          </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Define pairs of addresses or geofences to track business/work trips, total miles, and IRS mileage tax deductions.</p>
-        </div>
-        <div class="flex items-center gap-3.5 flex-wrap">
-          <div class="flex items-center gap-1.5">
-            <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">IRS Rate ($/mi):</label>
-            <input type="number" step="0.01" name="irs_mileage_rate" value="{{ config.irs_mileage_rate }}" class="w-20 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
-          </div>
-        </div>
-      </div>
-
-      <!-- ROUTES CONTAINER -->
-      <div id="work-routes-list" class="space-y-3">
-        {% for r in config.work_routes %}
-        <div class="work-route-row p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-          <div class="sm:col-span-3">
-            <input type="text" placeholder="Route Label (e.g. Office Commute)" value="{{ r.label }}" class="route-label w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
-          </div>
-          <div class="sm:col-span-3 relative location-typeahead-container">
-            <input type="text" placeholder="Point A (Origin)" value="{{ r.point_a }}" class="route-point-a location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
-            <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
-          </div>
-          <div class="sm:col-span-3 relative location-typeahead-container">
-            <input type="text" placeholder="Point B (Destination)" value="{{ r.point_b }}" class="route-point-b location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
-            <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
-          </div>
-          <div class="sm:col-span-2">
-            <select class="route-target-car w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] text-slate-900 dark:text-white">
-              <option value="" {% if not r.target_car_id %}selected{% endif %}>Default Vehicle</option>
-              {% for c in cars %}
-              <option value="{{ c.id }}" {% if r.target_car_id == c.id %}selected{% endif %}>{{ c.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="sm:col-span-1 flex items-center justify-end gap-1.5">
-            <label title="Bidirectional A &harr; B" class="flex items-center cursor-pointer">
-              <input type="checkbox" class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla" {% if r.bidirectional %}checked{% endif %}>
-              <span class="text-[10px] ml-1 text-slate-500 dark:text-slate-400 font-semibold">&harr;</span>
-            </label>
-            <button type="button" onclick="removeRouteRow(this)" class="p-1 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-
-      <div class="pt-2">
-        <button type="button" onclick="addRouteRow()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5">
-          <span>➕</span> Add Work / Commute Route
-        </button>
-      </div>
-
-      <input type="hidden" name="work_routes_json" id="work_routes_json" value="">
-    </div>
-
-    <!-- 3. GEOFENCES & NAMED AREAS -->
+    <!-- 2. GEOFENCES & NAMED AREAS -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
         <div>
@@ -765,13 +705,13 @@
       </div>
     </div>
 
-    <!-- 7. EXCLUDED LOCATIONS & MAINTENANCE INTERVAL -->
+    <!-- 6. MAINTENANCE SCHEDULE -->
     <div class="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
       <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
         <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <span>🛡️</span> Excluded Locations &amp; Maintenance Schedule
+          <span>🔧</span> Maintenance Schedule &amp; Alerts
         </h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Filter routine daily locations from rankings and set tire rotation thresholds.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Configure mileage threshold intervals for routine vehicle maintenance reminders.</p>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -780,19 +720,6 @@
           <input type="number" step="250" name="tire_rotation_interval_mi" value="{{ config.tire_rotation_interval_mi }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
           <p class="text-[11px] text-slate-400 mt-1">Triggers maintenance badge when vehicle mileage exceeds this interval since last rotation (e.g. 6,250 miles).</p>
         </div>
-      </div>
-
-      <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
-        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Excluded Locations from Top Destinations</label>
-        <div class="relative" id="excluded-picker-wrapper">
-          <div id="excluded-tags-box" class="min-h-[42px] p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-tesla/30 focus-within:border-tesla transition-all cursor-text">
-            <div id="excluded-tags-list" class="flex flex-wrap items-center gap-1.5"></div>
-            <input type="text" id="excluded-search-input" placeholder="Search or type address/geofence to exclude..." class="flex-1 min-w-[180px] bg-transparent border-0 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none placeholder-slate-400 py-0.5 px-1" autocomplete="off">
-          </div>
-          <div id="excluded-typeahead-results" class="hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
-          <input type="hidden" name="excluded_locations" id="excluded_locations_input" value="{{ config.excluded_locations | join(', ') }}">
-        </div>
-        <p class="text-[11px] text-slate-400 mt-1.5">Locations to exclude from Top Places ranking (e.g. hides daily home parking). Type to search or press Enter/comma to add.</p>
       </div>
     </div>
 
@@ -1205,153 +1132,7 @@ function initLocationTypeahead(container) {
   }
 }
 
-// --- 3. EXCLUDED LOCATIONS TAG PICKER ---
-let excludedTags = [];
-const hiddenExcludedInput = document.getElementById('excluded_locations_input');
-const excludedTagsList = document.getElementById('excluded-tags-list');
-const excludedSearchInput = document.getElementById('excluded-search-input');
-const excludedResultsEl = document.getElementById('excluded-typeahead-results');
-let excludedActiveIndex = -1;
-
-function renderExcludedTags() {
-  if (!hiddenExcludedInput || !excludedTagsList) return;
-  const raw = hiddenExcludedInput.value || '';
-  excludedTags = raw.split(',').map(s => s.trim()).filter(Boolean);
-  
-  excludedTagsList.innerHTML = excludedTags.map(tag => `
-    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
-      <span>${escapeHtml(tag)}</span>
-      <button type="button" onclick="removeExcludedTag('${escapeHtml(tag)}')" class="text-slate-400 hover:text-red-500 font-bold ml-0.5">✕</button>
-    </span>
-  `).join('');
-}
-
-function addExcludedTag(name) {
-  const clean = (name || '').trim();
-  if (!clean) return;
-  if (!excludedTags.includes(clean)) {
-    excludedTags.push(clean);
-    syncExcludedLocations();
-  }
-  if (excludedSearchInput) excludedSearchInput.value = '';
-  if (excludedResultsEl) excludedResultsEl.classList.add('hidden');
-}
-
-function removeExcludedTag(name) {
-  excludedTags = excludedTags.filter(t => t !== name);
-  syncExcludedLocations();
-}
-
-function syncExcludedLocations() {
-  if (hiddenExcludedInput) {
-    hiddenExcludedInput.value = excludedTags.join(', ');
-  }
-  renderExcludedTags();
-}
-
-function initExcludedTypeahead() {
-  renderExcludedTags();
-
-  if (!excludedSearchInput || !excludedResultsEl) return;
-
-  document.getElementById('excluded-tags-box')?.addEventListener('click', (e) => {
-    if (e.target !== excludedSearchInput) {
-      excludedSearchInput.focus();
-    }
-  });
-
-  function renderExcludedResults(items) {
-    if (!items || items.length === 0) {
-      excludedResultsEl.innerHTML = '<div class="px-3 py-2 text-xs text-slate-400">No matching locations found in database</div>';
-      excludedResultsEl.classList.remove('hidden');
-      return;
-    }
-
-    excludedResultsEl.innerHTML = items.map((item, idx) => `
-      <div class="excluded-item px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between gap-2 transition-colors select-none" data-value="${escapeHtml(item.value)}" data-index="${idx}">
-        <div class="flex items-center gap-1.5 overflow-hidden">
-          <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${item.type === 'geofence' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">
-            ${item.type === 'geofence' ? 'Geofence' : 'Address'}
-          </span>
-          <span class="font-medium text-slate-900 dark:text-white truncate">${escapeHtml(item.name)}</span>
-        </div>
-        ${item.city ? `<span class="text-[11px] text-slate-400 shrink-0">${escapeHtml(item.city)}</span>` : (item.radius ? `<span class="text-[10px] text-blue-500 dark:text-blue-400 shrink-0 font-medium">${item.radius}m</span>` : '')}
-      </div>
-    `).join('');
-
-    excludedResultsEl.querySelectorAll('.excluded-item').forEach(el => {
-      el.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        addExcludedTag(el.getAttribute('data-value'));
-      });
-    });
-
-    excludedResultsEl.classList.remove('hidden');
-    excludedActiveIndex = -1;
-  }
-
-  let excludedDebounce;
-  excludedSearchInput.addEventListener('input', () => {
-    const q = excludedSearchInput.value.trim();
-    clearTimeout(excludedDebounce);
-    excludedDebounce = setTimeout(async () => {
-      const items = await fetchLocationMatches(q);
-      renderExcludedResults(items);
-    }, 220);
-  });
-
-  excludedSearchInput.addEventListener('focus', async () => {
-    const items = await fetchLocationMatches(excludedSearchInput.value.trim());
-    renderExcludedResults(items);
-  });
-
-  excludedSearchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      if (!excludedResultsEl.classList.contains('hidden') && excludedActiveIndex >= 0) {
-        const items = excludedResultsEl.querySelectorAll('.excluded-item');
-        if (items[excludedActiveIndex]) {
-          addExcludedTag(items[excludedActiveIndex].getAttribute('data-value'));
-          return;
-        }
-      }
-      if (excludedSearchInput.value.trim()) {
-        addExcludedTag(excludedSearchInput.value);
-      }
-    } else if (e.key === 'Backspace' && !excludedSearchInput.value && excludedTags.length > 0) {
-      removeExcludedTag(excludedTags[excludedTags.length - 1]);
-    } else if (e.key === 'ArrowDown') {
-      if (excludedResultsEl.classList.contains('hidden')) return;
-      const items = excludedResultsEl.querySelectorAll('.excluded-item');
-      if (!items.length) return;
-      e.preventDefault();
-      excludedActiveIndex = (excludedActiveIndex + 1) % items.length;
-      updateExcludedHighlight(items);
-    } else if (e.key === 'ArrowUp') {
-      if (excludedResultsEl.classList.contains('hidden')) return;
-      const items = excludedResultsEl.querySelectorAll('.excluded-item');
-      if (!items.length) return;
-      e.preventDefault();
-      excludedActiveIndex = (excludedActiveIndex - 1 + items.length) % items.length;
-      updateExcludedHighlight(items);
-    } else if (e.key === 'Escape') {
-      excludedResultsEl.classList.add('hidden');
-    }
-  });
-
-  function updateExcludedHighlight(items) {
-    items.forEach((item, idx) => {
-      if (idx === excludedActiveIndex) {
-        item.classList.add('bg-slate-100', 'dark:bg-slate-800');
-        item.scrollIntoView({ block: 'nearest' });
-      } else {
-        item.classList.remove('bg-slate-100', 'dark:bg-slate-800');
-      }
-    });
-  }
-}
-
-// --- 4. GEOFENCES MANAGEMENT ---
+// --- 3. GEOFENCES MANAGEMENT ---
 function addGeofenceRow() {
   const container = document.getElementById('geofences-list');
   const div = document.createElement('div');
@@ -1657,76 +1438,6 @@ async function discoverHomeAssistantEntities() {
   }
 }
 
-// --- 7. WORK ROUTES MANAGEMENT ---
-function addRouteRow() {
-  const container = document.getElementById('work-routes-list');
-  const div = document.createElement('div');
-  div.className = 'work-route-row p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center';
-  div.innerHTML = `
-    <div class="sm:col-span-3">
-      <input type="text" placeholder="Route Label (e.g. Office Commute)" class="route-label w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white">
-    </div>
-    <div class="sm:col-span-3 relative location-typeahead-container">
-      <input type="text" placeholder="Point A (Origin)" class="route-point-a location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
-      <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
-    </div>
-    <div class="sm:col-span-3 relative location-typeahead-container">
-      <input type="text" placeholder="Point B (Destination)" class="route-point-b location-typeahead-input w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" autocomplete="off">
-      <div class="location-typeahead-results hidden absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs"></div>
-    </div>
-    <div class="sm:col-span-2">
-      <select class="route-target-car w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] text-slate-900 dark:text-white">
-        <option value="">Default Vehicle</option>
-        {% for c in cars %}
-        <option value="{{ c.id }}">{{ c.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="sm:col-span-1 flex items-center justify-end gap-1.5">
-      <label title="Bidirectional A &harr; B" class="flex items-center cursor-pointer">
-        <input type="checkbox" checked class="route-bidirectional rounded bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla">
-        <span class="text-[10px] ml-1 text-slate-500 dark:text-slate-400 font-semibold">&harr;</span>
-      </label>
-      <button type="button" onclick="removeRouteRow(this)" class="p-1 text-red-500 hover:text-red-700 text-xs font-bold" title="Delete Route">✕</button>
-    </div>
-  `;
-  container.appendChild(div);
-
-  div.querySelectorAll('.location-typeahead-container').forEach(initLocationTypeahead);
-}
-
-function removeRouteRow(btn) {
-  const row = btn.closest('.work-route-row');
-  if (row) row.remove();
-}
-
-function serializeWorkRoutes() {
-  const rows = document.querySelectorAll('.work-route-row');
-  const routes = [];
-  rows.forEach(r => {
-    let label = r.querySelector('.route-label')?.value.trim();
-    const ptA = r.querySelector('.route-point-a')?.value.trim();
-    const ptB = r.querySelector('.route-point-b')?.value.trim();
-    const bidi = r.querySelector('.route-bidirectional')?.checked ?? true;
-    const carVal = r.querySelector('.route-target-car')?.value;
-    const targetCarId = carVal ? parseInt(carVal, 10) : null;
-    
-    if (!label && ptA && ptB) {
-      label = `${ptA} to ${ptB}`;
-    }
-    if (label && ptA && ptB) {
-      routes.push({
-        label: label,
-        point_a: ptA,
-        point_b: ptB,
-        bidirectional: bidi,
-        target_car_id: isNaN(targetCarId) ? null : targetCarId
-      });
-    }
-  });
-  document.getElementById('work_routes_json').value = JSON.stringify(routes);
-}
-
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -1737,10 +1448,9 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-// --- 8. INITIALIZATION & GLOBAL CLICK DISMISS ---
+// --- INITIALIZATION & GLOBAL CLICK DISMISS ---
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.location-typeahead-container').forEach(initLocationTypeahead);
-  initExcludedTypeahead();
 });
 
 document.addEventListener('click', (e) => {
@@ -1749,11 +1459,6 @@ document.addEventListener('click', (e) => {
       cnt.querySelector('.location-typeahead-results')?.classList.add('hidden');
     }
   });
-
-  const exPicker = document.getElementById('excluded-picker-wrapper');
-  if (exPicker && !exPicker.contains(e.target)) {
-    document.getElementById('excluded-typeahead-results')?.classList.add('hidden');
-  }
 });
 </script>
 {% endblock %}
