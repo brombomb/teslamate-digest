@@ -156,5 +156,62 @@ flowchart LR
 
 ---
 
+## 🔒 Security & Hardening
+
+TeslaMate Digest manages sensitive credentials (SMTP passwords, Home Assistant Long-Lived Access Tokens, Grafana API keys) as well as vehicle telemetry and visit histories. It has been built with defensive security best practices for open-source self-hosting:
+
+### 1. Non-Root Container Execution
+The Docker image runs as an unprivileged system user (`appuser`, UID `1000`, GID `1000`) within an isolated virtual environment (`/opt/venv`). It does not require root privileges or Linux capabilities at runtime, making it safe for locked-down NAS environments (Synology, TrueNAS, Unraid).
+* **Restricted File Permissions**: Runtime databases (`teslamate_digest.db`) and backups (`config.json`) are strictly written with `chmod 600` permissions under a secure `027` umask.
+* **Volume Mount Alignment**: When binding `./data:/app/data`, ensure the directory on your host is owned by UID `1000` (`chown -R 1000:1000 ./data`).
+
+### 2. Reverse Proxy & Authentication
+TeslaMate Digest is designed for internal networks. **If exposing the web dashboard outside your trusted local network, always place it behind a reverse proxy (e.g. Caddy, Traefik, Nginx Proxy Manager) with TLS and an authentication layer (Authelia, Authentik, or HTTP Basic Auth).**
+
+#### Example Caddyfile with Authelia Forward Auth:
+```caddy
+digest.yourdomain.com {
+    # Forward auth verification
+    forward_auth authelia:9091 {
+        uri /api/verify?rd=https://auth.yourdomain.com
+        copy_headers Remote-User Remote-Groups Remote-Email
+    }
+
+    reverse_proxy teslamate-digest:8660
+}
+```
+
+#### Example Nginx with HTTP Basic Authentication:
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name digest.yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+    auth_basic "Restricted Access - TeslaMate Digest";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
+    location / {
+        proxy_pass http://teslamate-digest:8660;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### 3. Secret Isolation
+* Keep your `.env` configuration file isolated and unreadable by unauthorized users:
+  ```bash
+  chmod 600 .env
+  ```
+* Cleartext passwords are never reflected back into HTML form fields; sensitive fields use masked placeholders and retain existing secrets on empty submission.
+
+---
+
 ## 📄 License
 This project is open-source under the [MIT License](LICENSE).
+

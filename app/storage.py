@@ -5,12 +5,23 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
+def _secure_file_perms(path: Path, mode: int = 0o600) -> None:
+    """Enforces restrictive permissions on sensitive configuration and database files."""
+    try:
+        if path.exists():
+            os.chmod(path, mode)
+    except (PermissionError, OSError):
+        pass
+
+
 DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
 try:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    _secure_file_perms(DATA_DIR, 0o750)
 except (PermissionError, OSError):
     DATA_DIR = Path(__file__).resolve().parent.parent / "data"
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    _secure_file_perms(DATA_DIR, 0o750)
 
 SQLITE_DB_PATH = DATA_DIR / "teslamate_digest.db"
 LEGACY_CONFIG_FILE = DATA_DIR / "config.json"
@@ -103,6 +114,11 @@ def init_storage() -> None:
                         print("[Storage] Successfully migrated legacy maintenance.json into SQLite.")
                 except Exception as e:
                     print(f"[Storage] Warning: Failed migrating maintenance.json: {e}")
+        
+        # Enforce secure file permissions
+        _secure_file_perms(SQLITE_DB_PATH, 0o600)
+        _secure_file_perms(LEGACY_CONFIG_FILE, 0o600)
+        _secure_file_perms(LEGACY_MAINTENANCE_FILE, 0o600)
     except Exception as e:
         print(f"[Storage] Error initializing SQLite database: {e}")
 
@@ -138,6 +154,7 @@ def save_config_data(data: Dict[str, Any]) -> None:
         with get_db_connection() as conn:
             conn.execute("INSERT OR REPLACE INTO app_settings (key, value, updated_at) VALUES ('config', ?, CURRENT_TIMESTAMP);", (val_json,))
             conn.commit()
+        _secure_file_perms(SQLITE_DB_PATH, 0o600)
     except Exception as e:
         print(f"[Storage] Error saving config to SQLite: {e}")
 
@@ -145,6 +162,7 @@ def save_config_data(data: Dict[str, Any]) -> None:
     try:
         with open(LEGACY_CONFIG_FILE, "w") as f:
             f.write(val_json)
+        _secure_file_perms(LEGACY_CONFIG_FILE, 0o600)
     except Exception as e:
         print(f"[Storage] Error writing backup config.json: {e}")
 
@@ -210,6 +228,7 @@ def save_maintenance_data(data: Dict[str, Any]) -> None:
     try:
         with open(LEGACY_MAINTENANCE_FILE, "w") as f:
             json.dump(data, f, indent=2)
+        _secure_file_perms(LEGACY_MAINTENANCE_FILE, 0o600)
     except Exception as e:
         print(f"[Storage] Error writing backup maintenance.json: {e}")
 
@@ -236,6 +255,7 @@ def reset_maintenance_rotation(car_id: str) -> None:
         try:
             with open(LEGACY_MAINTENANCE_FILE, "w") as f:
                 json.dump(current, f, indent=2)
+            _secure_file_perms(LEGACY_MAINTENANCE_FILE, 0o600)
         except Exception:
             pass
 

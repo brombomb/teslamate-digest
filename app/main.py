@@ -61,6 +61,19 @@ templates = Jinja2Templates(directory=str(WEB_TEMPLATES_DIR))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Enforce restrictive umask so created files default to 0o640 (rw-r-----)
+    try:
+        os.umask(0o027)
+    except Exception:
+        pass
+
+    # Initialize SQLite database and enforce file permissions
+    try:
+        from app.storage import init_storage
+        init_storage()
+    except Exception as e:
+        print(f"[App] Storage initialization error: {e}")
+
     # Startup
     cfg = load_config()
     db = Database(cfg)

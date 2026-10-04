@@ -289,3 +289,35 @@ def test_top_tab_bars_removed_from_settings_templates():
     assert '<a href="/settings" class="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition bg-slate-100' not in integrations_html
 
 
+def test_storage_file_permissions_hardened():
+    import stat
+    from app.storage import (
+        init_storage, 
+        save_config_data, 
+        save_maintenance_data,
+        SQLITE_DB_PATH, 
+        LEGACY_CONFIG_FILE, 
+        LEGACY_MAINTENANCE_FILE
+    )
+
+    init_storage()
+    save_config_data({"test_key": "test_val"})
+    save_maintenance_data({"test_car": {"notes": "secure"}})
+
+    if SQLITE_DB_PATH.exists():
+        mode = stat.S_IMODE(SQLITE_DB_PATH.stat().st_mode)
+        assert (mode & 0o007) == 0  # No world access
+        assert (mode & 0o002) == 0  # Not world writable
+
+    if LEGACY_CONFIG_FILE.exists():
+        mode = stat.S_IMODE(LEGACY_CONFIG_FILE.stat().st_mode)
+        assert (mode & 0o007) == 0  # No world access
+        assert (mode & 0o004) == 0  # Not world readable
+
+    if LEGACY_MAINTENANCE_FILE.exists():
+        mode = stat.S_IMODE(LEGACY_MAINTENANCE_FILE.stat().st_mode)
+        assert (mode & 0o007) == 0
+        assert (mode & 0o004) == 0
+
+
+

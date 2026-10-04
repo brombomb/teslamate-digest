@@ -18,6 +18,7 @@ services:
       - ./data:/app/data
       - ./custom_templates:/app/custom_templates
       - ./app:/app/app
+      - ./tests:/app/tests
     networks:
       - teslamate_default
 
