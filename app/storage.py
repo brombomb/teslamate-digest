@@ -6,7 +6,12 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+except (PermissionError, OSError):
+    DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 SQLITE_DB_PATH = DATA_DIR / "teslamate_digest.db"
 LEGACY_CONFIG_FILE = DATA_DIR / "config.json"
 LEGACY_MAINTENANCE_FILE = DATA_DIR / "maintenance.json"

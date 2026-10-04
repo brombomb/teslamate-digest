@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.db import Database
 from app.config import AppConfig
@@ -27,7 +27,11 @@ import app.charts as charts
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates" / "email"
-CUSTOM_TEMPLATES_DIR = Path("/app/custom_templates")
+CUSTOM_TEMPLATES_DIR = Path(os.getenv("CUSTOM_TEMPLATES_DIR", "/app/custom_templates"))
+if not CUSTOM_TEMPLATES_DIR.exists():
+    fallback_custom = BASE_DIR.parent / "custom_templates"
+    if fallback_custom.exists():
+        CUSTOM_TEMPLATES_DIR = fallback_custom
 
 
 def get_jinja_env() -> Environment:
@@ -35,7 +39,11 @@ def get_jinja_env() -> Environment:
     if CUSTOM_TEMPLATES_DIR.exists():
         loaders.append(FileSystemLoader(str(CUSTOM_TEMPLATES_DIR)))
     loaders.append(FileSystemLoader(str(TEMPLATES_DIR)))
-    return Environment(loader=loaders[0] if len(loaders) == 1 else FileSystemLoader([str(CUSTOM_TEMPLATES_DIR), str(TEMPLATES_DIR)]))
+    loader = loaders[0] if len(loaders) == 1 else FileSystemLoader([str(CUSTOM_TEMPLATES_DIR), str(TEMPLATES_DIR)])
+    return Environment(
+        loader=loader,
+        autoescape=select_autoescape(["html", "xml"])
+    )
 
 
 async def fetch_digest_telemetry(
@@ -300,16 +308,14 @@ async def build_digest_report(
             tmpl = env.get_template("custom_digest.html")
         except Exception:
             with open(custom_template_path, "r") as f:
-                from jinja2 import Template
-                tmpl = Template(f.read())
+                tmpl = env.from_string(f.read())
     else:
         template_name = "digest.html"
         try:
             tmpl = env.get_template(template_name)
         except Exception:
             with open(TEMPLATES_DIR / "digest.html", "r") as f:
-                from jinja2 import Template
-                tmpl = Template(f.read())
+                tmpl = env.from_string(f.read())
 
     dashboard_url = getattr(config, "dashboard_url", None) or f"http://localhost:{os.getenv('PORT', '8660')}"
     teslamate_url, grafana_url = await get_effective_service_urls(db, config)
@@ -379,8 +385,7 @@ async def build_wrapped_report(
         tmpl = env.get_template("wrapped.html")
     except Exception:
         with open(TEMPLATES_DIR / "wrapped.html", "r") as f:
-            from jinja2 import Template
-            tmpl = Template(f.read())
+            tmpl = env.from_string(f.read())
 
     subject = f"🎉 Tesla Wrapped {year}: Your Year in Review!"
     html_content = tmpl.render(**wrapped_data)

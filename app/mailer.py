@@ -31,10 +31,15 @@ class Mailer:
         if not to_email:
             raise ValueError("Recipient email is empty. Please configure Primary Recipient in Settings.")
 
+        safe_subject = str(subject).replace("\r", " ").replace("\n", " ").strip()
+        safe_sender_name = str(self.smtp.sender_name).replace("\r", "").replace("\n", "").strip()
+        safe_sender_addr = str(sender_addr).replace("\r", "").replace("\n", "").strip()
+        safe_to_email = str(to_email).replace("\r", "").replace("\n", "").strip()
+
         msg = MIMEMultipart("related")
-        msg["Subject"] = subject
-        msg["From"] = f"{self.smtp.sender_name} <{sender_addr}>"
-        msg["To"] = to_email
+        msg["Subject"] = safe_subject
+        msg["From"] = f"{safe_sender_name} <{safe_sender_addr}>"
+        msg["To"] = safe_to_email
 
         # HTML body
         msg_alternative = MIMEMultipart("alternative")
@@ -63,9 +68,9 @@ class Mailer:
 
             if self.smtp.user and self.smtp.password:
                 server.login(self.smtp.user, self.smtp.password)
-            server.sendmail(sender_addr, [to_email], msg.as_string())
+            server.sendmail(safe_sender_addr, [safe_to_email], msg.as_string())
             server.quit()
-            print(f"[Mailer] Successfully delivered digest to {to_email}")
+            print(f"[Mailer] Successfully delivered digest to {safe_to_email}")
             return True
         except Exception as e:
             print(f"[Mailer] Failed to send email via SMTP: {e}")

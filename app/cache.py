@@ -9,10 +9,11 @@ from app.config import AppConfig
 
 class TTLCache:
     """
-    Thread-safe in-memory cache with Time-To-Live (TTL) expiration.
+    Thread-safe in-memory cache with Time-To-Live (TTL) expiration and bounded size (LRU/FIFO eviction).
     """
-    def __init__(self, default_ttl: int = 300):
+    def __init__(self, default_ttl: int = 300, max_size: int = 256):
         self._default_ttl = default_ttl
+        self._max_size = max(16, max_size)
         self._store: Dict[str, Tuple[float, Any]] = {}
         self._lock = threading.RLock()
         self._hits = 0
@@ -30,12 +31,27 @@ class TTLCache:
                 self._misses += 1
                 return None
             self._hits += 1
+            # Reinsert to mark as recently accessed
+            del self._store[key]
+            self._store[key] = (expiry, val)
             return val
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         actual_ttl = ttl if ttl is not None else self._default_ttl
         expiry = time.time() + actual_ttl
         with self._lock:
+            # If item already exists, remove it first so it gets updated at end
+            self._store.pop(key, None)
+
+            # Evict expired keys if approaching capacity
+            if len(self._store) >= self._max_size:
+                self.cleanup()
+
+            # If still at max capacity, evict oldest entry
+            while len(self._store) >= self._max_size:
+                oldest_key = next(iter(self._store))
+                del self._store[oldest_key]
+
             self._store[key] = (expiry, value)
 
     def delete(self, key: str) -> bool:
@@ -58,6 +74,7 @@ class TTLCache:
         with self._lock:
             return {
                 "size": len(self._store),
+                "max_size": self._max_size,
                 "hits": self._hits,
                 "misses": self._misses
             }

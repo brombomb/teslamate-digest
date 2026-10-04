@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Plai
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+import os
 import re
 import json
 
@@ -49,6 +50,11 @@ from app.storage import get_recent_dispatches
 BASE_DIR = Path(__file__).resolve().parent
 WEB_TEMPLATES_DIR = BASE_DIR / "templates" / "web"
 STATIC_DIR = BASE_DIR / "static"
+CUSTOM_TEMPLATES_DIR = Path(os.getenv("CUSTOM_TEMPLATES_DIR", "/app/custom_templates"))
+if not CUSTOM_TEMPLATES_DIR.exists():
+    fallback_custom = BASE_DIR.parent / "custom_templates"
+    if fallback_custom.exists():
+        CUSTOM_TEMPLATES_DIR = fallback_custom
 
 templates = Jinja2Templates(directory=str(WEB_TEMPLATES_DIR))
 
@@ -77,6 +83,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="TeslaMate Digest", version="1.0.0", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -266,7 +283,7 @@ async def api_test_homeassistant(request: Request):
     data = await request.json() if request.headers.get("content-type") == "application/json" else {}
     cfg = load_config()
     ha = getattr(cfg, "homeassistant", None)
-    url = (data.get("url") or (ha.url if ha else "") or "http://192.168.1.15:8123").strip()
+    url = (data.get("url") or (ha.url if ha else "") or "http://homeassistant:8123").strip()
     token = (data.get("token") or (ha.token if ha else "")).strip()
     result = await verify_ha_connection(url, token)
     return JSONResponse(content=result)
@@ -280,7 +297,7 @@ async def api_discover_homeassistant(request: Request):
     data = await request.json() if request.headers.get("content-type") == "application/json" else {}
     cfg = load_config()
     ha = getattr(cfg, "homeassistant", None)
-    url = (data.get("url") or (ha.url if ha else "") or "http://192.168.1.15:8123").strip()
+    url = (data.get("url") or (ha.url if ha else "") or "http://homeassistant:8123").strip()
     token = (data.get("token") or (ha.token if ha else "")).strip()
     result = await discover_ha_solar_entities(url, token)
     return JSONResponse(content=result)
@@ -387,9 +404,9 @@ async def dashboard(request: Request):
     sched_status = get_scheduler_status()
 
     return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
+        request=request,
+        name="index.html",
+        context={
             "active_nav": "dashboard",
             "config": cfg,
             "cars": cars,
@@ -470,9 +487,9 @@ async def preview(
         send_status = {"success": False, "message": f"Failed to send email: {err_text}"}
 
     return templates.TemplateResponse(
-        "preview.html",
-        {
-            "request": request,
+        request=request,
+        name="preview.html",
+        context={
             "active_nav": "preview",
             "config": cfg,
             "cars": cars,
@@ -740,7 +757,7 @@ def generate_theme_starter(theme_name: str) -> str:
 @app.get("/builder", response_class=HTMLResponse)
 async def builder_view(request: Request, saved: Optional[str] = Query(None)):
     cfg = load_config()
-    custom_file = Path("/app/custom_templates/custom_digest.html")
+    custom_file = CUSTOM_TEMPLATES_DIR / "custom_digest.html"
     if custom_file.exists():
         with open(custom_file, "r") as f:
             content = f.read()
@@ -753,9 +770,9 @@ async def builder_view(request: Request, saved: Optional[str] = Query(None)):
         saved_status = {"success": True, "message": "Custom template successfully saved to custom_templates/custom_digest.html!"}
 
     return templates.TemplateResponse(
-        "builder.html",
-        {
-            "request": request,
+        request=request,
+        name="builder.html",
+        context={
             "active_nav": "builder",
             "template_content": content,
             "saved_status": saved_status,
@@ -767,10 +784,10 @@ async def builder_view(request: Request, saved: Optional[str] = Query(None)):
 
 @app.post("/builder/save")
 async def builder_save(template_content: str = Form(...)):
-    custom_dir = Path("/app/custom_templates")
-    custom_dir.mkdir(parents=True, exist_ok=True)
-    with open(custom_dir / "custom_digest.html", "w") as f:
+    CUSTOM_TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+    with open(CUSTOM_TEMPLATES_DIR / "custom_digest.html", "w") as f:
         f.write(template_content)
+    clear_report_cache()
     return RedirectResponse(url="/builder?saved=1", status_code=303)
 
 
@@ -817,10 +834,10 @@ async def settings_view(request: Request):
         except Exception:
             locations = []
     return templates.TemplateResponse(
-        "settings.html",
-        {
-            "request": request,
-            "active_nav": "settings",
+        request=request,
+        name="settings.html",
+        context={
+            "active_nav": "delivery",
             "active_tab": "delivery",
             "config": cfg,
             "cars": cars,
@@ -990,10 +1007,10 @@ async def settings_save(
             locations = []
 
     return templates.TemplateResponse(
-        "settings.html",
-        {
-            "request": request,
-            "active_nav": "settings",
+        request=request,
+        name="settings.html",
+        context={
+            "active_nav": "delivery",
             "active_tab": "delivery",
             "config": cfg,
             "cars": cars,
@@ -1034,9 +1051,9 @@ async def settings_integrations_view(request: Request):
     effective_units = await get_effective_units(db, cfg)
 
     return templates.TemplateResponse(
-        "settings_integrations.html",
-        {
-            "request": request,
+        request=request,
+        name="settings_integrations.html",
+        context={
             "active_nav": "integrations",
             "active_tab": "integrations",
             "config": cfg,
@@ -1258,9 +1275,9 @@ async def settings_integrations_save(
     effective_units = await get_effective_units(db, cfg)
 
     return templates.TemplateResponse(
-        "settings_integrations.html",
-        {
-            "request": request,
+        request=request,
+        name="settings_integrations.html",
+        context={
             "active_nav": "integrations",
             "active_tab": "integrations",
             "config": cfg,
@@ -1367,9 +1384,9 @@ async def maintenance_view(request: Request, msg: Optional[str] = Query(None)):
         flash_message = "ℹ️ Tire rotation history has been reset for this vehicle."
 
     return templates.TemplateResponse(
-        "maintenance.html",
-        {
-            "request": request,
+        request=request,
+        name="maintenance.html",
+        context={
             "active_nav": "maintenance",
             "cars": car_statuses,
             "log": log,

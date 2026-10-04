@@ -9,21 +9,23 @@ import numpy as np
 
 
 def _fig_to_base64(fig) -> str:
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches="tight", dpi=140, facecolor=fig.get_facecolor(), edgecolor="none")
-    buf.seek(0)
-    img_b64 = base64.b64encode(buf.read()).decode("utf-8")
-    plt.close(fig)
-    return img_b64
+    try:
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", bbox_inches="tight", dpi=140, facecolor=fig.get_facecolor(), edgecolor="none")
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+    finally:
+        plt.close(fig)
 
 
 def _fig_to_bytes(fig) -> bytes:
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches="tight", dpi=140, facecolor=fig.get_facecolor(), edgecolor="none")
-    buf.seek(0)
-    data = buf.read()
-    plt.close(fig)
-    return data
+    try:
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", bbox_inches="tight", dpi=140, facecolor=fig.get_facecolor(), edgecolor="none")
+        buf.seek(0)
+        return buf.read()
+    finally:
+        plt.close(fig)
 
 
 def _clean_color(val: Any, default: str = "#ffffff") -> Any:

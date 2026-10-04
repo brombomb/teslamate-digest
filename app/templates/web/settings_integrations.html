@@ -501,8 +501,8 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Home Assistant Base URL</label>
-            <input type="text" name="ha_url" id="ha_url" value="{{ config.homeassistant.url }}" placeholder="http://192.168.1.15:8123" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
-            <p class="text-[11px] text-slate-400 mt-1">Local or host URL of your Home Assistant instance (e.g. <span class="font-mono text-emerald-600 dark:text-emerald-400">http://192.168.1.15:8123</span>).</p>
+            <input type="text" name="ha_url" id="ha_url" value="{{ config.homeassistant.url }}" placeholder="http://homeassistant:8123" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+            <p class="text-[11px] text-slate-400 mt-1">Local or host URL of your Home Assistant instance (e.g. <span class="font-mono text-emerald-600 dark:text-emerald-400">http://homeassistant:8123</span> or <span class="font-mono text-emerald-600 dark:text-emerald-400">http://192.168.1.100:8123</span>).</p>
           </div>
 
           <div>
@@ -510,7 +510,7 @@
               <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400">Long-Lived Access Token</label>
               <button type="button" onclick="togglePasswordVisibility('ha_token')" class="text-[11px] text-blue-500 hover:underline">Show/Hide</button>
             </div>
-            <input type="password" name="ha_token" id="ha_token" value="{{ config.homeassistant.token }}" placeholder="eyJhbGciOiJIUzI1Ni..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
+            <input type="password" name="ha_token" id="ha_token" value="" placeholder="{% if config.homeassistant.token %}•••••••••••••••• (Saved - leave blank to keep){% else %}eyJhbGciOiJIUzI1Ni...{% endif %}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-mono">
             <p class="text-[11px] text-slate-400 mt-1">Generated from your Home Assistant profile under Long-Lived Access Tokens.</p>
           </div>
         </div>
@@ -606,7 +606,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center gap-2">
             <div class="flex-1">
               <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Grafana API / Service Account Token (Optional)</label>
-              <input type="password" name="grafana_api_token" id="grafana_api_token_input" value="{{ config.grafana_api_token or '' }}" placeholder="glsa_... or eyJ..." class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
+              <input type="password" name="grafana_api_token" id="grafana_api_token_input" value="" placeholder="{% if config.grafana_api_token %}•••••••••••••••• (Saved - leave blank to keep){% else %}glsa_... or eyJ...{% endif %}" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-white font-mono">
             </div>
             <div class="sm:pt-5">
               <button type="button" id="btn-discover-grafana" onclick="discoverGrafanaDashboards()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">

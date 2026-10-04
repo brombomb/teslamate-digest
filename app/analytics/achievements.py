@@ -393,12 +393,19 @@ async def get_achievements_analytics(
     length_unit = (units.get("length") if units else "mi") or "mi"
     is_miles = (length_unit == "mi")
 
-    c_filter = f"WHERE car_id = {car_id}" if car_id else ""
-    c_and_d = f"AND d.car_id = {car_id}" if car_id else ""
-    c_and_cp = f"AND cp.car_id = {car_id}" if car_id else ""
+    if car_id:
+        c_filter = "WHERE car_id = $3"
+        c_and_d = "AND d.car_id = $3"
+        c_and_cp = "AND cp.car_id = $3"
+        args = [start_date, end_date, car_id]
+    else:
+        c_filter = ""
+        c_and_d = ""
+        c_and_cp = ""
+        args = [start_date, end_date]
 
-    p_filter_d = f"AND d.start_date >= '{start_date.isoformat()}' AND d.start_date < '{end_date.isoformat()}'"
-    p_filter_cp = f"AND cp.start_date >= '{start_date.isoformat()}' AND cp.start_date < '{end_date.isoformat()}'"
+    p_filter_d = "AND d.start_date >= $1 AND d.start_date < $2"
+    p_filter_cp = "AND cp.start_date >= $1 AND cp.start_date < $2"
 
     sql = f"""
     WITH
@@ -485,7 +492,7 @@ async def get_achievements_analytics(
       sc_power AS (
         SELECT 
           bool_or(c.charger_power > 120) as sc_junkie,
-          bool_or(c.charger_power > 120 AND cp.start_date >= '{start_date.isoformat()}' AND cp.start_date < '{end_date.isoformat()}') as period_sc_junkie
+          bool_or(c.charger_power > 120 AND cp.start_date >= $1 AND cp.start_date < $2) as period_sc_junkie
         FROM charges c
         JOIN charging_processes cp ON cp.id = c.charging_process_id
         WHERE 1=1 {c_and_cp}
@@ -519,7 +526,7 @@ async def get_achievements_analytics(
     """
 
     try:
-        row = await db.fetchrow(sql)
+        row = await db.fetchrow(sql, *args)
     except Exception as e:
         logger.error(f"Error fetching achievements analytics: {e}")
         return {

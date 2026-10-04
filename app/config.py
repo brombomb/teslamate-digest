@@ -6,7 +6,12 @@ from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field, field_validator
 
 DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+except (PermissionError, OSError):
+    DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 CONFIG_FILE = DATA_DIR / "config.json"
 MAINTENANCE_FILE = DATA_DIR / "maintenance.json"
 
@@ -161,7 +166,7 @@ class ModuleToggles(BaseModel):
 
 class HomeAssistantConfig(BaseModel):
     enabled: bool = False
-    url: str = "http://192.168.1.15:8123"
+    url: str = "http://homeassistant:8123"
     token: str = ""
     solar_energy_entity: str = "sensor.tesla_solar_production"
     solar_power_entity: str = "sensor.1au_solar_power"

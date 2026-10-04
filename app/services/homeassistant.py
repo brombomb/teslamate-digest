@@ -8,16 +8,14 @@ async def verify_ha_connection(url: str, token: str) -> Dict[str, Any]:
     """
     Tests connectivity to Home Assistant REST API.
     """
-    base_url = (url or "http://192.168.1.15:8123").strip().rstrip("/")
+    base_url = (url or "http://homeassistant:8123").strip().rstrip("/")
     tok = (token or "").strip()
     if not tok:
         return {"success": False, "error": "Home Assistant Long-Lived Access Token is required."}
 
     candidate_urls = [base_url]
-    if "192.168.1.15" not in base_url:
-        candidate_urls.append("http://192.168.1.15:8123")
-    if "172.17.0.1" not in base_url:
-        candidate_urls.append("http://172.17.0.1:8123")
+    if base_url != "http://homeassistant:8123" and "homeassistant" not in base_url:
+        candidate_urls.append("http://homeassistant:8123")
 
     error_msg = ""
     async with httpx.AsyncClient(timeout=4.0) as client:
@@ -44,16 +42,14 @@ async def discover_ha_solar_entities(url: str, token: str) -> Dict[str, Any]:
     """
     Queries /api/states to discover solar and energy monitoring entities.
     """
-    base_url = (url or "http://192.168.1.15:8123").strip().rstrip("/")
+    base_url = (url or "http://homeassistant:8123").strip().rstrip("/")
     tok = (token or "").strip()
     if not tok:
         return {"success": False, "error": "Token required to discover entities", "entities": []}
 
     candidate_urls = [base_url]
-    if "192.168.1.15" not in base_url:
-        candidate_urls.append("http://192.168.1.15:8123")
-    if "172.17.0.1" not in base_url:
-        candidate_urls.append("http://172.17.0.1:8123")
+    if base_url != "http://homeassistant:8123" and "homeassistant" not in base_url:
+        candidate_urls.append("http://homeassistant:8123")
 
     states = []
     error_msg = ""
@@ -172,7 +168,7 @@ async def fetch_solar_summary(
     if not tok:
         return empty_result
 
-    base_url = (getattr(ha_config, "url", "") or "http://192.168.1.15:8123").strip().rstrip("/")
+    base_url = (getattr(ha_config, "url", "") or "http://homeassistant:8123").strip().rstrip("/")
     solar_energy_eid = getattr(ha_config, "solar_energy_entity", "sensor.tesla_solar_production") or "sensor.tesla_solar_production"
     solar_power_eid = getattr(ha_config, "solar_power_entity", "sensor.1au_solar_power") or "sensor.1au_solar_power"
     grid_import_eid = getattr(ha_config, "grid_import_entity", "sensor.current_grid_consumption") or "sensor.current_grid_consumption"
@@ -181,10 +177,8 @@ async def fetch_solar_summary(
 
     # Candidate host resolution
     candidate_urls = [base_url]
-    if "192.168.1.15" not in base_url:
-        candidate_urls.append("http://192.168.1.15:8123")
-    if "172.17.0.1" not in base_url:
-        candidate_urls.append("http://172.17.0.1:8123")
+    if base_url != "http://homeassistant:8123" and "homeassistant" not in base_url:
+        candidate_urls.append("http://homeassistant:8123")
 
     # Ensure dates have timezone awareness for HA API
     start_utc = start_date if start_date.tzinfo else start_date.replace(tzinfo=timezone.utc)

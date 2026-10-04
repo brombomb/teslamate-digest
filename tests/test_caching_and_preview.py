@@ -196,3 +196,71 @@ def test_settings_and_maintenance_evict_cache():
         # POST /maintenance/quick-rotate should clear cache
         client.post("/maintenance/quick-rotate", data={"car_id": "1"})
         assert report_cache.stats()["size"] == 0
+
+
+def test_ttl_cache_max_size_bounding():
+    small_cache = TTLCache(default_ttl=300, max_size=20)
+    for i in range(50):
+        small_cache.set(f"key_{i}", f"val_{i}")
+    assert small_cache.stats()["size"] <= 20
+    # Oldest key should have been evicted
+    assert small_cache.get("key_0") is None
+    # Most recent key should exist
+    assert small_cache.get("key_49") == "val_49"
+
+
+def test_security_headers_middleware():
+    with TestClient(app) as client:
+        res = client.get("/api/health")
+        assert res.status_code == 200
+        assert res.headers.get("X-Content-Type-Options") == "nosniff"
+        assert res.headers.get("X-Frame-Options") == "SAMEORIGIN"
+        assert res.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+
+
+def test_jinja_report_autoescape():
+    from app.report import get_jinja_env
+    env = get_jinja_env()
+    assert env.autoescape is not False
+    # Render untrusted HTML string to verify autoescape
+    template = env.from_string("Hello {{ name }}")
+    rendered = template.render(name="<script>alert(1)</script>")
+    assert "<script>" not in rendered
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in rendered
+
+
+def test_mailer_crlf_stripping():
+    from app.config import SMTPSettings
+    from app.mailer import Mailer
+    from unittest.mock import MagicMock
+
+    smtp_cfg = SMTPSettings(
+        enabled=True,
+        host="smtp.example.com",
+        port=587,
+        user="test@example.com",
+        password="secretpassword",
+        sender_email="safe@example.com\r\nBcc: evil@attacker.com",
+        sender_name="Sender\r\nName",
+        recipient_email="victim@example.com\r\nBcc: evil@attacker.com"
+    )
+    mailer = Mailer(smtp_cfg)
+
+    # Mock smtplib to inspect message headers
+    with patch("smtplib.SMTP") as mock_smtp:
+        mock_server = MagicMock()
+        mock_smtp.return_value = mock_server
+
+        mailer.send_email(
+            subject="Test\r\nSubject\nInjection",
+            html_content="<p>Test</p>"
+        )
+
+        sent_call = mock_server.sendmail.call_args
+        from_arg = sent_call[0][0]
+        to_arg = sent_call[0][1]
+
+        # Verify no carriage returns or line feeds in sender or recipient
+        assert "\r" not in from_arg and "\n" not in from_arg
+        assert "\r" not in to_arg[0] and "\n" not in to_arg[0]
+

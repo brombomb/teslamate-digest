@@ -9,8 +9,14 @@ async def get_battery_health_analytics(
     car_id: Optional[int] = None,
     length_unit: str = "mi"
 ) -> Dict[str, Any]:
-    car_filter = "WHERE cp.car_id = $1" if car_id else ""
-    args = [car_id] if car_id else []
+    if car_id:
+        car_filter = "WHERE cp.car_id = $1 AND"
+        date_param = "$2"
+        args = [car_id, end_date]
+    else:
+        car_filter = "WHERE"
+        date_param = "$1"
+        args = [end_date]
 
     # Get degradation timeseries data
     query = f"""
@@ -24,10 +30,9 @@ async def get_battery_health_analytics(
         FROM charging_processes cp
         JOIN cars c ON cp.car_id = c.id
         LEFT JOIN positions p ON cp.position_id = p.id
-        {car_filter}
-        {"AND" if car_filter else "WHERE"} cp.duration_min > 10 
+        {car_filter} cp.duration_min > 10 
           AND cp.end_battery_level >= 50
-          AND cp.start_date <= '{end_date.strftime("%Y-%m-%d %H:%M:%S")}'
+          AND cp.start_date <= {date_param}
         ORDER BY cp.start_date ASC;
     """
     records = await db.fetch(query, *args)
