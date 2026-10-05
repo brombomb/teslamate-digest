@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from typing import Dict, Any, List, Optional
 from app.db import Database
 from app.config import RatesSettings
@@ -10,7 +11,8 @@ async def get_charging_analytics(
     end_date: datetime,
     car_id: Optional[int] = None,
     rates: Optional[RatesSettings] = None,
-    miles_driven: float = 0.0
+    miles_driven: float = 0.0,
+    tz: str = "UTC"
 ) -> Dict[str, Any]:
     if rates is None:
         rates = RatesSettings()
@@ -78,12 +80,22 @@ async def get_charging_analytics(
     # Hourly distribution for TOU chart (0 to 23)
     hourly_kwh = [0.0] * 24
 
+    try:
+        user_tz = ZoneInfo(tz)
+    except Exception:
+        user_tz = ZoneInfo("UTC")
+
     for s in sessions:
         kwh_added = float(s["energy_added"])
         kwh_used = float(s["energy_used"])
         duration = int(s["duration_min"])
         s_date: datetime = s["start_date"]
-        start_hour = s_date.hour
+        # Convert naive UTC timestamp from database to local time
+        if s_date.tzinfo is None:
+            s_local = s_date.replace(tzinfo=timezone.utc).astimezone(user_tz)
+        else:
+            s_local = s_date.astimezone(user_tz)
+        start_hour = s_local.hour
 
         total_energy_added += kwh_added
         total_energy_used += kwh_used
@@ -154,7 +166,7 @@ async def get_charging_analytics(
             else:  # tou (default)
                 from app.services.tou import determine_tou_tier
                 tier = determine_tou_tier(
-                    dt=s_date,
+                    dt=s_local,
                     off_peak_start=rates.off_peak_start_hour,
                     off_peak_end=rates.off_peak_end_hour,
                     peak_start=rates.peak_start_hour,

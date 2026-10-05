@@ -383,7 +383,8 @@ async def get_achievements_analytics(
     start_date: datetime,
     end_date: datetime,
     car_id: Optional[int] = None,
-    units: Optional[Dict[str, Any]] = None
+    units: Optional[Dict[str, Any]] = None,
+    tz: str = "UTC"
 ) -> Dict[str, Any]:
     """
     Evaluates driving achievements and gamification badges from TeslaMate database,
@@ -392,6 +393,7 @@ async def get_achievements_analytics(
     """
     length_unit = (units.get("length") if units else "mi") or "mi"
     is_miles = (length_unit == "mi")
+    safe_tz = (tz or "UTC").replace("'", "")
 
     if car_id:
         c_filter = "WHERE car_id = $3"
@@ -415,18 +417,19 @@ async def get_achievements_analytics(
           coalesce(sum(distance), 0) as total_dist,
           coalesce(max(distance), 0) as max_dist,
           coalesce(sum(duration_min), 0) as total_drive_min,
-          coalesce(sum(distance) FILTER (WHERE EXTRACT(ISODOW FROM start_date) IN (6,7)), 0) as weekend_dist,
-          coalesce(sum(distance) FILTER (WHERE EXTRACT(ISODOW FROM start_date) NOT IN (6,7)), 0) as weekday_dist,
-          coalesce(sum(distance) FILTER (WHERE EXTRACT(HOUR FROM start_date) BETWEEN 0 AND 6), 0) as night_dist,
+          coalesce(sum(distance) FILTER (WHERE EXTRACT(ISODOW FROM timezone('{safe_tz}', timezone('UTC', start_date))) IN (6,7)), 0) as weekend_dist,
+          coalesce(sum(distance) FILTER (WHERE EXTRACT(ISODOW FROM timezone('{safe_tz}', timezone('UTC', start_date))) NOT IN (6,7)), 0) as weekday_dist,
+          coalesce(sum(distance) FILTER (WHERE EXTRACT(HOUR FROM timezone('{safe_tz}', timezone('UTC', start_date))) BETWEEN 0 AND 5), 0) as night_dist,
           bool_or(distance > 50 AND (start_rated_range_km - end_rated_range_km) > 0 AND distance > (start_rated_range_km - end_rated_range_km)) as hypermiler,
-          bool_or(EXTRACT(HOUR FROM start_date) BETWEEN 2 AND 5) as night_rider,
+          bool_or(EXTRACT(HOUR FROM timezone('{safe_tz}', timezone('UTC', start_date))) BETWEEN 2 AND 4) as night_rider,
           bool_or(speed_max > 180) as speedster,
           bool_or(outside_temp_avg > 40) as inferno_rider,
           bool_or(outside_temp_avg < -10) as ice_road_trucker,
           coalesce(sum(ascent), 0) as total_climb_m,
           -- Period-specific drive milestones
           bool_or(distance > 50 AND (start_rated_range_km - end_rated_range_km) > 0 AND distance > (start_rated_range_km - end_rated_range_km) {p_filter_d}) as period_hypermiler,
-          bool_or(EXTRACT(HOUR FROM start_date) BETWEEN 2 AND 5 {p_filter_d}) as period_night_rider,
+          bool_or(EXTRACT(HOUR FROM timezone('{safe_tz}', timezone('UTC', start_date))) BETWEEN 2 AND 4 {p_filter_d}) as period_night_rider,
+          coalesce(sum(distance) FILTER (WHERE EXTRACT(HOUR FROM timezone('{safe_tz}', timezone('UTC', start_date))) BETWEEN 0 AND 5 {p_filter_d}), 0) as period_night_dist,
           coalesce(sum(distance) FILTER (WHERE 1=1 {p_filter_d}), 0) as period_dist,
           coalesce(count(*) FILTER (WHERE 1=1 {p_filter_d}), 0) as period_drives,
           coalesce(sum(duration_min) FILTER (WHERE 1=1 {p_filter_d}), 0) as period_drive_min,
@@ -444,8 +447,8 @@ async def get_achievements_analytics(
           coalesce(sum(duration_min), 0) as total_charge_min,
           coalesce(sum(charge_energy_added), 0) as total_charge_kwh,
           coalesce(sum(charge_energy_added) FILTER (WHERE cost = 0 OR cost IS NULL), 0) as free_charge_kwh,
-          count(*) FILTER (WHERE EXTRACT(HOUR FROM start_date) < 7) as early_charges,
-          count(*) FILTER (WHERE EXTRACT(HOUR FROM start_date) BETWEEN 0 AND 8) as offpeak_charges,
+          count(*) FILTER (WHERE EXTRACT(HOUR FROM timezone('{safe_tz}', timezone('UTC', start_date))) < 7) as early_charges,
+          count(*) FILTER (WHERE EXTRACT(HOUR FROM timezone('{safe_tz}', timezone('UTC', start_date))) BETWEEN 0 AND 8) as offpeak_charges,
           count(*) FILTER (WHERE end_battery_level BETWEEN 80 AND 90) as opt_charges,
           bool_or(start_battery_level < 10 AND end_battery_level > 95) as full_cycle,
           count(*) FILTER (WHERE duration_min > 0 AND (charge_energy_added / NULLIF(duration_min/60.0, 0)) < 22) as ac_charges,
@@ -455,6 +458,8 @@ async def get_achievements_analytics(
           coalesce(sum(duration_min) FILTER (WHERE 1=1 {p_filter_cp}), 0) as period_charge_min,
           coalesce(sum(charge_energy_added) FILTER (WHERE 1=1 {p_filter_cp}), 0) as period_charge_kwh,
           coalesce(sum(charge_energy_added) FILTER (WHERE (cost = 0 OR cost IS NULL) {p_filter_cp}), 0) as period_free_kwh,
+          count(*) FILTER (WHERE EXTRACT(HOUR FROM timezone('{safe_tz}', timezone('UTC', start_date))) < 7 {p_filter_cp}) as period_early_charges,
+          count(*) FILTER (WHERE EXTRACT(HOUR FROM timezone('{safe_tz}', timezone('UTC', start_date))) BETWEEN 0 AND 8 {p_filter_cp}) as period_offpeak_charges,
           count(*) FILTER (WHERE end_battery_level BETWEEN 80 AND 90 {p_filter_cp}) as period_opt_charges,
           bool_or(start_battery_level < 10 AND end_battery_level > 95 {p_filter_cp}) as period_full_cycle
         FROM charging_processes cp {c_filter}
@@ -699,6 +704,29 @@ async def get_achievements_analytics(
 
     if total_drives > 0 and (total_drives - period_drives) == 0:
         period_earned_ids.add("first_spark")
+
+    # Night driving & early charging milestones newly crossed during this period
+    night_dist = float(row.get("night_dist") or 0.0)
+    period_night_dist = float(row.get("period_night_dist") or 0.0)
+    pre_night_dist = night_dist - period_night_dist
+    if night_dist >= 100 and pre_night_dist < 100:
+        period_earned_ids.add("night_owl")
+    if night_dist >= 500 and pre_night_dist < 500:
+        period_earned_ids.add("midnight_warrior")
+
+    early_charges = int(row.get("early_charges") or 0)
+    period_early_charges = int(row.get("period_early_charges") or 0)
+    pre_early = early_charges - period_early_charges
+    if early_charges >= 10 and pre_early < 10:
+        period_earned_ids.add("early_bird")
+    if early_charges >= 50 and pre_early < 50:
+        period_earned_ids.add("rise_and_shine")
+
+    offpeak_charges = int(row.get("offpeak_charges") or 0)
+    period_offpeak_charges = int(row.get("period_offpeak_charges") or 0)
+    pre_offpeak = offpeak_charges - period_offpeak_charges
+    if offpeak_charges >= 50 and pre_offpeak < 50:
+        period_earned_ids.add("night_planner")
 
     all_badges = []
     unlocked_count = 0

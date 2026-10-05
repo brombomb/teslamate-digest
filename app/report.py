@@ -1,6 +1,7 @@
 import os
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -46,6 +47,19 @@ def get_jinja_env() -> Environment:
     )
 
 
+def to_utc(dt: datetime, tz_name: str) -> datetime:
+    """Converts a local datetime to naive UTC datetime for querying PostgreSQL."""
+    if dt.tzinfo is None:
+        try:
+            tz = ZoneInfo(tz_name)
+        except Exception:
+            tz = ZoneInfo("UTC")
+        dt_local = dt.replace(tzinfo=tz)
+    else:
+        dt_local = dt
+    return dt_local.astimezone(timezone.utc).replace(tzinfo=None)
+
+
 async def fetch_digest_telemetry(
     db: Database,
     config: AppConfig,
@@ -65,6 +79,10 @@ async def fetch_digest_telemetry(
         if cached is not None:
             return cached
 
+    # Convert query boundaries from user's local timezone to UTC for database queries
+    start_utc = to_utc(start_date, config.timezone)
+    end_utc = to_utc(end_date, config.timezone)
+
     # 1. Effective units
     units = await get_effective_units(db, config)
 
@@ -79,7 +97,9 @@ async def fetch_digest_telemetry(
     async def _get_achievements():
         if getattr(config.modules, "achievements", True):
             try:
-                return await get_achievements_analytics(db, start_date, end_date, car_id, units=units)
+                return await get_achievements_analytics(
+                    db, start_utc, end_utc, car_id, units=units, tz=config.timezone
+                )
             except Exception as e:
                 print(f"[Report] Error fetching achievements analytics: {e}")
         return {}
@@ -101,19 +121,19 @@ async def fetch_digest_telemetry(
         cars,
     ) = await asyncio.gather(
         _get_gas_price(),
-        get_trip_analytics(db, start_date, end_date, car_id, config.excluded_locations, config=config),
-        get_supercharger_analytics(db, start_date, end_date, car_id),
-        get_battery_health_analytics(db, end_date, car_id, length_unit=units["length"]),
+        get_trip_analytics(db, start_utc, end_utc, car_id, config.excluded_locations, config=config),
+        get_supercharger_analytics(db, start_utc, end_utc, car_id),
+        get_battery_health_analytics(db, end_utc, car_id, length_unit=units["length"]),
         get_health_analytics(
-            db, start_date, end_date, car_id, config.tire_rotation_interval_mi,
+            db, start_utc, end_utc, car_id, config.tire_rotation_interval_mi,
             pressure_unit=units["pressure"],
             length_unit=units["length"]
         ),
-        get_vampire_analytics(db, start_date, end_date, car_id, config.rates.average_kwh_cost),
-        get_driving_efficiency_analytics(db, start_date, end_date, car_id),
-        get_charge_compliance_analytics(db, start_date, end_date, car_id),
+        get_vampire_analytics(db, start_utc, end_utc, car_id, config.rates.average_kwh_cost),
+        get_driving_efficiency_analytics(db, start_utc, end_utc, car_id),
+        get_charge_compliance_analytics(db, start_utc, end_utc, car_id),
         get_work_mileage_analytics(
-            db, start_date, end_date, routes_config, car_id,
+            db, start_utc, end_utc, routes_config, car_id,
             getattr(config, "irs_mileage_rate", 0.67),
             commute_target_car_id=getattr(config, "commute_target_car_id", None),
             config=config
@@ -126,7 +146,9 @@ async def fetch_digest_telemetry(
         config.rates.gas_price_per_gal = gas_price
 
     # 4. Charging analytics (needs trips total_miles)
-    charging = await get_charging_analytics(db, start_date, end_date, car_id, config.rates, trips["total_miles"])
+    charging = await get_charging_analytics(
+        db, start_utc, end_utc, car_id, config.rates, trips["total_miles"], tz=config.timezone
+    )
 
     # 5. Solar Energy & Home Assistant Telemetry
     solar = {

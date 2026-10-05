@@ -388,3 +388,86 @@ def test_settings_integrations_endpoint_units():
     assert reloaded_auto.units.unit_system == "auto"
     assert reloaded_auto.units.currency == "$"
 
+
+@pytest.mark.anyio
+async def test_achievements_and_charging_timezone_conversion():
+    from app.report import to_utc
+    from app.analytics.achievements import get_achievements_analytics
+    from app.analytics.charging import get_charging_analytics
+    from app.config import RatesSettings
+
+    # 1. Test to_utc helper
+    dt_mdt = datetime(2026, 10, 1, 0, 0, 0)
+    utc_mdt = to_utc(dt_mdt, "America/Denver")
+    # Mountain Daylight Time is UTC-6, so midnight MDT is 06:00 UTC
+    assert utc_mdt == datetime(2026, 10, 1, 6, 0, 0)
+
+    dt_mst = datetime(2026, 1, 1, 0, 0, 0)
+    utc_mst = to_utc(dt_mst, "America/Denver")
+    # Mountain Standard Time is UTC-7, so midnight MST is 07:00 UTC
+    assert utc_mst == datetime(2026, 1, 1, 7, 0, 0)
+
+    # 2. Test get_achievements_analytics injects local timezone into PostgreSQL query
+    captured_queries = []
+    class MockDbWithQueryCapture:
+        async def fetchrow(self, query, *args):
+            captured_queries.append(query)
+            return {
+                "total_drives": 1,
+                "total_dist": 10.0,
+                "night_dist": 0.0,
+                "period_night_dist": 0.0,
+                "night_rider": False,
+                "period_night_rider": False,
+                "early_charges": 0,
+                "period_early_charges": 0,
+                "offpeak_charges": 0,
+                "period_offpeak_charges": 0,
+                "weekend_dist": 0.0,
+                "weekday_dist": 10.0,
+            }
+
+    mock_db = MockDbWithQueryCapture()
+    start_utc = datetime(2026, 10, 1, 6, 0, 0)
+    end_utc = datetime(2026, 10, 6, 6, 0, 0)
+    res = await get_achievements_analytics(mock_db, start_utc, end_utc, car_id=1, tz="America/Denver")
+    assert len(captured_queries) == 1
+    assert "timezone('America/Denver', timezone('UTC', start_date))" in captured_queries[0]
+    # Night owl should not be unlocked or active when night_dist is 0.0
+    night_owl = next((b for b in res["all_badges"] if b["id"] == "night_owl"), None)
+    assert night_owl is not None
+    assert night_owl["unlocked"] is False
+    assert night_owl["earned_this_period"] is False
+
+    # 3. Test get_charging_analytics converts naive UTC session timestamps to local timezone
+    class MockChargingDb:
+        async def fetch(self, query, *args):
+            # Session at 02:00 UTC (which is 20:00 MDT the prior evening in Denver)
+            return [{
+                "id": 101,
+                "car_id": 1,
+                "start_date": datetime(2026, 10, 2, 2, 0, 0),
+                "end_date": datetime(2026, 10, 2, 3, 0, 0),
+                "energy_added": 15.0,
+                "energy_used": 15.0,
+                "duration_min": 60,
+                "direct_cost": None,
+                "location_name": "Home",
+                "city": "Denver",
+                "is_fast_charger": False,
+                "fast_charger_brand": None,
+                "max_power_kw": 11.5,
+            }]
+
+    rates = RatesSettings(rate_mode="tou", off_peak_start_hour=21, off_peak_end_hour=9, peak_start_hour=13, peak_end_hour=19)
+    res_denver = await get_charging_analytics(MockChargingDb(), start_utc, end_utc, car_id=1, rates=rates, tz="America/Denver")
+    # In Denver (UTC-6), 2 AM UTC is 8 PM (hour 20)
+    assert res_denver["hourly_kwh"][20] == 15.0
+    assert res_denver["hourly_kwh"][2] == 0.0
+
+    res_utc = await get_charging_analytics(MockChargingDb(), start_utc, end_utc, car_id=1, rates=rates, tz="UTC")
+    # In UTC, 2 AM UTC is hour 2
+    assert res_utc["hourly_kwh"][2] == 15.0
+    assert res_utc["hourly_kwh"][20] == 0.0
+
+
