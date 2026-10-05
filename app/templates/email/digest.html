@@ -40,7 +40,8 @@
     .badge-blue { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
     .badge-red { background-color: rgba(232, 33, 39, 0.2); color: #f87171; border: 1px solid rgba(232, 33, 39, 0.4); }
     .badge-amber { background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
-    .chart-img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; display: block; margin-top: 10px; border: 0; }
+    .chart-container { width: 100% !important; max-width: 100% !important; margin-top: 12px; border-radius: 8px; overflow: hidden; box-sizing: border-box; }
+    .chart-img { width: 100% !important; max-width: 100% !important; height: auto !important; border-radius: 8px; display: block; margin-top: 0; border: 0; }
 
     /* RESPONSIVE MEDIA QUERIES FOR MOBILE (<= 600px) */
     @media only screen and (max-width: 600px) {
@@ -148,6 +149,18 @@
       .tpms-box {
         font-size: 11px !important;
         padding: 6px 4px !important;
+      }
+
+      /* Chart containers & images */
+      .chart-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-top: 10px !important;
+      }
+      .chart-img {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
       }
 
       /* Utility classes */
@@ -465,15 +478,19 @@
                   {% endif %}
 
                   {% if chart_spend %}
-                  <a href="{{ grafana_charging_url }}" target="_blank" style="text-decoration: none; display: block;" title="View Live Charging Stats in Grafana">
-                    <img src="{{ chart_spend }}" alt="Spend Breakdown" class="chart-img" />
-                  </a>
+                  <div class="chart-container" style="width: 100%; margin-top: 12px; border-radius: 8px; overflow: hidden; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; box-sizing: border-box;">
+                    <a href="{{ grafana_charging_url }}" target="_blank" style="text-decoration: none; display: block; width: 100%;" title="View Live Charging Stats in Grafana">
+                      <img src="{{ chart_spend }}" width="100%" alt="Spend Breakdown" class="chart-img" style="width: 100%; max-width: 100%; height: auto; display: block; border: 0;" />
+                    </a>
+                  </div>
                   {% endif %}
 
                   {% if chart_tou %}
-                  <a href="{{ grafana_charge_level_url or grafana_charging_url }}" target="_blank" style="text-decoration: none; display: block;" title="View Live Charge Level in Grafana">
-                    <img src="{{ chart_tou }}" alt="24-Hour TOU Distribution" class="chart-img" />
-                  </a>
+                  <div class="chart-container" style="width: 100%; margin-top: 12px; border-radius: 8px; overflow: hidden; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; box-sizing: border-box;">
+                    <a href="{{ grafana_charge_level_url or grafana_charging_url }}" target="_blank" style="text-decoration: none; display: block; width: 100%;" title="View Live Charge Level in Grafana">
+                      <img src="{{ chart_tou }}" width="100%" alt="24-Hour TOU Distribution" class="chart-img" style="width: 100%; max-width: 100%; height: auto; display: block; border: 0;" />
+                    </a>
+                  </div>
                   {% endif %}
                 </div>
                 {% endif %}
@@ -566,13 +583,15 @@
                   </div>
 
                   {% if chart_solar %}
-                  {% if homeassistant_url %}
-                  <a href="{{ homeassistant_url }}/energy" target="_blank" style="text-decoration: none; display: block;" title="View Energy in Home Assistant">
-                    <img src="{{ chart_solar }}" alt="Solar Generation vs EV Charging" class="chart-img" />
-                  </a>
-                  {% else %}
-                  <img src="{{ chart_solar }}" alt="Solar Generation vs EV Charging" class="chart-img" />
-                  {% endif %}
+                  <div class="chart-container" style="width: 100%; margin-top: 12px; border-radius: 8px; overflow: hidden; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; box-sizing: border-box;">
+                    {% if homeassistant_url %}
+                    <a href="{{ homeassistant_url }}/energy" target="_blank" style="text-decoration: none; display: block; width: 100%;" title="View Energy in Home Assistant">
+                      <img src="{{ chart_solar }}" width="100%" alt="Solar Generation vs EV Charging" class="chart-img" style="width: 100%; max-width: 100%; height: auto; display: block; border: 0;" />
+                    </a>
+                    {% else %}
+                    <img src="{{ chart_solar }}" width="100%" alt="Solar Generation vs EV Charging" class="chart-img" style="width: 100%; max-width: 100%; height: auto; display: block; border: 0;" />
+                    {% endif %}
+                  </div>
                   {% endif %}
                 </div>
                 {% endif %}
@@ -799,9 +818,11 @@
                   </table>
 
                   {% if chart_battery %}
-                  <a href="{{ grafana_battery_url }}" target="_blank" style="text-decoration: none; display: block;" title="View Live Battery Health in Grafana">
-                    <img src="{{ chart_battery }}" alt="Battery Range Trend" class="chart-img" />
-                  </a>
+                  <div class="chart-container" style="width: 100%; margin-top: 12px; border-radius: 8px; overflow: hidden; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; box-sizing: border-box;">
+                    <a href="{{ grafana_battery_url }}" target="_blank" style="text-decoration: none; display: block; width: 100%;" title="View Live Battery Health in Grafana">
+                      <img src="{{ chart_battery }}" width="100%" alt="Battery Range Trend" class="chart-img" style="width: 100%; max-width: 100%; height: auto; display: block; border: 0;" />
+                    </a>
+                  </div>
                   {% endif %}
                 </div>
                 {% endif %}

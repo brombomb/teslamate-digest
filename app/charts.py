@@ -8,10 +8,16 @@ import matplotlib.patches as patches
 import numpy as np
 
 
+CHART_FIG_WIDTH = 8.0
+CHART_FIG_HEIGHT = 2.8
+CHART_DPI = 140
+CHART_SUBPLOT_ADJUST = dict(left=0.18, right=0.96, top=0.84, bottom=0.18)
+
+
 def _fig_to_base64(fig) -> str:
     try:
         buf = io.BytesIO()
-        fig.savefig(buf, format="png", bbox_inches="tight", dpi=140, facecolor=fig.get_facecolor(), edgecolor="none")
+        fig.savefig(buf, format="png", dpi=CHART_DPI, facecolor=fig.get_facecolor(), edgecolor="none")
         buf.seek(0)
         return base64.b64encode(buf.read()).decode("utf-8")
     finally:
@@ -21,7 +27,7 @@ def _fig_to_base64(fig) -> str:
 def _fig_to_bytes(fig) -> bytes:
     try:
         buf = io.BytesIO()
-        fig.savefig(buf, format="png", bbox_inches="tight", dpi=140, facecolor=fig.get_facecolor(), edgecolor="none")
+        fig.savefig(buf, format="png", dpi=CHART_DPI, facecolor=fig.get_facecolor(), edgecolor="none")
         buf.seek(0)
         return buf.read()
     finally:
@@ -56,19 +62,25 @@ def _clean_color(val: Any, default: str = "#ffffff") -> Any:
 
 def _get_chart_colors(theme: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     ct = theme.get("chart_theme", {}) if theme else {}
+    inner_bg = theme.get("card_inner_bg") if theme else None
+    
+    # Priority: theme card_inner_bg -> chart_theme chart_bg -> default dark slate
+    bg = _clean_color(inner_bg or ct.get("chart_bg", "#0f172a"), "#0f172a")
+    plot_bg = _clean_color(inner_bg or ct.get("chart_plot_bg", bg), bg)
+    
     return {
-        "bg": _clean_color(ct.get("chart_bg", "#0f172a"), "#0f172a"),
-        "plot_bg": _clean_color(ct.get("chart_plot_bg", ct.get("chart_bg", "#0f172a")), "#0f172a"),
-        "text": _clean_color(ct.get("chart_text", "#f8fafc"), "#f8fafc"),
-        "muted": _clean_color(ct.get("chart_muted", "#94a3b8"), "#94a3b8"),
-        "grid": _clean_color(ct.get("chart_grid", "#1e293b"), "#1e293b"),
-        "primary": _clean_color(ct.get("chart_primary", "#e82127"), "#e82127"),
-        "secondary": _clean_color(ct.get("chart_secondary", "#38bdf8"), "#38bdf8"),
-        "tertiary": _clean_color(ct.get("chart_tertiary", "#10b981"), "#10b981"),
-        "off_peak": _clean_color(ct.get("chart_off_peak", "#10b981"), "#10b981"),
-        "shoulder": _clean_color(ct.get("chart_shoulder", "#38bdf8"), "#38bdf8"),
+        "bg": bg,
+        "plot_bg": plot_bg,
+        "text": _clean_color(ct.get("chart_text", theme.get("text_primary", "#f8fafc") if theme else "#f8fafc"), "#f8fafc"),
+        "muted": _clean_color(ct.get("chart_muted", theme.get("text_muted", "#94a3b8") if theme else "#94a3b8"), "#94a3b8"),
+        "grid": _clean_color(ct.get("chart_grid", theme.get("card_inner_border", "#1e293b") if theme else "#1e293b"), "#1e293b"),
+        "primary": _clean_color(ct.get("chart_primary", theme.get("accent_red", "#e82127") if theme else "#e82127"), "#e82127"),
+        "secondary": _clean_color(ct.get("chart_secondary", theme.get("accent_blue", "#38bdf8") if theme else "#38bdf8"), "#38bdf8"),
+        "tertiary": _clean_color(ct.get("chart_tertiary", theme.get("accent_green", "#10b981") if theme else "#10b981"), "#10b981"),
+        "off_peak": _clean_color(ct.get("chart_off_peak", theme.get("accent_green", "#10b981") if theme else "#10b981"), "#10b981"),
+        "shoulder": _clean_color(ct.get("chart_shoulder", theme.get("accent_blue", "#38bdf8") if theme else "#38bdf8"), "#38bdf8"),
         "on_peak": _clean_color(ct.get("chart_on_peak", "#f59e0b"), "#f59e0b"),
-        "supercharger": _clean_color(ct.get("chart_supercharger", "#e82127"), "#e82127")
+        "supercharger": _clean_color(ct.get("chart_supercharger", theme.get("accent_red", "#e82127") if theme else "#e82127"), "#e82127")
     }
 
 
@@ -76,7 +88,7 @@ def generate_spend_chart(charging: Dict[str, Any], theme: Optional[Dict[str, Any
     """
     Horizontal breakdown chart of Charging Spend & Energy:
     Home Off-Peak, Home Shoulder, Home On-Peak, Supercharger.
-    Fully styled to match the active theme.
+    Fully styled to match the active theme and aligned with standard chart margins.
     """
     c = _get_chart_colors(theme)
     categories = []
@@ -140,31 +152,36 @@ def generate_spend_chart(charging: Dict[str, Any], theme: Optional[Dict[str, Any
         kwhs = [charging.get("total_energy_used_kwh", 0)]
         colors = [c["primary"]]
 
-    fig, ax = plt.subplots(figsize=(6.5, 2.4), facecolor=c["bg"])
+    fig, ax = plt.subplots(figsize=(CHART_FIG_WIDTH, CHART_FIG_HEIGHT), facecolor=c["bg"])
+    fig.subplots_adjust(**CHART_SUBPLOT_ADJUST)
     ax.set_facecolor(c["plot_bg"])
 
-    y_pos = np.arange(len(categories))
-    bars = ax.barh(y_pos, costs, color=colors, height=0.45, edgecolor="none", zorder=3)
+    num_cats = len(categories)
+    y_pos = np.arange(num_cats)
+    bar_height = min(0.48, 1.2 / max(num_cats, 1))
+    bars = ax.barh(y_pos, costs, color=colors, height=bar_height, edgecolor="none", zorder=3)
 
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(categories, color=c["text"], fontsize=10, fontweight="bold")
+    ax.set_yticklabels(categories, color=c["text"], fontsize=9.0, fontweight="bold")
     ax.invert_yaxis()
+    ax.set_ylim(num_cats - 0.5, -0.5)
 
-    ax.tick_params(axis="x", colors=c["muted"], labelsize=9)
+    ax.tick_params(axis="x", colors=c["muted"], labelsize=8.5)
     ax.tick_params(axis="y", length=0)
     for spine in ax.spines.values():
         spine.set_visible(False)
 
     ax.grid(axis="x", color=c["grid"], linestyle="--", alpha=0.7, zorder=1)
 
+    max_cost = max(costs) if costs else 1.0
     for bar, cost, kwh in zip(bars, costs, kwhs):
         width = bar.get_width()
         label_text = f" ${cost:.2f} ({kwh:.1f} kWh)"
-        ax.text(width + (max(costs) * 0.02 if costs else 1), bar.get_y() + bar.get_height() / 2,
-                label_text, va="center", ha="left", color=c["text"], fontsize=9, fontweight="bold")
+        ax.text(width + (max_cost * 0.02 if max_cost else 1), bar.get_y() + bar.get_height() / 2,
+                label_text, va="center", ha="left", color=c["text"], fontsize=8.5, fontweight="bold")
 
-    ax.set_xlim(0, max(costs) * 1.35 if costs and max(costs) > 0 else 10)
-    ax.set_title("Charging Spend Breakdown ($)", color=c["text"], fontsize=11, fontweight="bold", pad=10, loc="left")
+    ax.set_xlim(0, max_cost * 1.30 if max_cost > 0 else 10)
+    ax.set_title("Charging Spend Breakdown ($)", color=c["text"], fontsize=10.5, fontweight="bold", pad=8, loc="left")
 
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
 
@@ -180,10 +197,11 @@ def generate_tou_chart(
 ):
     """
     24-hour distribution bar chart showing off-peak, shoulder, and on-peak hours.
-    Styled according to active theme.
+    Styled according to active theme and aligned with standard chart margins.
     """
     c = _get_chart_colors(theme)
-    fig, ax = plt.subplots(figsize=(7, 2.5), facecolor=c["bg"])
+    fig, ax = plt.subplots(figsize=(CHART_FIG_WIDTH, CHART_FIG_HEIGHT), facecolor=c["bg"])
+    fig.subplots_adjust(**CHART_SUBPLOT_ADJUST)
     ax.set_facecolor(c["plot_bg"])
 
     hours = list(range(24))
@@ -217,7 +235,7 @@ def generate_tou_chart(
 
     ax.grid(axis="y", color=c["grid"], linestyle="--", alpha=0.7, zorder=1)
     ax.set_ylabel("kWh Drawn", color=c["muted"], fontsize=8.5)
-    ax.set_title("24-Hour TOU Charging Distribution", color=c["text"], fontsize=10.5, fontweight="bold", pad=10, loc="left")
+    ax.set_title("24-Hour TOU Charging Distribution", color=c["text"], fontsize=10.5, fontweight="bold", pad=8, loc="left")
 
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
 
@@ -225,10 +243,11 @@ def generate_tou_chart(
 def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[Dict[str, Any]] = None, as_bytes: bool = False, unit: str = "mi"):
     """
     Battery health trend chart showing estimated 100% rated range over time per car.
-    Styled according to active theme.
+    Styled according to active theme and aligned with standard chart margins.
     """
     c = _get_chart_colors(theme)
-    fig, ax = plt.subplots(figsize=(6.5, 2.4), facecolor=c["bg"])
+    fig, ax = plt.subplots(figsize=(CHART_FIG_WIDTH, CHART_FIG_HEIGHT), facecolor=c["bg"])
+    fig.subplots_adjust(**CHART_SUBPLOT_ADJUST)
     ax.set_facecolor(c["plot_bg"])
 
     cars = battery_data.get("cars", [])
@@ -250,7 +269,6 @@ def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[D
             color = car_palette[idx % len(car_palette)]
             cur_r = car.get("current_estimated_range_km", car.get("current_estimated_range_mi", 280) / 0.621371) if unit == "km" else car.get("current_estimated_range_mi", 280)
             ax.bar(car["car_name"], cur_r, color=color, width=0.4, label=f"{car['car_name']} ({cur_r:.0f} {unit})")
-        ax.set_ylabel(f"100% Rated Range ({unit})", color=c["muted"], fontsize=8.5)
 
     ax.tick_params(axis="both", colors=c["muted"], labelsize=8.5, length=0)
     for spine in ax.spines.values():
@@ -258,7 +276,8 @@ def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[D
 
     ax.grid(axis="y", color=c["grid"], linestyle="--", alpha=0.7, zorder=1)
     ax.legend(facecolor=c["plot_bg"], edgecolor=c["grid"], labelcolor=c["text"], fontsize=8, loc="upper right")
-    ax.set_title(f"100% Battery Rated Range Trend ({unit})", color=c["text"], fontsize=10.5, fontweight="bold", pad=10, loc="left")
+    ax.set_ylabel(f"Rated Range ({unit})", color=c["muted"], fontsize=8.5)
+    ax.set_title(f"100% Battery Rated Range Trend ({unit})", color=c["text"], fontsize=10.5, fontweight="bold", pad=8, loc="left")
 
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
 
@@ -268,24 +287,24 @@ def generate_tpms_diagram(tpms_dict: Dict[str, Any], theme: Optional[Dict[str, A
     Visual 4-corner tire pressure graphic with theme-responsive aesthetics.
     """
     c = _get_chart_colors(theme)
-    fig, ax = plt.subplots(figsize=(4.5, 3.2), facecolor=c["bg"])
+    fig, ax = plt.subplots(figsize=(CHART_FIG_WIDTH, CHART_FIG_HEIGHT), facecolor=c["bg"])
     ax.set_facecolor(c["plot_bg"])
 
     # Draw minimalist car body
-    car_body = patches.FancyBboxPatch((1.2, 0.8), 2.1, 4.4, boxstyle="round,pad=0.3",
+    car_body = patches.FancyBboxPatch((2.95, 0.4), 2.1, 4.4, boxstyle="round,pad=0.3",
                                       facecolor=c["plot_bg"], edgecolor=c["grid"], linewidth=1.5, zorder=2)
     ax.add_patch(car_body)
 
     # Windshield curve
-    windshield = patches.Arc((2.25, 3.8), 1.5, 0.8, angle=0, theta1=0, theta2=180, color=c["muted"], linewidth=1.5, zorder=3)
+    windshield = patches.Arc((4.0, 3.4), 1.5, 0.8, angle=0, theta1=0, theta2=180, color=c["muted"], linewidth=1.5, zorder=3)
     ax.add_patch(windshield)
 
     # Tires: FL, FR, RL, RR
     tires = [
-        {"name": "FL", "x": 0.6, "y": 4.0, "psi": tpms_dict.get("fl_psi", 42.0), "color": tpms_dict.get("fl_info", {}).get("color", c["primary"])},
-        {"name": "FR", "x": 3.9, "y": 4.0, "psi": tpms_dict.get("fr_psi", 42.0), "color": tpms_dict.get("fr_info", {}).get("color", c["primary"])},
-        {"name": "RL", "x": 0.6, "y": 1.4, "psi": tpms_dict.get("rl_psi", 42.0), "color": tpms_dict.get("rl_info", {}).get("color", c["primary"])},
-        {"name": "RR", "x": 3.9, "y": 1.4, "psi": tpms_dict.get("rr_psi", 42.0), "color": tpms_dict.get("rr_info", {}).get("color", c["primary"])},
+        {"name": "FL", "x": 2.35, "y": 3.6, "psi": tpms_dict.get("fl_psi", 42.0), "color": tpms_dict.get("fl_info", {}).get("color", c["primary"])},
+        {"name": "FR", "x": 5.65, "y": 3.6, "psi": tpms_dict.get("fr_psi", 42.0), "color": tpms_dict.get("fr_info", {}).get("color", c["primary"])},
+        {"name": "RL", "x": 2.35, "y": 1.0, "psi": tpms_dict.get("rl_psi", 42.0), "color": tpms_dict.get("rl_info", {}).get("color", c["primary"])},
+        {"name": "RR", "x": 5.65, "y": 1.0, "psi": tpms_dict.get("rr_psi", 42.0), "color": tpms_dict.get("rr_info", {}).get("color", c["primary"])},
     ]
 
     for t in tires:
@@ -296,11 +315,11 @@ def generate_tpms_diagram(tpms_dict: Dict[str, Any], theme: Optional[Dict[str, A
         ax.text(t["x"], t["y"], f"{t['psi']:.1f}\nPSI", color=c["text"], fontsize=7.5,
                 fontweight="bold", ha="center", va="center", zorder=5)
 
-    ax.text(2.25, 4.8, "FRONT", color=c["muted"], fontsize=7.5, fontweight="bold", ha="center")
-    ax.text(2.25, 0.4, "REAR", color=c["muted"], fontsize=7.5, fontweight="bold", ha="center")
+    ax.text(4.0, 4.4, "FRONT", color=c["muted"], fontsize=7.5, fontweight="bold", ha="center")
+    ax.text(4.0, 0.05, "REAR", color=c["muted"], fontsize=7.5, fontweight="bold", ha="center")
 
-    ax.set_xlim(-0.2, 4.7)
-    ax.set_ylim(0.0, 5.2)
+    ax.set_xlim(0.0, 8.0)
+    ax.set_ylim(-0.2, 4.8)
     ax.axis("off")
 
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
@@ -311,7 +330,8 @@ def generate_solar_chart(solar_data: Dict[str, Any], theme: Optional[Dict[str, A
     Renders daily solar production bar chart with theme-responsive styling.
     """
     c = _get_chart_colors(theme)
-    fig, ax = plt.subplots(figsize=(6.5, 2.5), facecolor=c["bg"])
+    fig, ax = plt.subplots(figsize=(CHART_FIG_WIDTH, CHART_FIG_HEIGHT), facecolor=c["bg"])
+    fig.subplots_adjust(**CHART_SUBPLOT_ADJUST)
     ax.set_facecolor(c["plot_bg"])
 
     daily = solar_data.get("daily_breakdown", [])
@@ -358,6 +378,6 @@ def generate_solar_chart(solar_data: Dict[str, Any], theme: Optional[Dict[str, A
     title_text = f"☀️ Solar Generation: {total_kwh:.1f} kWh"
     if peak_kw > 0:
         title_text += f" (Peak {peak_kw:.1f} kW)"
-    ax.set_title(title_text, color=c["text"], fontsize=10.0, fontweight="bold", pad=10, loc="left")
+    ax.set_title(title_text, color=c["text"], fontsize=10.0, fontweight="bold", pad=8, loc="left")
 
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
