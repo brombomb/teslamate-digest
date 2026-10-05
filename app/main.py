@@ -523,6 +523,7 @@ async def preview_render_api(
     period: str = Query("last_month"),
     car_id: Optional[str] = Query(None),
     theme: Optional[str] = Query(None),
+    schedule_id: Optional[str] = Query(None),
     nocache: Optional[str] = Query(None)
 ):
     try:
@@ -531,6 +532,17 @@ async def preview_render_api(
         now = datetime.now()
         cid = int(car_id) if car_id and car_id.isdigit() else None
         force_refresh = bool(nocache and nocache.lower() in ("1", "true", "yes"))
+
+        sched_override_modules = None
+        if schedule_id:
+            matching_s = next((s for s in cfg.schedules if s.id == schedule_id), None)
+            if matching_s:
+                if not car_id and matching_s.target_car_id:
+                    cid = matching_s.target_car_id
+                if not theme and matching_s.theme:
+                    theme = matching_s.theme
+                if matching_s.override_modules and matching_s.modules:
+                    sched_override_modules = matching_s.modules
 
         if period == "wrapped":
             year = now.year
@@ -544,6 +556,10 @@ async def preview_render_api(
             )
         else:
             start_date, end_date = resolve_period_dates(period, now)
+            kwargs = {}
+            if sched_override_modules is not None:
+                kwargs["modules_override"] = sched_override_modules
+
             subject, rendered_html, _ = await build_digest_report(
                 db=db,
                 config=cfg,
@@ -552,7 +568,8 @@ async def preview_render_api(
                 car_id=cid,
                 for_email=False,
                 theme_override=theme if theme else None,
-                force_refresh=force_refresh
+                force_refresh=force_refresh,
+                **kwargs
             )
 
         return JSONResponse({

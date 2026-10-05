@@ -39,6 +39,20 @@
           <option value="custom" {% if selected_theme == 'custom' %}selected{% endif %}>🎨 Custom User Template</option>
         </select>
       </div>
+
+      {% if config.schedules %}
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Schedule Preset</label>
+        <select id="select-schedule" name="schedule_id" onchange="onScheduleSelected(this)" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2 font-medium">
+          <option value="">Default (Global Settings)</option>
+          {% for s in config.schedules %}
+          <option value="{{ s.id }}" data-freq="{{ s.frequency }}" data-car="{{ s.target_car_id or '' }}" data-theme="{{ s.theme }}">
+            ⏰ {{ s.name }} ({{ s.frequency }}{% if s.override_modules %}, Custom Modules{% endif %})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
     </form>
 
     <!-- ACTIONS -->
@@ -107,6 +121,9 @@
     const theme = document.getElementById('select-theme').value;
 
     // Update hidden inputs for test dispatch
+    const schedEl = document.getElementById('select-schedule');
+    const scheduleId = schedEl ? schedEl.value : '';
+
     document.getElementById('test-period').value = period;
     document.getElementById('test-car-id').value = carId;
     document.getElementById('test-theme').value = theme;
@@ -116,6 +133,7 @@
     if (period) urlParams.set('period', period);
     if (carId) urlParams.set('car_id', carId);
     if (theme) urlParams.set('theme', theme);
+    if (scheduleId) urlParams.set('schedule_id', scheduleId);
     window.history.replaceState(null, '', '/preview?' + urlParams.toString());
 
     // Show loading spinner
@@ -132,6 +150,9 @@
 
     try {
       let apiUrl = `/api/preview/render?period=${encodeURIComponent(period)}&car_id=${encodeURIComponent(carId)}&theme=${encodeURIComponent(theme)}`;
+      if (scheduleId) {
+        apiUrl += `&schedule_id=${encodeURIComponent(scheduleId)}`;
+      }
       if (forceRefresh) {
         apiUrl += '&nocache=1';
       }
@@ -153,6 +174,38 @@
       loader.classList.add('hidden');
       if (refreshIcon) refreshIcon.classList.remove('animate-spin');
     }
+  }
+
+  function onScheduleSelected(selectEl) {
+    const opt = selectEl.options[selectEl.selectedIndex];
+    if (!opt || !selectEl.value) {
+      updatePreview();
+      return;
+    }
+
+    const freq = opt.dataset.freq;
+    const carId = opt.dataset.car;
+    const theme = opt.dataset.theme;
+
+    // Adapt timeframe to schedule frequency
+    const periodSelect = document.getElementById('select-period');
+    if (periodSelect && freq) {
+      if (freq === 'daily') periodSelect.value = 'yesterday';
+      else if (freq === 'weekly' || freq === 'bi-weekly') periodSelect.value = 'last_week';
+      else periodSelect.value = 'last_month';
+    }
+
+    const carSelect = document.getElementById('select-car-id');
+    if (carSelect && carId !== undefined) {
+      carSelect.value = carId;
+    }
+
+    const themeSelect = document.getElementById('select-theme');
+    if (themeSelect && theme) {
+      themeSelect.value = theme;
+    }
+
+    updatePreview();
   }
 
   function setDeviceView(mode) {

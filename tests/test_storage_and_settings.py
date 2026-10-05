@@ -320,4 +320,89 @@ def test_storage_file_permissions_hardened():
         assert (mode & 0o004) == 0
 
 
+def test_schedule_module_overrides():
+    from starlette.testclient import TestClient
+    from app.main import app
+    from app.config import load_config, save_config, ScheduleItem, ModuleToggles
+
+    client = TestClient(app)
+
+    # 1. Post settings with two schedules:
+    # Schedule A: Daily work commute with ONLY work_mileage enabled
+    # Schedule B: Monthly retrospective using global modules (override_modules=False)
+    schedules_payload = [
+        {
+            "id": "daily_commute",
+            "name": "Daily Work Trips",
+            "enabled": True,
+            "frequency": "daily",
+            "send_hour": 7,
+            "send_minute": 15,
+            "target_car_id": None,
+            "theme": "dark_modern",
+            "override_modules": True,
+            "modules": {
+                "work_mileage": True,
+                "spend_breakdown": False,
+                "gas_savings": False,
+                "battery_health": False,
+                "driving_efficiency": False,
+                "charge_limit_compliance": False,
+                "supercharger_explorer": False,
+                "top_locations": False,
+                "driving_milestones": False,
+                "mountain_regen": False,
+                "vampire_drain": False,
+                "maintenance_alerts": False,
+                "snow_tire_reminder": False,
+                "embedded_charts": False,
+                "solar_production": False,
+                "achievements": False
+            }
+        },
+        {
+            "id": "monthly_fleet",
+            "name": "Monthly Complete Fleet",
+            "enabled": True,
+            "frequency": "monthly",
+            "send_hour": 8,
+            "send_minute": 0,
+            "target_car_id": None,
+            "theme": "pearl_white",
+            "override_modules": False,
+            "modules": None
+        }
+    ]
+
+    res = client.post("/settings", data={
+        "smtp_enabled": "on",
+        "schedules_json": json.dumps(schedules_payload)
+    })
+    assert res.status_code == 200
+
+    cfg = load_config()
+    assert len(cfg.schedules) == 2
+
+    daily = cfg.schedules[0]
+    assert daily.id == "daily_commute"
+    assert daily.override_modules is True
+    assert daily.modules is not None
+    assert daily.modules.work_mileage is True
+    assert daily.modules.spend_breakdown is False
+    assert daily.modules.achievements is False
+
+    # Effective modules on daily schedule must return the override
+    daily_eff = daily.get_effective_modules(cfg.modules)
+    assert daily_eff.work_mileage is True
+    assert daily_eff.spend_breakdown is False
+
+    monthly = cfg.schedules[1]
+    assert monthly.id == "monthly_fleet"
+    assert monthly.override_modules is False
+    # Effective modules on monthly schedule must fall back to global config
+    monthly_eff = monthly.get_effective_modules(cfg.modules)
+    assert monthly_eff.spend_breakdown == cfg.modules.spend_breakdown
+    assert monthly_eff.gas_savings == cfg.modules.gas_savings
+
+
 

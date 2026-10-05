@@ -209,13 +209,16 @@ async def build_digest_report(
     car_id: Optional[int] = None,
     for_email: bool = False,
     theme_override: Optional[str] = None,
-    force_refresh: bool = False
+    force_refresh: bool = False,
+    modules_override: Optional[Any] = None
 ) -> Tuple[str, str, Dict[str, bytes]]:
     """
     Builds the complete digest HTML and charts.
     Returns: (subject, html_content, inline_image_dict)
     """
-    rep_key = make_report_cache_key(start_date, end_date, car_id, theme_override, for_email, config)
+    active_modules = modules_override if modules_override is not None else config.modules
+
+    rep_key = make_report_cache_key(start_date, end_date, car_id, theme_override, for_email, config, modules_override=modules_override)
     if not force_refresh and not for_email:
         cached_rep = report_cache.get(rep_key)
         if cached_rep is not None:
@@ -264,7 +267,7 @@ async def build_digest_report(
     subject = f"⚡ TeslaMate Digest: {report_title} [{car_name}]"
 
     # Battery health is strictly monthly only per user requirement
-    show_battery_health = bool(config.modules.battery_health and is_monthly)
+    show_battery_health = bool(active_modules.battery_health and is_monthly)
 
     # 2. Choose Theme & Prepare Chart Styling
     chosen_theme = theme_override or getattr(config, "email_theme", "dark_modern")
@@ -279,44 +282,53 @@ async def build_digest_report(
     chart_battery_src = ""
     chart_solar_src = ""
 
-    if config.modules.embedded_charts:
-        spend_bytes = charts.generate_spend_chart(charging, theme=theme, as_bytes=True)
-        tou_bytes = charts.generate_tou_chart(
-            charging["hourly_kwh"],
-            config.rates.off_peak_start_hour,
-            config.rates.off_peak_end_hour,
-            config.rates.peak_start_hour,
-            config.rates.peak_end_hour,
-            theme=theme,
-            as_bytes=True
-        )
+    if active_modules.embedded_charts:
+        if active_modules.spend_breakdown:
+            spend_bytes = charts.generate_spend_chart(charging, theme=theme, as_bytes=True)
+            tou_bytes = charts.generate_tou_chart(
+                charging["hourly_kwh"],
+                config.rates.off_peak_start_hour,
+                config.rates.off_peak_end_hour,
+                config.rates.peak_start_hour,
+                config.rates.peak_end_hour,
+                theme=theme,
+                as_bytes=True
+            )
+        else:
+            spend_bytes = b""
+            tou_bytes = b""
+
         if show_battery_health:
             battery_bytes = charts.generate_battery_trend_chart(battery, theme=theme, as_bytes=True, unit=units["length"])
         else:
             battery_bytes = b""
 
         solar_bytes = b""
-        if getattr(config.modules, "solar_production", True) and solar.get("has_data"):
+        if getattr(active_modules, "solar_production", True) and solar.get("has_data"):
             try:
                 solar_bytes = charts.generate_solar_chart(solar, theme=theme, as_bytes=True)
             except Exception as e:
                 print(f"[Report] Error generating solar chart: {e}")
 
         if for_email:
-            inline_images["chart_spend"] = spend_bytes
-            inline_images["chart_tou"] = tou_bytes
+            if spend_bytes:
+                inline_images["chart_spend"] = spend_bytes
+                chart_spend_src = "cid:chart_spend"
+            if tou_bytes:
+                inline_images["chart_tou"] = tou_bytes
+                chart_tou_src = "cid:chart_tou"
             if show_battery_health and battery_bytes:
                 inline_images["chart_battery"] = battery_bytes
                 chart_battery_src = "cid:chart_battery"
             if solar_bytes:
                 inline_images["chart_solar"] = solar_bytes
                 chart_solar_src = "cid:chart_solar"
-            chart_spend_src = "cid:chart_spend"
-            chart_tou_src = "cid:chart_tou"
         else:
             import base64
-            chart_spend_src = f"data:image/png;base64,{base64.b64encode(spend_bytes).decode('utf-8')}"
-            chart_tou_src = f"data:image/png;base64,{base64.b64encode(tou_bytes).decode('utf-8')}"
+            if spend_bytes:
+                chart_spend_src = f"data:image/png;base64,{base64.b64encode(spend_bytes).decode('utf-8')}"
+            if tou_bytes:
+                chart_tou_src = f"data:image/png;base64,{base64.b64encode(tou_bytes).decode('utf-8')}"
             if show_battery_health and battery_bytes:
                 chart_battery_src = f"data:image/png;base64,{base64.b64encode(battery_bytes).decode('utf-8')}"
             if solar_bytes:
@@ -361,7 +373,7 @@ async def build_digest_report(
         work_mileage=work_mileage,
         achievements=achievements,
         show_battery_health=show_battery_health,
-        modules=config.modules,
+        modules=active_modules,
         rates=config.rates,
         chart_spend=chart_spend_src,
         chart_tou=chart_tou_src,

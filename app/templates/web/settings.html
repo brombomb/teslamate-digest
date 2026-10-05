@@ -212,6 +212,92 @@
               <input type="email" class="sched-recipient w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" placeholder="Leave blank to use primary recipient ({% if config.smtp.recipient_email %}{{ config.smtp.recipient_email }}{% else %}configured above{% endif %})" value="{{ s.recipient_email }}">
             </div>
           </div>
+
+          <!-- Module Overrides Section -->
+          <div class="border-t border-slate-200 dark:border-slate-800 pt-2.5">
+            <div class="flex items-center justify-between">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" class="sched-override-modules rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if s.override_modules %}checked{% endif %} onchange="toggleScheduleModules(this)">
+                <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Override Included Modules</span>
+                <span class="text-[11px] text-slate-400 font-normal hidden sm:inline">(Customize what cards are sent in this email)</span>
+              </label>
+              <div class="sched-modules-quick-actions flex items-center space-x-2 text-[11px] {% if not s.override_modules %}hidden{% endif %}">
+                <button type="button" onclick="setSchedModulesPreset(this, 'all')" class="text-tesla hover:underline font-semibold">Select All</button>
+                <span class="text-slate-300 dark:text-slate-700">|</span>
+                <button type="button" onclick="setSchedModulesPreset(this, 'work')" class="text-tesla hover:underline font-semibold" title="Only Work & Commute Mileage">Work Only</button>
+                <span class="text-slate-300 dark:text-slate-700">|</span>
+                <button type="button" onclick="setSchedModulesPreset(this, 'clear')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">Clear</button>
+              </div>
+            </div>
+
+            {% set m = s.modules if (s.override_modules and s.modules) else config.modules %}
+            <div class="sched-modules-container mt-2.5 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs {% if not s.override_modules %}hidden{% endif %}">
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-spend_breakdown rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.spend_breakdown %}checked{% endif %}>
+                <span>⚡ Electric Spend</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-gas_savings rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.gas_savings %}checked{% endif %}>
+                <span>💰 Gas & CO₂ Savings</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-driving_efficiency rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.driving_efficiency %}checked{% endif %}>
+                <span>📊 Driving Efficiency</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-charge_limit_compliance rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.charge_limit_compliance %}checked{% endif %}>
+                <span>🛡️ Charge Compliance</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer bg-tesla/5 border border-tesla/20">
+                <input type="checkbox" class="sched-mod-work_mileage rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.work_mileage %}checked{% endif %}>
+                <span class="font-bold text-slate-900 dark:text-white">💼 Work & Commute</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-battery_health rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.battery_health %}checked{% endif %}>
+                <span>🔋 Battery Health (Monthly)</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-supercharger_explorer rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.supercharger_explorer %}checked{% endif %}>
+                <span>⚡ Superchargers</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-top_locations rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.top_locations %}checked{% endif %}>
+                <span>📍 Top Destinations</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-driving_milestones rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.driving_milestones %}checked{% endif %}>
+                <span>🏆 Driving Records</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-mountain_regen rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.mountain_regen %}checked{% endif %}>
+                <span>🏔️ Elevation & Regen</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-vampire_drain rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.vampire_drain %}checked{% endif %}>
+                <span>🧛 Vampire Drain</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-maintenance_alerts rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.maintenance_alerts %}checked{% endif %}>
+                <span>🛠️ Maintenance & Tires</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-snow_tire_reminder rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.snow_tire_reminder %}checked{% endif %}>
+                <span>❄️ Seasonal Tires</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-embedded_charts rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.embedded_charts %}checked{% endif %}>
+                <span>📈 Embedded Charts</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-solar_production rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.solar_production %}checked{% endif %}>
+                <span>☀️ Solar Production</span>
+              </label>
+              <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                <input type="checkbox" class="sched-mod-achievements rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" {% if m.achievements %}checked{% endif %}>
+                <span>🎖️ Gamified Badges</span>
+              </label>
+            </div>
+          </div>
         </div>
         {% endfor %}
       </div>
@@ -476,11 +562,121 @@
         <input type="email" class="sched-recipient w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white" placeholder="Leave blank to use primary recipient" value="">
       </div>
     </div>
+
+    <!-- Module Overrides Section -->
+    <div class="border-t border-slate-200 dark:border-slate-800 pt-2.5">
+      <div class="flex items-center justify-between">
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" class="sched-override-modules rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" onchange="toggleScheduleModules(this)">
+          <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Override Included Modules</span>
+          <span class="text-[11px] text-slate-400 font-normal hidden sm:inline">(Customize what cards are sent in this email)</span>
+        </label>
+        <div class="sched-modules-quick-actions flex items-center space-x-2 text-[11px] hidden">
+          <button type="button" onclick="setSchedModulesPreset(this, 'all')" class="text-tesla hover:underline font-semibold">Select All</button>
+          <span class="text-slate-300 dark:text-slate-700">|</span>
+          <button type="button" onclick="setSchedModulesPreset(this, 'work')" class="text-tesla hover:underline font-semibold" title="Only Work & Commute Mileage">Work Only</button>
+          <span class="text-slate-300 dark:text-slate-700">|</span>
+          <button type="button" onclick="setSchedModulesPreset(this, 'clear')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">Clear</button>
+        </div>
+      </div>
+
+      <div class="sched-modules-container mt-2.5 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs hidden">
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-spend_breakdown rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>⚡ Electric Spend</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-gas_savings rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>💰 Gas & CO₂ Savings</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-driving_efficiency rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>📊 Driving Efficiency</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-charge_limit_compliance rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>🛡️ Charge Compliance</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer bg-tesla/5 border border-tesla/20">
+          <input type="checkbox" class="sched-mod-work_mileage rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span class="font-bold text-slate-900 dark:text-white">💼 Work & Commute</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-battery_health rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>🔋 Battery Health (Monthly)</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-supercharger_explorer rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>⚡ Superchargers</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-top_locations rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>📍 Top Destinations</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-driving_milestones rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>🏆 Driving Records</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-mountain_regen rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>🏔️ Elevation & Regen</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-vampire_drain rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>🧛 Vampire Drain</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-maintenance_alerts rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>🛠️ Maintenance & Tires</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-snow_tire_reminder rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>❄️ Seasonal Tires</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-embedded_charts rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>📈 Embedded Charts</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-solar_production rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>☀️ Solar Production</span>
+        </label>
+        <label class="flex items-center space-x-2 p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="sched-mod-achievements rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-tesla focus:ring-0" checked>
+          <span>🎖️ Gamified Badges</span>
+        </label>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 // --- 0. SCHEDULE ROW MANAGEMENT ---
+function toggleScheduleModules(checkboxEl) {
+  const card = checkboxEl.closest('.schedule-card');
+  if (!card) return;
+  const isChecked = checkboxEl.checked;
+  const container = card.querySelector('.sched-modules-container');
+  const actions = card.querySelector('.sched-modules-quick-actions');
+  if (container) container.classList.toggle('hidden', !isChecked);
+  if (actions) actions.classList.toggle('hidden', !isChecked);
+}
+
+function setSchedModulesPreset(btnEl, preset) {
+  const card = btnEl.closest('.schedule-card');
+  if (!card) return;
+  const modInputs = card.querySelectorAll('.sched-modules-container input[type="checkbox"]');
+  modInputs.forEach(input => {
+    if (preset === 'all') {
+      input.checked = true;
+    } else if (preset === 'clear') {
+      input.checked = false;
+    } else if (preset === 'work') {
+      input.checked = input.classList.contains('sched-mod-work_mileage');
+    }
+  });
+}
+
 function updateFreqVisibility(selectEl) {
   const card = selectEl.closest('.schedule-card');
   if (!card) return;
@@ -529,6 +725,29 @@ function serializeSchedules() {
     const minute = parseInt(card.querySelector('.sched-minute')?.value || '0');
     const recipient = card.querySelector('.sched-recipient')?.value.trim() || '';
 
+    const overrideModules = card.querySelector('.sched-override-modules')?.checked ?? false;
+    let schedModules = null;
+    if (overrideModules) {
+      schedModules = {
+        spend_breakdown: card.querySelector('.sched-mod-spend_breakdown')?.checked ?? false,
+        gas_savings: card.querySelector('.sched-mod-gas_savings')?.checked ?? false,
+        driving_efficiency: card.querySelector('.sched-mod-driving_efficiency')?.checked ?? false,
+        charge_limit_compliance: card.querySelector('.sched-mod-charge_limit_compliance')?.checked ?? false,
+        work_mileage: card.querySelector('.sched-mod-work_mileage')?.checked ?? false,
+        battery_health: card.querySelector('.sched-mod-battery_health')?.checked ?? false,
+        supercharger_explorer: card.querySelector('.sched-mod-supercharger_explorer')?.checked ?? false,
+        top_locations: card.querySelector('.sched-mod-top_locations')?.checked ?? false,
+        driving_milestones: card.querySelector('.sched-mod-driving_milestones')?.checked ?? false,
+        mountain_regen: card.querySelector('.sched-mod-mountain_regen')?.checked ?? false,
+        vampire_drain: card.querySelector('.sched-mod-vampire_drain')?.checked ?? false,
+        maintenance_alerts: card.querySelector('.sched-mod-maintenance_alerts')?.checked ?? false,
+        snow_tire_reminder: card.querySelector('.sched-mod-snow_tire_reminder')?.checked ?? false,
+        embedded_charts: card.querySelector('.sched-mod-embedded_charts')?.checked ?? false,
+        solar_production: card.querySelector('.sched-mod-solar_production')?.checked ?? false,
+        achievements: card.querySelector('.sched-mod-achievements')?.checked ?? false
+      };
+    }
+
     schedules.push({
       id: id,
       name: name,
@@ -540,7 +759,9 @@ function serializeSchedules() {
       send_hour: hour,
       send_minute: minute,
       recipient_email: recipient,
-      theme: theme
+      theme: theme,
+      override_modules: overrideModules,
+      modules: schedModules
     });
   });
   document.getElementById('schedules_json').value = JSON.stringify(schedules);

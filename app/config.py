@@ -29,6 +29,30 @@ class SMTPSettings(BaseModel):
     use_ssl: bool = False
 
 
+class ModuleToggles(BaseModel):
+    spend_breakdown: bool = True
+    gas_savings: bool = True
+    battery_health: bool = True
+    driving_efficiency: bool = True
+    charge_limit_compliance: bool = True
+    work_mileage: bool = True
+    supercharger_explorer: bool = True
+    top_locations: bool = True
+    driving_milestones: bool = True
+    mountain_regen: bool = True
+    colorado_mountain_regen: Optional[bool] = None
+    vampire_drain: bool = True
+    maintenance_alerts: bool = True
+    snow_tire_reminder: bool = True
+    embedded_charts: bool = True
+    solar_production: bool = True
+    achievements: bool = True
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.colorado_mountain_regen is not None:
+            self.mountain_regen = self.colorado_mountain_regen
+
+
 class ScheduleItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
     name: str = "Digest Schedule"
@@ -41,6 +65,13 @@ class ScheduleItem(BaseModel):
     send_minute: int = 0  # 0 to 59
     recipient_email: str = ""  # override or empty for default SMTP recipient
     theme: str = "pearl_white"
+    override_modules: bool = False
+    modules: Optional[ModuleToggles] = None
+
+    def get_effective_modules(self, default_modules: ModuleToggles) -> ModuleToggles:
+        if self.override_modules and self.modules is not None:
+            return self.modules
+        return default_modules
 
     @field_validator("target_car_id", mode="before")
     @classmethod
@@ -140,28 +171,6 @@ class WorkRouteItem(BaseModel):
             return None
 
 
-class ModuleToggles(BaseModel):
-    spend_breakdown: bool = True
-    gas_savings: bool = True
-    battery_health: bool = True
-    driving_efficiency: bool = True
-    charge_limit_compliance: bool = True
-    work_mileage: bool = True
-    supercharger_explorer: bool = True
-    top_locations: bool = True
-    driving_milestones: bool = True
-    mountain_regen: bool = True
-    colorado_mountain_regen: Optional[bool] = None
-    vampire_drain: bool = True
-    maintenance_alerts: bool = True
-    snow_tire_reminder: bool = True
-    embedded_charts: bool = True
-    solar_production: bool = True
-    achievements: bool = True
-
-    def model_post_init(self, __context: Any) -> None:
-        if self.colorado_mountain_regen is not None:
-            self.mountain_regen = self.colorado_mountain_regen
 
 
 class HomeAssistantConfig(BaseModel):

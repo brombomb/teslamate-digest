@@ -129,7 +129,7 @@ async def test_preview_render_api_endpoint(monkeypatch):
     # Mock build_digest_report to observe caching
     call_count = 0
 
-    async def fake_build_digest(db, config, start_date, end_date, car_id=None, for_email=False, theme_override=None, force_refresh=False):
+    async def fake_build_digest(db, config, start_date, end_date, car_id=None, for_email=False, theme_override=None, force_refresh=False, modules_override=None, **kwargs):
         nonlocal call_count
         call_count += 1
         return (f"Digest Report {call_count}", f"<h1>Preview HTML {call_count}</h1>", {})

@@ -122,13 +122,20 @@ def make_report_cache_key(
     car_id: Optional[int],
     theme: Optional[str],
     for_email: bool,
-    config: AppConfig
+    config: AppConfig,
+    modules_override: Optional[Any] = None
 ) -> str:
     tel_key = make_telemetry_cache_key(start_date, end_date, car_id, config)
     urls = f"{config.dashboard_url}|{config.teslamate_url}|{config.grafana_url}"
     theme_str = theme or getattr(config, "email_theme", "pearl_white")
     mode_str = "email" if for_email else "preview"
-    h = hashlib.sha256(f"{urls}:{theme_str}:{mode_str}".encode("utf-8")).hexdigest()[:12]
+    mod_str = ""
+    if modules_override:
+        if hasattr(modules_override, "model_dump_json"):
+            mod_str = modules_override.model_dump_json()
+        else:
+            mod_str = str(modules_override)
+    h = hashlib.sha256(f"{urls}:{theme_str}:{mode_str}:{mod_str}".encode("utf-8")).hexdigest()[:12]
     return f"rep:{tel_key}:{theme_str}:{h}"
 
 

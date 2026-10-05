@@ -79,7 +79,12 @@ async def run_scheduled_digest(schedule_id: Optional[str] = None, frequency: Opt
             end_date = datetime(now.year, now.month, now.day, 0, 0, 0)
             start_date = end_date - timedelta(days=1)
 
-        # Build report with schedule-specific theme and car_id
+        # Resolve schedule-specific module overrides
+        effective_modules = None
+        if sched_item and getattr(sched_item, "override_modules", False) and sched_item.modules:
+            effective_modules = sched_item.modules
+
+        # Build report with schedule-specific theme, car_id, and module overrides
         subject, html, inline_images = await build_digest_report(
             db=db,
             config=config,
@@ -87,7 +92,8 @@ async def run_scheduled_digest(schedule_id: Optional[str] = None, frequency: Opt
             end_date=end_date,
             car_id=car_id,
             theme_override=theme,
-            for_email=True
+            for_email=True,
+            modules_override=effective_modules
         )
 
         mailer = Mailer(config.smtp)
