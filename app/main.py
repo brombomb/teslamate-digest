@@ -13,6 +13,7 @@ import secrets
 import os
 import re
 import json
+import inspect
 
 from app.config import (
     load_config,
@@ -80,13 +81,14 @@ async def lifespan(app: FastAPI):
 
     # Startup
     cfg = load_config()
-    db = Database(cfg)
-    app.state.db = db
-    try:
-        await db.connect()
-        print("[App] Connected to TeslaMate PostgreSQL.")
-    except Exception as e:
-        print(f"[App] Warning: Could not connect to DB at startup: {e}")
+    if not hasattr(app.state, "db") or app.state.db is None:
+        db = Database(cfg)
+        app.state.db = db
+        try:
+            await db.connect()
+            print("[App] Connected to TeslaMate PostgreSQL.")
+        except Exception as e:
+            print(f"[App] Warning: Could not connect to DB at startup: {e}")
 
     setup_scheduler(cfg)
     scheduler.start()
@@ -95,7 +97,11 @@ async def lifespan(app: FastAPI):
     # Shutdown
     scheduler.shutdown()
     if hasattr(app.state, "db") and app.state.db:
-        await app.state.db.disconnect()
+        disconnect_fn = getattr(app.state.db, "disconnect", None)
+        if callable(disconnect_fn):
+            res = disconnect_fn()
+            if inspect.isawaitable(res):
+                await res
     print("[App] Shutdown complete.")
 
 

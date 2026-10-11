@@ -138,6 +138,13 @@ docker run -d \
 
 ---
 
+## 🤝 Contributing
+
+Contributions of all kinds are welcome! Whether you are fixing a bug, adding a new analytical metric, building email themes, or contributing with the help of an AI assistant, check out our [Contributing Guide](CONTRIBUTING.md) (AI allowed) and [Agent Guidelines](AGENTS.md).
+
+---
+
 ## 📄 License
 
 This project is open-source under the [MIT License](LICENSE).
+
