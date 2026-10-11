@@ -29,6 +29,34 @@ Delivering financial charging clarity, battery health tracking, maintenance moni
 
 ---
 
+## 🎨 Tesla Paint Themes & Customization
+
+Match your email digest to your garage! TeslaMate Digest includes **12 built-in themes** styled after Tesla's factory paint finishes and design aesthetics:
+
+| Theme | Inspiration / Style | Color Palette & Accents |
+| :--- | :--- | :--- |
+| **Pearl White** | Multi-Coat White | Crisp light canvas, slate cards, razor-sharp Tesla red accents |
+| **Obsidian Black** | Metallic Black | Deep stealth dark mode, graphite layers, emerald & crimson accents |
+| **Stealth Gray** | Gunmetal Gray | Dark titanium finish, cold gray tones, vibrant status badges |
+| **Ultra Red** | Deep Multi-Coat Candy | High-vividness candy luster, crimson highlights, dark contrast |
+| **Quicksilver** | Liquid Metal | Dynamic metallic silver, high-gloss chrome borders, modern typography |
+| **Marine Blue** | Deep Blue Metallic | Deep oceanic navy, electric sapphire & cyan accents |
+| **Frost Blue** | Glacier Metallic | Light metallic ice blue, silver tones, cool arctic card styling |
+| **Midnight Cherry** | European Giga Berlin Paint | Deep European cherry burgundy, rose gold & warm accents |
+| **Cybertruck** | Cold-Rolled Stainless | Raw angular aesthetic (0px border-radius), cyber-monospace styling |
+| **Cybercab** | Autonomous Robotaxi | Metallic champagne gold, rich bronze, and futuristic dark accents |
+| **Eco-Green** | Clean Energy & Sustainability | Natural forest greens, evergreen cards, clean solar styling |
+| **Dark Modern** | Minimalist Dark Slate | Ultra-clean dark theme with high-contrast data visualization |
+
+### 🛠️ Create Your Own Themes & Templates
+
+Want a completely personalized look or tailored layout?
+- **Interactive Template Builder**: Navigate to `http://<your-server-ip>:8660/builder` to visually customize email layouts. Pick any factory theme as a starter, reorder modules, tweak CSS styling tokens, and preview changes live.
+- **Custom Template Files**: Drop your custom Jinja2 templates into `./custom_templates` (mounted to `/app/custom_templates`). The service automatically detects them and makes them selectable in your delivery schedules.
+- **Full Telemetry Context**: Custom templates have full access to all aggregated telemetry, including per-drive stats, Home Assistant solar metrics, battery health baselines, and Matplotlib chart objects.
+
+---
+
 ## 🚀 Usage
 
 ### docker-compose (Recommended)
