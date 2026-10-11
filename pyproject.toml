@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "teslamate-digest"
 version = "1.0.0"
-description = "Automated personal email digests & analytics for TeslaMate"
+description = "Automated personal email digests, financial analytics, battery health tracking, and retrospectives for TeslaMate"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }

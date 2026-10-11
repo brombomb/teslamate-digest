@@ -50,7 +50,7 @@ COPY --chown=appuser:appgroup tests /app/tests
 
 # Metadata labels
 LABEL org.opencontainers.image.title="TeslaMate Digest" \
-      org.opencontainers.image.description="Automated personal email digests & analytics for TeslaMate" \
+      org.opencontainers.image.description="Automated personal email digests, financial analytics, battery health tracking, and retrospectives for TeslaMate" \
       org.opencontainers.image.licenses="MIT"
 
 # Drop privileges to non-root user
