@@ -1,3 +1,4 @@
+import re
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -15,7 +16,8 @@ class Mailer:
         subject: str,
         html_content: str,
         inline_images: Optional[Dict[str, bytes]] = None,
-        recipient: Optional[str] = None
+        recipient: Optional[str] = None,
+        plain_text_content: Optional[str] = None
     ) -> bool:
         if not self.smtp.enabled:
             raise ValueError("SMTP delivery is disabled in Settings.")
@@ -45,8 +47,17 @@ class Mailer:
         msg_alternative = MIMEMultipart("alternative")
         msg.attach(msg_alternative)
 
-        # Plaintext fallback
-        text_content = f"{subject}\n\nPlease view this email in an HTML-compatible client."
+        # Plaintext fallback: use explicit content or extract preheader snippet
+        if plain_text_content:
+            text_content = plain_text_content
+        else:
+            match = re.search(r'class="preheader"[^>]*>(.*?)</div>', html_content, re.DOTALL | re.IGNORECASE)
+            if match:
+                preheader = re.sub(r'<[^>]+>', '', match.group(1)).strip()
+                text_content = f"{subject}\n\n{preheader}\n\nPlease view the full interactive digest in an HTML-compatible email client."
+            else:
+                text_content = f"{subject}\n\nPlease view this email in an HTML-compatible client."
+
         msg_alternative.attach(MIMEText(text_content, "plain"))
         msg_alternative.attach(MIMEText(html_content, "html"))
 

@@ -252,6 +252,10 @@ async def discover_grafana_dashboards(grafana_base_url: str, api_token: Optional
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
+    from app.services.homeassistant import is_safe_url
+    if grafana_base_url and not is_safe_url(grafana_base_url):
+        return {"success": False, "error": "Invalid Grafana URL or forbidden destination address.", "dashboards": [], "mapped": {}}
+
     candidate_hosts = []
     if grafana_base_url:
         candidate_hosts.append(grafana_base_url.rstrip("/"))

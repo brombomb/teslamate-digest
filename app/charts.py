@@ -225,6 +225,7 @@ def generate_tou_chart(
 
     ax.bar(hours, hourly_kwh, color=bar_colors, width=0.75, zorder=3)
 
+    ax.set_xlim(-0.5, 23.5)
     ax.set_xticks([0, 3, 6, 9, 12, 15, 18, 21])
     ax.set_xticklabels(["12am", "3am", "6am", "9am", "12pm", "3pm", "6pm", "9pm"], color=c["muted"], fontsize=8.5)
     ax.tick_params(axis="y", colors=c["muted"], labelsize=8.5)
@@ -236,6 +237,7 @@ def generate_tou_chart(
     ax.grid(axis="y", color=c["grid"], linestyle="--", alpha=0.7, zorder=1)
     ax.set_ylabel("kWh Drawn", color=c["muted"], fontsize=8.5)
     ax.set_title("24-Hour TOU Charging Distribution", color=c["text"], fontsize=10.5, fontweight="bold", pad=8, loc="left")
+    ax.legend(facecolor=c["plot_bg"], edgecolor=c["grid"], labelcolor=c["text"], fontsize=8, loc="upper right")
 
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
 
@@ -243,7 +245,7 @@ def generate_tou_chart(
 def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[Dict[str, Any]] = None, as_bytes: bool = False, unit: str = "mi"):
     """
     Battery health trend chart showing estimated 100% rated range over time per car.
-    Styled according to active theme and aligned with standard chart margins.
+    Plots honest vertical span against factory baseline to avoid exaggerating minor BMS noise.
     """
     c = _get_chart_colors(theme)
     fig, ax = plt.subplots(figsize=(CHART_FIG_WIDTH, CHART_FIG_HEIGHT), facecolor=c["bg"])
@@ -254,15 +256,60 @@ def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[D
     car_palette = [c["primary"], c["secondary"], c["tertiary"]]
 
     has_data = False
+    all_ranges = []
+    baselines = []
+
     for idx, car in enumerate(cars):
         trend = car.get("trend_series", [])
+        raw_b = car.get("factory_baseline_range_km" if unit == "km" else "factory_baseline_range_mi") or car.get("factory_baseline_range", 0.0)
+        try:
+            b_val = float(raw_b or 0)
+        except (ValueError, TypeError):
+            b_val = 0.0
+
+        color = car_palette[idx % len(car_palette)]
+
+        if b_val > 0:
+            all_ranges.append(b_val)
+            if len(cars) > 1:
+                ax.axhline(
+                    b_val,
+                    color=color,
+                    linestyle=":",
+                    linewidth=1.3,
+                    alpha=0.6,
+                    label=f"{car.get('car_name', 'Car')} Baseline ({b_val:.0f} {unit})",
+                    zorder=2
+                )
+            else:
+                ax.axhline(
+                    b_val,
+                    color=c["muted"],
+                    linestyle=":",
+                    linewidth=1.5,
+                    alpha=0.7,
+                    label=f"Baseline ({b_val:.0f} {unit})",
+                    zorder=2
+                )
+
         if len(trend) >= 2:
             has_data = True
             months = [t["month"].split("-")[1] + "/" + t["month"].split("-")[0][2:] for t in trend]
             ranges = [t.get("avg_range_km", round(t["avg_range_mi"] / 0.621371, 1)) if unit == "km" else t["avg_range_mi"] for t in trend]
-            color = car_palette[idx % len(car_palette)]
-            ax.plot(months, ranges, marker="o", markersize=5, linewidth=2, color=color, label=f"{car['car_name']} ({car['model']})", zorder=3)
+            all_ranges.extend(ranges)
+            ax.plot(months, ranges, marker="o", markersize=5, linewidth=2, color=color, label=f"{car['car_name']} ({ranges[-1]:.0f} {unit})", zorder=3)
             ax.annotate(f"{ranges[-1]:.0f} {unit}", (months[-1], ranges[-1]), textcoords="offset points", xytext=(8, -2), color=color, fontweight="bold", fontsize=8.5)
+
+    if all_ranges:
+        min_r = min(all_ranges)
+        max_r = max(all_ranges)
+        span = max_r - min_r
+        min_span = 20.0 if unit == "mi" else 32.0
+        if span < min_span:
+            pad = (min_span - span) / 2.0
+            ax.set_ylim(max(0, min_r - pad), max_r + pad)
+        else:
+            ax.set_ylim(max(0, min_r - span * 0.15), max_r + span * 0.15)
 
     if not has_data:
         for idx, car in enumerate(cars):
@@ -276,8 +323,8 @@ def generate_battery_trend_chart(battery_data: Dict[str, Any], theme: Optional[D
 
     ax.grid(axis="y", color=c["grid"], linestyle="--", alpha=0.7, zorder=1)
     ax.legend(facecolor=c["plot_bg"], edgecolor=c["grid"], labelcolor=c["text"], fontsize=8, loc="upper right")
-    ax.set_ylabel(f"Rated Range ({unit})", color=c["muted"], fontsize=8.5)
-    ax.set_title(f"100% Battery Rated Range Trend ({unit})", color=c["text"], fontsize=10.5, fontweight="bold", pad=8, loc="left")
+    ax.set_ylabel(f"Rated Range ({unit})", color=c["muted"], fontsize=8.5, labelpad=8)
+    ax.set_title(f"100% Battery Rated Range Trend ({unit}) — BMS estimates vary ±2%", color=c["text"], fontsize=9.5, fontweight="bold", pad=8, loc="left")
 
     return _fig_to_bytes(fig) if as_bytes else _fig_to_base64(fig)
 

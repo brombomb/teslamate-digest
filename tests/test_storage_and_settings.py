@@ -405,4 +405,78 @@ def test_schedule_module_overrides():
     assert monthly_eff.gas_savings == cfg.modules.gas_savings
 
 
+def test_ssrf_is_safe_url_guard():
+    from app.services.homeassistant import is_safe_url
+
+    # Allowed valid URLs
+    assert is_safe_url("http://homeassistant:8123") is True
+    assert is_safe_url("https://ha.mydomain.com:8123") is True
+    assert is_safe_url("http://192.168.1.100:8123") is True
+    assert is_safe_url("http://grafana:3000") is True
+
+    # Blocked invalid schemes and metadata exfiltration targets
+    assert is_safe_url("file:///etc/passwd") is False
+    assert is_safe_url("ftp://server/file") is False
+    assert is_safe_url("gopher://server/1") is False
+    assert is_safe_url("http://169.254.169.254/latest/meta-data/") is False
+    assert is_safe_url("http://metadata.google.internal/computeMetadata/v1/") is False
+    assert is_safe_url("http://100.100.100.200/") is False
+    assert is_safe_url("") is False
+
+
+def test_basic_auth_middleware():
+    from starlette.testclient import TestClient
+    from app.main import app
+    import app.main as main_mod
+
+    client = TestClient(app)
+
+    # 1. Without credentials configured, open access is allowed
+    main_mod.WEB_AUTH_USER = ""
+    main_mod.WEB_AUTH_PASS = ""
+    res = client.get("/favicon.ico")
+    assert res.status_code in (200, 404)
+
+    # 2. When credentials configured, unauthorized requests are rejected with 401
+    main_mod.WEB_AUTH_USER = "admin"
+    main_mod.WEB_AUTH_PASS = "supersecret"
+    try:
+        res_unauth = client.get("/api/theme-palette?theme=pearl_white")
+        assert res_unauth.status_code == 401
+        assert "Basic" in res_unauth.headers.get("WWW-Authenticate", "")
+
+        # 3. Bad credentials rejected
+        res_bad = client.get("/api/theme-palette?theme=pearl_white", auth=("admin", "wrongpassword"))
+        assert res_bad.status_code == 401
+
+        # 4. Valid credentials accepted
+        res_good = client.get("/api/theme-palette?theme=pearl_white", auth=("admin", "supersecret"))
+        assert res_good.status_code == 200
+
+        # 5. Docker health check bypasses auth and returns version
+        res_health = client.get("/api/health")
+        assert res_health.status_code == 200
+        assert res_health.json()["status"] == "healthy"
+        assert res_health.json()["version"] == "1.0.0"
+    finally:
+        main_mod.WEB_AUTH_USER = ""
+        main_mod.WEB_AUTH_PASS = ""
+
+
+def test_health_and_version_information():
+    from starlette.testclient import TestClient
+    from app import __version__
+    from app.main import app, templates
+
+    client = TestClient(app)
+    res = client.get("/api/health")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "healthy"
+    assert data["service"] == "teslamate-digest"
+    assert data["version"] == __version__
+    assert templates.env.globals["app_version"] == __version__
+
+
+
 

@@ -92,15 +92,21 @@ async def get_charge_compliance_analytics(
     if overall_score >= 95.0:
         compliance_rating = "Excellent"
         stress_level = "Very Low"
-    elif overall_score >= 85.0:
+        score_color = "#10b981"
+    elif overall_score >= 90.0:
         compliance_rating = "Good"
         stress_level = "Low"
+        score_color = "#10b981"
     elif overall_score >= 70.0:
         compliance_rating = "Moderate"
         stress_level = "Moderate"
+        score_color = "#f59e0b"
     else:
         compliance_rating = "Attention Needed"
         stress_level = "High"
+        score_color = "#ef4444"
+
+    is_all_optimal = (round(total_hours_above_80, 1) == 0.0 and round(total_hours_below_20, 1) == 0.0)
 
     return {
         "hours_above_80": round(total_hours_above_80, 1),
@@ -113,5 +119,7 @@ async def get_charge_compliance_analytics(
         "compliance_score": overall_score,
         "compliance_rating": compliance_rating,
         "stress_level": stress_level,
+        "score_color": score_color,
+        "is_all_optimal": is_all_optimal,
         "cars_breakdown": cars_breakdown
     }

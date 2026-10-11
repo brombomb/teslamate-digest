@@ -54,6 +54,25 @@ async def run_scheduled_digest(schedule_id: Optional[str] = None, frequency: Opt
     try:
         await db.connect()
 
+        # Recalculate cost per gallon automatically before send based on configured ZIP code
+        if config.rates.auto_gas_price:
+            try:
+                from app.services.gas_prices import fetch_gas_price_details
+                from app.config import save_config
+                gas_details = await fetch_gas_price_details(
+                    zip_code=config.rates.zip_code,
+                    api_key=config.rates.eia_api_key,
+                    fallback=config.rates.gas_price_per_gal,
+                    force_refresh=True
+                )
+                live_price = float(gas_details.get("price", config.rates.gas_price_per_gal))
+                if live_price > 0:
+                    config.rates.gas_price_per_gal = live_price
+                    save_config(config)
+                    print(f"[Scheduler] Auto-recalculated cost per gallon for ZIP {config.rates.zip_code}: ${live_price:.3f}/gal ({gas_details.get('area_name', 'Local')})")
+            except Exception as e:
+                print(f"[Scheduler] Gas price auto-recalculation notice: {e}")
+
         # Calculate time window
         if freq == "monthly":
             first_of_this_month = datetime(now.year, now.month, 1)

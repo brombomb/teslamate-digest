@@ -107,6 +107,7 @@
         <div class="flex items-center space-x-3">
           <span class="text-tesla text-2xl font-black tracking-wider">⚡</span>
           <span class="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white">TeslaMate <span class="text-tesla">Digest</span></span>
+          <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded">v{{ app_version }}</span>
         </div>
         <div class="flex items-center space-x-1 sm:space-x-3">
           <a href="/" class="px-3 py-2 rounded-md text-sm font-medium {% if active_nav == 'dashboard' %}bg-slate-100 dark:bg-slate-800 text-tesla font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850{% endif %}">Dashboard</a>
@@ -133,7 +134,7 @@
 
   <!-- FOOTER -->
   <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors duration-200">
-    TeslaMate Digest &bull; Built with FastAPI, Jinja2 & Matplotlib &bull; Open Source for the TeslaMate Community
+    TeslaMate Digest v{{ app_version }} &bull; Open Source for the TeslaMate Community
   </footer>
 </body>
 </html>

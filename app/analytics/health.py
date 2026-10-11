@@ -64,16 +64,34 @@ async def get_health_analytics(
             rr_psi = round(rr_bar * 14.5038, 1)
 
             def get_tpms_status(psi: float):
-                if 40.0 <= psi <= 44.5:
-                    return {"status": "Good", "color": "#10b981"}
-                elif 38.0 <= psi < 40.0 or 44.5 < psi <= 47.0:
-                    return {"status": "Acceptable", "color": "#f59e0b"}
+                if 40.5 <= psi <= 44.5:
+                    return {"status": "Optimal", "color": "#10b981", "desc": "Optimal cold range"}
+                elif 38.0 <= psi < 40.5:
+                    return {"status": "Slightly Low", "color": "#f59e0b", "desc": "Slightly low"}
+                elif 44.5 < psi <= 46.5:
+                    return {"status": "Elevated", "color": "#f59e0b", "desc": "Elevated / warm"}
+                elif psi > 46.5:
+                    return {"status": "High Pressure", "color": "#ef4444", "desc": "Over-inflated (>46.5 PSI)"}
                 else:
-                    return {"status": "Warning", "color": "#ef4444"}
+                    return {"status": "Low Pressure", "color": "#ef4444", "desc": "Under-inflated (<38 PSI)"}
 
-            imbalance_front = abs(fl_psi - fr_psi) >= 2.0
-            imbalance_rear = abs(rl_psi - rr_psi) >= 2.0
-            has_alert = fl_psi < 38.0 or fr_psi < 38.0 or rl_psi < 38.0 or rr_psi < 38.0 or imbalance_front or imbalance_rear
+            all_psi = [fl_psi, fr_psi, rl_psi, rr_psi]
+            max_psi = max(all_psi) if all_psi else 0.0
+            min_psi = min(all_psi) if all_psi else 0.0
+            imbalance_front = abs(fl_psi - fr_psi) >= 2.5
+            imbalance_rear = abs(rl_psi - rr_psi) >= 2.5
+            is_high = max_psi > 46.5
+            is_low = min_psi < 38.0 and min_psi > 0.0
+            has_alert = is_high or is_low or imbalance_front or imbalance_rear
+
+            if is_high:
+                alert_msg = f"High tire pressure ({max_psi:.1f} PSI) — Target: 42 PSI cold"
+            elif is_low:
+                alert_msg = f"Low tire pressure ({min_psi:.1f} PSI) — Target: 42 PSI cold"
+            elif imbalance_front or imbalance_rear:
+                alert_msg = "Axle pressure imbalance (≥2.5 PSI difference)"
+            else:
+                alert_msg = "All tires optimal (Target: 42 PSI cold)"
 
             front_left_val = round(fl_bar, 2) if pressure_unit == "bar" else fl_psi
             front_right_val = round(fr_bar, 2) if pressure_unit == "bar" else fr_psi
@@ -86,6 +104,12 @@ async def get_health_analytics(
                 "rear_left": rear_left_val,
                 "rear_right": rear_right_val,
                 "unit": pressure_unit,
+                "target_psi": 42.0,
+                "target_bar": 2.90,
+                "max_psi": max_psi,
+                "min_psi": min_psi,
+                "is_high": is_high,
+                "is_low": is_low,
                 "fl_psi": fl_psi,
                 "fr_psi": fr_psi,
                 "rl_psi": rl_psi,
@@ -99,7 +123,7 @@ async def get_health_analytics(
                 "rl_info": get_tpms_status(rl_psi),
                 "rr_info": get_tpms_status(rr_psi),
                 "has_alert": has_alert,
-                "alert_msg": "Tire pressure low or imbalanced!" if has_alert else "All tires optimal"
+                "alert_msg": alert_msg
             }
 
         # 2. Tire Rotation Tracker
@@ -109,18 +133,33 @@ async def get_health_analytics(
 
         effective_interval = rotation_interval_mi if length_unit == "mi" else round(rotation_interval_mi * 1.60934)
 
-        if last_rot_odo > 0 and current_odometer > last_rot_odo:
+        is_uncalibrated = (last_rot_odo <= 0)
+        if not is_uncalibrated and current_odometer > last_rot_odo:
             dist_since = round(current_odometer - last_rot_odo, 1)
         else:
             dist_since = 0.0
 
-        dist_remaining = max(0.0, effective_interval - dist_since)
-        pct_used = min(100.0, round((dist_since / effective_interval) * 100.0, 1)) if effective_interval > 0 else 0.0
-        # Life remaining bar: 100% full when freshly rotated, depleting down to 0%
-        life_remaining_pct = max(0.0, min(100.0, round(((effective_interval - dist_since) / effective_interval) * 100.0, 1))) if effective_interval > 0 else 100.0
-        due = dist_since >= effective_interval
+        dist_remaining = max(0.0, effective_interval - dist_since) if not is_uncalibrated else effective_interval
+        # pct_used: progress of the interval driven (0% when freshly rotated, filling towards 100% when due)
+        pct_used = min(100.0, round((dist_since / effective_interval) * 100.0, 1)) if (effective_interval > 0 and not is_uncalibrated) else 0.0
+        life_remaining_pct = max(0.0, round(100.0 - pct_used, 1)) if not is_uncalibrated else 0.0
+        due = (dist_since >= effective_interval) and not is_uncalibrated
 
-        color = "#10b981" if life_remaining_pct > 30 else ("#f59e0b" if life_remaining_pct > 15 else "#ef4444")
+        if is_uncalibrated:
+            color = "#94a3b8"  # Neutral gray when no calibration on file
+            gradient = "#94a3b8"
+        elif due or pct_used >= 90.0:
+            color = "#ef4444"  # Red when rotation due/overdue or >= 90%
+            g_stop = round((80.0 / max(pct_used, 1.0)) * 100.0, 1)
+            y_stop = round((90.0 / max(pct_used, 1.0)) * 100.0, 1)
+            gradient = f"linear-gradient(90deg, #10b981 0%, #10b981 {g_stop}%, #f59e0b {g_stop}%, #f59e0b {y_stop}%, #ef4444 {y_stop}%, #ef4444 100%)"
+        elif pct_used >= 80.0:
+            color = "#f59e0b"  # Amber/yellow when >= 80%
+            g_stop = round((80.0 / max(pct_used, 1.0)) * 100.0, 1)
+            gradient = f"linear-gradient(90deg, #10b981 0%, #10b981 {g_stop}%, #f59e0b {g_stop}%, #f59e0b 100%)"
+        else:
+            color = "#10b981"  # Optimal green
+            gradient = "#10b981"
 
         rotation_data = {
             "last_rotation_odometer": round(last_rot_odo),
@@ -134,11 +173,14 @@ async def get_health_analytics(
             "interval_mi": effective_interval,
             "miles_remaining": round(dist_remaining),
             "pct_used": pct_used,
-            "pct_progress": life_remaining_pct,
+            "pct_progress": pct_used,
             "life_remaining_pct": life_remaining_pct,
             "color": color,
+            "gradient": gradient,
             "is_due": due,
-            "status_text": "Tire Rotation Overdue!" if due else f"{round(dist_remaining):,} {length_unit} remaining"
+            "is_uncalibrated": is_uncalibrated,
+            "current_odometer": round(current_odometer),
+            "status_text": "Tire Rotation Overdue!" if due else (f"{round(dist_remaining):,} {length_unit} remaining" if not is_uncalibrated else "Calibration Recommended")
         }
 
         # 3. Seasonal Snow Tire Swap Tracker

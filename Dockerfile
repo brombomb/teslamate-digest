@@ -48,6 +48,11 @@ RUN mkdir -p /app/data /app/custom_templates && \
 COPY --chown=appuser:appgroup app /app/app
 COPY --chown=appuser:appgroup tests /app/tests
 
+# Metadata labels
+LABEL org.opencontainers.image.title="TeslaMate Digest" \
+      org.opencontainers.image.description="Automated personal email digests & analytics for TeslaMate" \
+      org.opencontainers.image.licenses="MIT"
+
 # Drop privileges to non-root user
 USER appuser:appgroup
 

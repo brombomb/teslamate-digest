@@ -3,50 +3,143 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
   <title>TeslaMate Digest - {{ report_title }}</title>
-  {% if theme.id == 'cybertruck' %}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Orbitron:wght@700;900&family=Rubik+Glitch&family=Sedgwick+Ave+Display&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  {% endif %}
   <style>
+    {% if theme.id == 'cybertruck' %}
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Permanent+Marker&family=Share+Tech+Mono&display=swap');
+    {% endif %}
     body {
       margin: 0;
       padding: 0;
       background-color: {{ theme.body_bg }};
-      font-family: {{ theme.font_family or '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }};
+      font-family: {{ theme.font_family or '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }};
       color: {{ theme.text_primary }};
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       -webkit-text-size-adjust: 100%;
       -ms-text-size-adjust: 100%;
+      text-rendering: optimizeLegibility;
     }
     table { border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     td { vertical-align: top; }
     .wrapper { width: 100%; table-layout: fixed; background-color: {{ theme.wrapper_bg }}; padding-bottom: 40px; }
     .wrapper-table { margin-top: 24px; }
-    .main-table { width: 100%; max-width: 660px; margin: 0 auto; background-color: {{ theme.main_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}14px{% endif %}; overflow: hidden; border: 1px solid {{ theme.card_border }}; }
-    .card { background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; padding: 18px 20px; margin-bottom: 18px; border: 1px solid {{ theme.card_border }}; }
-    .kpi-box { background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; box-sizing: border-box; }
-    .kpi-val { font-size: 24px; font-weight: 800; color: {{ theme.text_primary }}; margin-bottom: 4px; line-height: 1.1; font-family: {{ theme.header_font or 'inherit' }}; }
-    .kpi-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: {{ theme.text_muted }}; font-weight: 600; }
-    .section-title { font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 0 0 14px 0; font-family: {{ theme.header_font or 'inherit' }}; }
+    .main-table {
+      width: 100%;
+      max-width: 660px;
+      margin: 0 auto;
+      background-color: {{ theme.main_bg }};
+      border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}16px{% endif %};
+      overflow: hidden;
+      border: 1px solid {{ theme.card_border }};
+      box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px {{ theme.card_border }};
+    }
+    .card {
+      background-color: {{ theme.card_bg }};
+      border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %};
+      padding: 22px 24px;
+      margin-bottom: 22px;
+      border: 1px solid {{ theme.card_border }};
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .kpi-box {
+      background-color: {{ theme.card_inner_bg }};
+      border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %};
+      border: 1px solid {{ theme.card_inner_border }};
+      box-sizing: border-box;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .kpi-val {
+      font-size: 26px;
+      font-weight: 800;
+      color: {{ theme.text_primary }};
+      margin-bottom: 3px;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      font-family: {{ theme.header_font or 'inherit' }};
+    }
+    .kpi-lbl {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: {{ theme.text_muted }};
+      font-weight: 700;
+    }
+    .kpi-delta {
+      font-size: 12px;
+      font-weight: 600;
+      color: {{ theme.text_muted }};
+      margin-top: 2px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: {{ theme.text_primary }};
+      margin: 0;
+      letter-spacing: -0.01em;
+      font-family: {{ theme.header_font or 'inherit' }};
+    }
+    .section-icon {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      text-align: center;
+      border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %};
+      background-color: {{ theme.card_inner_bg }};
+      border: 1px solid {{ theme.card_inner_border }};
+      margin-right: 10px;
+      font-size: 14px;
+      vertical-align: middle;
+    }
     {% if theme.id == 'cybertruck' %}
     .section-title { font-family: 'Permanent Marker', 'Rubik Glitch', 'Sedgwick Ave Display', 'Orbitron', Impact, sans-serif !important; letter-spacing: 1.5px; text-transform: uppercase; font-size: 17px; }
     .kpi-val { font-family: 'Permanent Marker', 'Orbitron', Impact, sans-serif !important; letter-spacing: 1px; }
     {% endif %}
-    .badge { display: inline-block; padding: 3px 8px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}6px{% endif %}; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %};
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
     .badge-theme { background-color: {{ theme.badge_bg }}; color: {{ theme.badge_text }}; border: 1px solid {{ theme.badge_border }}; }
     .badge-green { background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
     .badge-blue { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
     .badge-red { background-color: rgba(232, 33, 39, 0.2); color: #f87171; border: 1px solid rgba(232, 33, 39, 0.4); }
     .badge-amber { background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
-    .chart-container { width: 100% !important; max-width: 100% !important; margin-top: 12px; border-radius: 8px; overflow: hidden; box-sizing: border-box; }
-    .chart-img { width: 100% !important; max-width: 100% !important; height: auto !important; border-radius: 8px; display: block; margin-top: 0; border: 0; }
+    .dashboard-pill { transition: opacity 0.2s, background-color 0.2s; }
+    .dashboard-pill:hover { opacity: 0.85; }
+    .action-pill { transition: opacity 0.2s, transform 0.2s; }
+    .action-pill:hover { opacity: 0.85; }
+    .chart-container {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin-top: 14px;
+      border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %};
+      overflow: hidden;
+      box-sizing: border-box;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    }
+    .chart-img {
+      width: 100% !important;
+      max-width: 100% !important;
+      height: auto !important;
+      border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %};
+      display: block;
+      margin-top: 0;
+      border: 0;
+    }
 
     /* RESPONSIVE MEDIA QUERIES FOR MOBILE (<= 600px) */
     @media only screen and (max-width: 600px) {
       .wrapper {
-        padding-bottom: 20px !important;
+        padding-bottom: 24px !important;
       }
       .wrapper-table {
         margin-top: 0 !important;
@@ -59,60 +152,54 @@
         border-right: none !important;
       }
       .header-td {
-        padding: 20px 16px 14px 16px !important;
+        padding: 22px 18px 16px 18px !important;
       }
       .header-title {
-        font-size: 22px !important;
-        line-height: 1.2 !important;
+        font-size: 24px !important;
       }
       .header-badge-td {
-        display: block !important;
-        width: 100% !important;
-        text-align: left !important;
-        padding-top: 8px !important;
+        vertical-align: middle !important;
+      }
+      .header-badge-td .badge {
+        font-size: 10px !important;
+        padding: 3px 8px !important;
+        white-space: nowrap !important;
       }
       .content-td {
-        padding: 14px 12px 6px 12px !important;
+        padding: 18px 14px 20px 14px !important;
       }
       .card {
-        padding: 14px 12px !important;
-        margin-bottom: 12px !important;
-        border-radius: 8px !important;
+        padding: 18px 16px !important;
+        margin-bottom: 18px !important;
+        border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %} !important;
       }
-      .section-header-table td {
+      .grid-col-half {
         display: block !important;
         width: 100% !important;
-        text-align: left !important;
-      }
-      .section-header-link-td {
-        margin-top: 6px !important;
-        text-align: left !important;
-      }
-      .section-header-link-td a {
-        display: inline-block !important;
-      }
-
-      /* 2x2 Grid container for 4-item rows */
-      .grid-col-half {
-        display: table !important;
-        width: 100% !important;
         max-width: 100% !important;
-        margin-bottom: 0 !important;
       }
       .kpi-cell {
-        padding: 0 3px 6px 3px !important;
+        display: block !important;
+        width: 100% !important;
+        padding-right: 0 !important;
+        padding-bottom: 8px !important;
       }
       .kpi-box {
         height: auto !important;
-        min-height: 66px !important;
+        min-height: 74px !important;
+      }
+      .kpi-box td {
+        padding: 12px 6px !important;
       }
       .kpi-val {
-        font-size: 19px !important;
+        font-size: 22px !important;
         margin-bottom: 2px !important;
+        line-height: 1.15 !important;
       }
       .kpi-lbl {
-        font-size: 10px !important;
-        letter-spacing: 0.4px !important;
+        font-size: 12px !important;
+        letter-spacing: 0.5px !important;
+        line-height: 1.25 !important;
       }
 
       /* Full width stacking for 3-item rows and 2-item cards */
@@ -131,7 +218,7 @@
         box-sizing: border-box !important;
         padding-left: 0 !important;
         padding-right: 0 !important;
-        margin-bottom: 8px !important;
+        margin-bottom: 12px !important;
       }
 
       /* Battery card header */
@@ -141,21 +228,25 @@
         text-align: left !important;
       }
       .battery-badge-td {
-        margin-top: 6px !important;
+        margin-top: 8px !important;
         text-align: left !important;
       }
 
+      .section-header-table {
+        width: 100% !important;
+      }
       /* TPMS 2x2 adjustments */
       .tpms-box {
-        font-size: 11px !important;
-        padding: 6px 4px !important;
+        font-size: 12px !important;
+        padding: 10px 8px !important;
+        min-height: 44px !important;
       }
 
       /* Chart containers & images */
       .chart-container {
         width: 100% !important;
         max-width: 100% !important;
-        margin-top: 10px !important;
+        margin-top: 12px !important;
       }
       .chart-img {
         width: 100% !important;
@@ -168,43 +259,82 @@
         display: none !important;
       }
       .footer-td {
-        padding: 16px 14px !important;
-        font-size: 11px !important;
+        padding: 18px 14px !important;
+        font-size: 12px !important;
       }
     }
   </style>
 </head>
-<body>
-  <center class="wrapper">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="wrapper-table" style="margin-top: 24px;">
+<body style="margin: 0; padding: 0; background-color: {{ theme.body_bg }}; font-family: {{ theme.font_family or '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif' }}; color: {{ theme.text_primary }}; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; text-rendering: optimizeLegibility;">
+  
+  <!-- HIDDEN INBOX PREHEADER -->
+  <div class="preheader" style="display: none; max-height: 0px; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: {{ theme.body_bg }}; opacity: 0;">
+    {{ preheader_text or (report_title ~ ': ' ~ (one_line_summary or 'Tesla fleet summary')) }}
+  </div>
+  <div style="display: none; max-height: 0px; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px;">
+    &#847; &zwnj; &nbsp; &#8199; &#65279; &#847; &zwnj; &nbsp; &#8199; &#65279; &#847; &zwnj; &nbsp; &#8199; &#65279;
+  </div>
+
+  <center class="wrapper" style="width: 100%; table-layout: fixed; background-color: {{ theme.wrapper_bg }}; padding-bottom: 40px; margin: 0; padding-top: 0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="wrapper-table" style="margin-top: 24px; background-color: {{ theme.wrapper_bg }};">
       <tr>
-        <td align="center">
-          <table role="presentation" class="main-table" cellpadding="0" cellspacing="0">
+        <td align="center" style="background-color: {{ theme.wrapper_bg }};">
+          <table role="presentation" class="main-table" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 660px; margin: 0 auto; background-color: {{ theme.main_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}16px{% endif %}; overflow: hidden; border: 1px solid {{ theme.card_border }}; box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px {{ theme.card_border }};">
             
+            <!-- TOP ACCENT STRIPE -->
+            <tr>
+              <td style="height: 3px; line-height: 3px; font-size: 1px; background: linear-gradient(90deg, {{ theme.accent_red }} 0%, #38bdf8 50%, #10b981 100%);">
+                &nbsp;
+              </td>
+            </tr>
+
             <!-- HEADER -->
             <tr>
-              <td class="header-td" style="padding: 28px 24px 20px 24px; background: {{ theme.header_bg }}; border-bottom: 1px solid {{ theme.header_border }};">
+              <td class="header-td" style="padding: 24px 26px 20px 26px; background: {{ theme.header_bg }}; border-bottom: 1px solid {{ theme.header_border }};">
                 <table width="100%" cellpadding="0" cellspacing="0">
+                  <!-- EYEBROW + MODEL / FLEET PILL ROW -->
                   <tr>
-                    <td>
-                      <span style="color: {{ theme.accent_red }}; font-weight: 900; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">TESLAMATE DIGEST</span>
-                      <h1 class="header-title" style="margin: 6px 0 2px 0; font-size: 26px; font-weight: 800; color: {{ theme.text_primary }}; font-family: {{ theme.header_font or 'inherit' }}; {% if theme.id == 'cybertruck' %}letter-spacing: 2px; text-transform: uppercase;{% endif %}">{{ report_title }}</h1>
-                      <div style="color: {{ theme.text_muted }}; font-size: 13px;">{{ date_subtitle }} &bull; {{ car_subtitle }}</div>
-                      <div style="margin-top: 10px;">
-                        {% if teslamate_url %}
-                        <a href="{{ teslamate_url }}" target="_blank" style="display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; color: {{ theme.accent_red }}; background: rgba(232, 33, 39, 0.12); border: 1px solid rgba(232, 33, 39, 0.35); text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 6px;">⚡ TeslaMate</a>
-                        {% endif %}
-                        {% if grafana_url %}
-                        <a href="{{ grafana_url }}" target="_blank" style="display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; color: {{ theme.text_muted }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">📊 Grafana</a>
-                        {% endif %}
+                    <td style="vertical-align: middle;">
+                      <div style="color: {{ theme.accent_red }}; font-weight: 800; font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: {{ theme.accent_red }}; margin-right: 6px; vertical-align: middle;"></span>TESLAMATE DIGEST{% if period_label %} &bull; {{ period_label }}{% endif %}
                       </div>
                     </td>
-                    <td align="right" class="header-badge-td" style="vertical-align: middle;">
-                      {% if car_subtitle and car_subtitle != 'Fleet' %}
-                      <span class="badge badge-theme">{{ car_subtitle }}</span>
+                    <td align="right" class="header-badge-td" style="vertical-align: middle; white-space: nowrap;">
+                      {% if car_badge %}
+                      <span class="badge badge-theme" style="background-color: {{ theme.badge_bg }}; color: {{ theme.badge_text }}; border: 1px solid {{ theme.badge_border }}; display: inline-block; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">{{ car_badge }}</span>
+                      {% elif car_subtitle and car_subtitle != 'Fleet' and not car_subtitle.startswith('Fleet') %}
+                      <span class="badge badge-theme" style="background-color: {{ theme.badge_bg }}; color: {{ theme.badge_text }}; border: 1px solid {{ theme.badge_border }}; display: inline-block; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">{{ car_subtitle }}</span>
                       {% else %}
-                      <span class="badge badge-theme">All Vehicles</span>
+                      <span class="badge badge-theme" style="background-color: {{ theme.badge_bg }}; color: {{ theme.badge_text }}; border: 1px solid {{ theme.badge_border }}; display: inline-block; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">All Vehicles</span>
                       {% endif %}
+                    </td>
+                  </tr>
+
+                  <!-- MAIN HEADING & SUMMARY -->
+                  <tr>
+                    <td colspan="2" style="padding-top: 8px;">
+                      <h1 class="header-title" style="margin: 0 0 4px 0; font-size: 28px; font-weight: 800; color: {{ theme.text_primary }}; font-family: {{ theme.header_font or 'inherit' }}; letter-spacing: -0.02em; line-height: 1.15; {% if theme.id == 'cybertruck' %}letter-spacing: 2px; text-transform: uppercase;{% endif %}">{{ report_title }}</h1>
+                      
+                      {% if date_subtitle and date_subtitle != report_title and date_subtitle not in report_title %}
+                      <div style="color: {{ theme.text_muted }}; font-size: 13px; font-weight: 500; margin-bottom: 2px;">
+                        {{ date_subtitle }}
+                      </div>
+                      {% endif %}
+
+                      {% if one_line_summary %}
+                      <div style="color: {{ theme.text_secondary }}; font-size: 13px; font-weight: 600; margin-top: 4px;">
+                        {{ one_line_summary }}
+                      </div>
+                      {% endif %}
+
+                      <div style="margin-top: 12px;">
+                        {% if grafana_url %}
+                        <a href="{{ grafana_url }}" target="_blank" class="action-pill" style="display: inline-block; padding: 5px 14px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; font-size: 12px; font-weight: 700; color: {{ theme.text_primary }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px;">📊 Grafana</a>
+                        {% endif %}
+                        {% if teslamate_url %}
+                        <a href="{{ teslamate_url }}" target="_blank" class="action-pill" style="display: inline-block; padding: 5px 14px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; font-size: 12px; font-weight: 700; color: {{ theme.accent_red }}; background: rgba(232, 33, 39, 0.12); border: 1px solid rgba(232, 33, 39, 0.35); text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px;">⚡ TeslaMate</a>
+                        {% endif %}
+                      </div>
                     </td>
                   </tr>
                 </table>
@@ -213,10 +343,10 @@
 
             <!-- CONTENT BODY -->
             <tr>
-              <td class="content-td" style="padding: 22px 22px 10px 22px;">
+              <td class="content-td" style="padding: 22px 22px 14px 22px; background-color: {{ theme.main_bg }};">
 
                 <!-- TOP KPI ROW (EQUAL HEIGHT BOXES, 2x2 ON MOBILE) -->
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 18px;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 22px;">
                   <tr>
                     <td style="padding: 0;">
                       <!-- LEFT PAIR: 50% on desktop, 100% on mobile -->
@@ -224,22 +354,28 @@
                         <tr>
                           <!-- KPI 1: Miles / Kilometers -->
                           <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                            <table width="100%" height="74" cellpadding="0" cellspacing="0" class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate;">
+                            <table width="100%" height="82" cellpadding="0" cellspacing="0" class="kpi-box" style="height: 82px; min-height: 82px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border-top: 2px solid {{ theme.accent_blue or '#38bdf8' }};">
                               <tr>
-                                <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 10px 4px;">
-                                  <div class="kpi-val">{% if units and units.is_metric %}{{ "{:,.0f}".format(trips.total_km) }}{% else %}{{ "{:,.0f}".format(trips.total_miles) }}{% endif %}</div>
-                                  <div class="kpi-lbl">{{ "Kilometers" if (units and units.is_metric) else "Miles" }} Driven</div>
+                                <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 10px 6px;">
+                                  <div class="kpi-val" style="font-size: 26px; font-weight: 800; color: {{ theme.text_primary }}; margin-bottom: 2px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; font-family: {{ theme.header_font or 'inherit' }};">{% if units and units.is_metric %}{{ "{:,.0f}".format(trips.total_km) }}{% else %}{{ "{:,.0f}".format(trips.total_miles) }}{% endif %}</div>
+                                  <div class="kpi-lbl" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: {{ theme.text_muted }}; font-weight: 700;">{{ "Kilometers" if (units and units.is_metric) else "Miles" }} Driven</div>
+                                  {% if insights and insights.deltas and insights.deltas.miles %}
+                                  <div class="kpi-delta" style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">{{ insights.deltas.miles.arrow }} {{ insights.deltas.miles.label }}</div>
+                                  {% endif %}
                                 </td>
                               </tr>
                             </table>
                           </td>
                           <!-- KPI 2: Electric Spend -->
                           <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                            <table width="100%" height="74" cellpadding="0" cellspacing="0" class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate;">
+                            <table width="100%" height="82" cellpadding="0" cellspacing="0" class="kpi-box" style="height: 82px; min-height: 82px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border-top: 2px solid {{ theme.accent_blue or '#38bdf8' }};">
                               <tr>
-                                <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 10px 4px;">
-                                  <div class="kpi-val">{{ units.currency if units else "$" }}{{ "{:,.2f}".format(charging.total_spend) }}</div>
-                                  <div class="kpi-lbl">Electric Spend</div>
+                                <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 10px 6px;">
+                                  <div class="kpi-val" style="font-size: 26px; font-weight: 800; color: {{ theme.text_primary }}; margin-bottom: 2px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; font-family: {{ theme.header_font or 'inherit' }};">{{ units.currency if units else "$" }}{{ "{:,.2f}".format(charging.total_spend) }}</div>
+                                  <div class="kpi-lbl" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: {{ theme.text_muted }}; font-weight: 700;">Spend</div>
+                                  {% if insights and insights.deltas and insights.deltas.spend %}
+                                  <div class="kpi-delta" style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">{{ insights.deltas.spend.arrow }} {{ insights.deltas.spend.label }}</div>
+                                  {% endif %}
                                 </td>
                               </tr>
                             </table>
@@ -251,22 +387,28 @@
                         <tr>
                           <!-- KPI 3: Gas Savings -->
                           <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                            <table width="100%" height="74" cellpadding="0" cellspacing="0" class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+                            <table width="100%" height="82" cellpadding="0" cellspacing="0" class="kpi-box" style="height: 82px; min-height: 82px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: rgba(16, 185, 129, 0.08); border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border-top: 2px solid {{ theme.accent_green or '#10b981' }};">
                               <tr>
-                                <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 10px 4px;">
-                                  <div class="kpi-val" style="color: {{ theme.accent_green }};">+{{ units.currency if units else "$" }}{{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
-                                  <div class="kpi-lbl" style="color: {{ theme.accent_green }};">Saved vs Gas</div>
+                                <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 10px 6px;">
+                                  <div class="kpi-val" style="font-size: 26px; font-weight: 800; color: {{ theme.accent_green }}; margin-bottom: 2px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; font-family: {{ theme.header_font or 'inherit' }};">+{{ units.currency if units else "$" }}{{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
+                                  <div class="kpi-lbl" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: {{ theme.accent_green }}; font-weight: 700;">Saved vs Gas</div>
+                                  {% if insights and insights.deltas and insights.deltas.gas_savings %}
+                                  <div class="kpi-delta" style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 600;">{{ insights.deltas.gas_savings.arrow }} {{ insights.deltas.gas_savings.label }}</div>
+                                  {% endif %}
                                 </td>
                               </tr>
                             </table>
                           </td>
                           <!-- KPI 4: Efficiency -->
                           <td width="50%" class="kpi-cell" style="padding: 0 0 6px 0; vertical-align: top;">
-                            <table width="100%" height="74" cellpadding="0" cellspacing="0" class="kpi-box" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate;">
+                            <table width="100%" height="82" cellpadding="0" cellspacing="0" class="kpi-box" style="height: 82px; min-height: 82px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border-top: 2px solid #06b6d4;">
                               <tr>
-                                <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 10px 4px;">
-                                  <div class="kpi-val">{{ charging.efficiency_pct }}%</div>
-                                  <div class="kpi-lbl">Charge Efficiency</div>
+                                <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 10px 6px;">
+                                  <div class="kpi-val" style="font-size: 26px; font-weight: 800; color: {{ theme.text_primary }}; margin-bottom: 2px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; font-family: {{ theme.header_font or 'inherit' }};">{{ charging.efficiency_pct }}%</div>
+                                  <div class="kpi-lbl" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: {{ theme.text_muted }}; font-weight: 700;">Efficiency</div>
+                                  {% if insights and insights.deltas and insights.deltas.efficiency %}
+                                  <div class="kpi-delta" style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">{{ insights.deltas.efficiency.arrow }} {{ insights.deltas.efficiency.label }}</div>
+                                  {% endif %}
                                 </td>
                               </tr>
                             </table>
@@ -277,49 +419,125 @@
                   </tr>
                 </table>
 
-                <!-- SECTION 1: CHARGING & SPEND BREAKDOWN -->
+                <!-- =================================================================== -->
+                <!-- INTELLIGENCE: WORTH A LOOK & WINS STRIP -->
+                <!-- =================================================================== -->
+                {% if insights and (insights.has_items or insights.wins_summary) %}
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 20px 22px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <div style="font-size: 13px; font-weight: 800; color: {{ theme.text_primary }}; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center;">
+                    <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #f59e0b; margin-right: 8px;"></span>
+                    Worth a Look
+                  </div>
+                  
+                  {% if insights.diagnostic_items or insights['items'] %}
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 8px;">
+                    {% for item in (insights.diagnostic_items or insights['items']) %}
+                    <tr>
+                      <td style="padding: 8px 0; {% if not loop.last %}border-bottom: 1px solid {{ theme.card_inner_border }};{% endif %}">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td width="28" style="font-size: 18px; vertical-align: top; padding-top: 2px;">
+                              {{ item.icon }}
+                            </td>
+                            <td style="padding-left: 8px; vertical-align: top;">
+                              <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_primary }}; line-height: 1.3;">
+                                {{ item.title }}
+                                <span style="font-size: 10px; font-weight: 700; color: {{ item.color }}; border: 1px solid {{ item.color }}; padding: 1px 6px; border-radius: 999px; margin-left: 6px; text-transform: uppercase;">{{ item.badge }}</span>
+                              </div>
+                              <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 3px; line-height: 1.4;">
+                                {{ item.detail }}
+                              </div>
+                            </td>
+                            {% if item.action_url %}
+                            <td align="right" style="vertical-align: middle; padding-left: 8px; white-space: nowrap;">
+                              <a href="{{ dashboard_url }}{{ item.action_url }}" target="_blank" class="action-pill" style="font-size: 11px; font-weight: 700; color: {{ theme.accent_blue }}; text-decoration: none; padding: 4px 10px; border-radius: 6px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; display: inline-block;">{{ item.action_text }}</a>
+                            </td>
+                            {% endif %}
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </table>
+                  {% endif %}
+
+                  {% if insights.wins_summary %}
+                  <div style="background-color: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 10px 14px; margin-top: 8px; font-size: 12px; color: {{ theme.accent_green }}; font-weight: 600; line-height: 1.4;">
+                    ✨ <strong>Wins:</strong> {{ insights.wins_summary }}
+                  </div>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- =================================================================== -->
+                <!-- PILLAR 1: ENERGY & CHARGING -->
+                <!-- =================================================================== -->
+                {% if modules.spend_breakdown or (modules.solar_production and solar and solar.has_data) or modules.supercharger_explorer %}
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="section-demarcation" style="margin: 20px 0 16px 0;">
+                  <tr>
+                    <td style="vertical-align: middle;">
+                      <table cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                        <tr>
+                          <td style="padding-right: 12px; vertical-align: middle; white-space: nowrap;">
+                            <span class="demarcation-badge" style="display: inline-block; padding: 5px 14px; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: {{ theme.accent_red }}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+                              ⚡ ENERGY &amp; CHARGING
+                            </span>
+                          </td>
+                          <td width="100%" style="vertical-align: middle;">
+                            <div style="height: 1px; background-color: {{ theme.card_border }}; width: 100%; line-height: 1px; font-size: 1px;">&nbsp;</div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+                {% endif %}
+
+                <!-- CARD: CHARGING & SPEND BREAKDOWN -->
                 {% if modules.spend_breakdown %}
-                <div class="card">
-                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 14px;">
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
                     <tr>
                       <td style="vertical-align: middle;">
-                        <div class="section-title" style="margin: 0;">
-                          <span style="margin-right: 8px;">⚡</span> Charging &amp; Electric Spend Breakdown
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">⚡</span> Charging &amp; Electric Spend Breakdown
                         </div>
                       </td>
                       {% if grafana_charging_url %}
                       <td align="right" class="section-header-link-td" style="vertical-align: middle;">
-                        <a href="{{ grafana_charging_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
+                        <a href="{{ grafana_charging_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap; display: inline-block;">Open in Grafana &rarr;</a>
                       </td>
                       {% endif %}
                     </tr>
                   </table>
                   
-                  {% if rates.rate_mode == 'tiered' %}
+                  <!-- 4 HIGH-LEVEL CHARGING KPIS: TOTAL SPEND, % OFF-PEAK, FUEL COMPARE, SUPERCHARGER -->
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                     <tr>
                       <td style="padding: 0;">
                         <!-- LEFT PAIR: 50% on desktop, 100% on mobile -->
                         <table class="grid-col-half" cellpadding="0" cellspacing="0" align="left" style="width: 50%; max-width: 50%; border-collapse: separate;">
                           <tr>
+                            <!-- TILE 1: TOTAL SPEND -->
                             <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                              <table width="100%" height="76" cellpadding="0" cellspacing="0" style="height: 76px; min-height: 76px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_blue }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                                 <tr>
                                   <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 700;">Tier 1 (Base)</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.tier1_spend) }}</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.tier1_kwh }} kWh</div>
+                                    <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total Spend</div>
+                                    <div style="font-size: 17px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0; font-variant-numeric: tabular-nums;">${{ "{:,.2f}".format((charging.total_spend or 0.0)|float) }}</div>
+                                    <div style="font-size: 12px; color: {{ theme.text_muted }};">{{ "{:,.1f}".format((charging.total_energy_used_kwh or charging.total_kwh or 0.0)|float) }} kWh total</div>
                                   </td>
                                 </tr>
                               </table>
                             </td>
+                            <!-- TILE 2: % OFF-PEAK -->
                             <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                              <table width="100%" height="76" cellpadding="0" cellspacing="0" style="height: 76px; min-height: 76px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_green }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                                 <tr>
                                   <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.accent_blue }}; font-weight: 700;">Tier 2</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.tier2_spend) }}</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.tier2_kwh }} kWh</div>
+                                    <div style="font-size: 12px; color: {{ theme.accent_green }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">% Off-Peak</div>
+                                    <div style="font-size: 17px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0; font-variant-numeric: tabular-nums;">{{ "{:,.0f}".format((charging.off_peak_score_pct if charging.off_peak_score_pct is defined else 0)|float) }}%</div>
+                                    <div style="font-size: 12px; color: {{ theme.text_muted }};">${{ "{:,.2f}".format((charging.off_peak_spend or 0.0)|float) }} off-peak</div>
                                   </td>
                                 </tr>
                               </table>
@@ -329,24 +547,26 @@
                         <!-- RIGHT PAIR: 50% on desktop, 100% on mobile -->
                         <table class="grid-col-half" cellpadding="0" cellspacing="0" align="left" style="width: 50%; max-width: 50%; border-collapse: separate;">
                           <tr>
+                            <!-- TILE 3: FUEL COMPARE -->
                             <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                              <table width="100%" height="76" cellpadding="0" cellspacing="0" style="height: 76px; min-height: 76px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_green }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                                 <tr>
                                   <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.accent_red }}; font-weight: 700;">Supercharger</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: {{ theme.accent_red }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.supercharger_kwh }} kWh</div>
+                                    <div style="font-size: 12px; color: {{ theme.accent_green }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Fuel Compare</div>
+                                    <div style="font-size: 17px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0; font-variant-numeric: tabular-nums;">+${{ "{:,.2f}".format((charging.gas_savings.net_savings if charging.gas_savings and charging.gas_savings.net_savings is defined else 0.0)|float) }}</div>
+                                    <div style="font-size: 12px; color: {{ theme.text_muted }};">vs. ${{ "{:,.2f}".format((charging.gas_savings.gas_spend_equivalent if charging.gas_savings and charging.gas_savings.gas_spend_equivalent is defined else 0.0)|float) }} gas</div>
                                   </td>
                                 </tr>
                               </table>
                             </td>
+                            <!-- TILE 4: SUPERCHARGER -->
                             <td width="50%" class="kpi-cell" style="padding: 0 0 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                              <table width="100%" height="76" cellpadding="0" cellspacing="0" style="height: 76px; min-height: 76px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {% if charging.supercharger_spend and charging.supercharger_spend > 0 %}#ef4444{% else %}{{ theme.card_inner_border }}{% endif %}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                                 <tr>
                                   <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 700;">Tier 1 %</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: {{ theme.accent_green }}; margin: 2px 0;">{{ charging.tier1_pct }}%</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">Baseline usage</div>
+                                    <div style="font-size: 12px; color: {{ theme.text_secondary }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Supercharger</div>
+                                    <div style="font-size: 17px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0; font-variant-numeric: tabular-nums;">${{ "{:,.2f}".format((charging.supercharger_spend or 0.0)|float) }}</div>
+                                    <div style="font-size: 12px; color: {{ theme.text_muted }};">{{ "{:,.1f}".format((charging.supercharger_kwh or 0.0)|float) }} kWh</div>
                                   </td>
                                 </tr>
                               </table>
@@ -356,121 +576,31 @@
                       </td>
                     </tr>
                   </table>
-                  {% elif rates.rate_mode == 'flat' %}
-                  <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 12px;">
-                    <tr>
-                      <td width="33%" class="stack-mobile" style="padding-right: 4px; vertical-align: top;">
-                        <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                          <tr>
-                            <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                              <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 700;">Home AC Charge</div>
-                              <div style="font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.home_spend) }}</div>
-                              <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.home_kwh }} kWh (@ ${{ rates.average_kwh_cost }})</div>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                      <td width="33%" class="stack-mobile" style="padding: 0 2px; vertical-align: top;">
-                        <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                          <tr>
-                            <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                              <div style="font-size: 11px; color: {{ theme.accent_red }}; font-weight: 700;">Supercharging</div>
-                              <div style="font-size: 16px; font-weight: 700; color: {{ theme.accent_red }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
-                              <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.supercharger_kwh }} kWh</div>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                      <td width="34%" class="stack-mobile" style="padding-left: 4px; vertical-align: top;">
-                        <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                          <tr>
-                            <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                              <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 700;">Total Charging</div>
-                              <div style="font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.total_spend) }}</div>
-                              <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.total_energy_used_kwh }} kWh total</div>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
-                  {% else %}
-                  <!-- TOU (Default) -->
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
-                    <tr>
-                      <td style="padding: 0;">
-                        <!-- LEFT PAIR: 50% on desktop, 100% on mobile -->
-                        <table class="grid-col-half" cellpadding="0" cellspacing="0" align="left" style="width: 50%; max-width: 50%; border-collapse: separate;">
-                          <tr>
-                            <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                                <tr>
-                                  <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 700;">Off-Peak</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.off_peak_spend) }}</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.off_peak_kwh }} kWh</div>
-                                  </td>
-                                </tr>
-                              </table>
-                            </td>
-                            <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                                <tr>
-                                  <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.accent_blue }}; font-weight: 700;">Shoulder</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.shoulder_spend) }}</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.shoulder_kwh }} kWh</div>
-                                  </td>
-                                </tr>
-                              </table>
-                            </td>
-                          </tr>
-                        </table>
-                        <!-- RIGHT PAIR: 50% on desktop, 100% on mobile -->
-                        <table class="grid-col-half" cellpadding="0" cellspacing="0" align="left" style="width: 50%; max-width: 50%; border-collapse: separate;">
-                          <tr>
-                            <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                                <tr>
-                                  <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.accent_red }}; font-weight: 700;">Supercharger</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: {{ theme.accent_red }}; margin: 2px 0;">${{ "{:,.2f}".format(charging.supercharger_spend) }}</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ charging.supercharger_kwh }} kWh</div>
-                                  </td>
-                                </tr>
-                              </table>
-                            </td>
-                            <td width="50%" class="kpi-cell" style="padding: 0 0 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                                <tr>
-                                  <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 700;">Off-Peak %</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: {{ theme.accent_green }}; margin: 2px 0;">{{ charging.off_peak_score_pct }}%</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">Optimal hours</div>
-                                  </td>
-                                </tr>
-                              </table>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
+                  {% if (charging.shoulder_spend is defined and charging.shoulder_spend > 0) or (charging.on_peak_spend is defined and charging.on_peak_spend > 0) %}
+                  <div style="font-size: 12px; color: {{ theme.text_muted }}; margin: -4px 0 10px 0; text-align: right;">
+                    <span style="color: {{ theme.accent_green }}; font-weight: 600;">Off-Peak: ${{ "{:,.2f}".format((charging.off_peak_spend if charging.off_peak_spend is defined else 0.0)|float) }}</span> &bull;
+                    <span style="color: {{ theme.accent_blue }}; font-weight: 600;">Shoulder: ${{ "{:,.2f}".format((charging.shoulder_spend if charging.shoulder_spend is defined else 0.0)|float) }}</span> &bull;
+                    <span style="color: {% if charging.on_peak_spend is defined and charging.on_peak_spend > 0 %}#f59e0b{% else %}{{ theme.text_muted }}{% endif %}; font-weight: 600;">On-Peak: ${{ "{:,.2f}".format((charging.on_peak_spend if charging.on_peak_spend is defined else 0.0)|float) }}</span>
+                  </div>
+                  {% elif rates.rate_mode == 'tiered' %}
+                  <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 8px; text-align: center;">
+                    Tier 1: ${{ "{:,.2f}".format((charging.tier1_spend if charging.tier1_spend is defined else 0.0)|float) }} ({{ charging.tier1_kwh if charging.tier1_kwh is defined else 0 }} kWh) &bull; Tier 2: ${{ "{:,.2f}".format((charging.tier2_spend if charging.tier2_spend is defined else 0.0)|float) }} ({{ charging.tier2_kwh if charging.tier2_kwh is defined else 0 }} kWh)
+                  </div>
                   {% endif %}
 
                   {% if modules.gas_savings %}
-                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 12px 14px; margin-top: 10px; border: 1px solid {{ theme.card_inner_border }};">
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; padding: 14px 16px; margin-top: 12px; border: 1px solid {{ theme.card_inner_border }}; border-left: 3px solid {{ theme.accent_green }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td>
-                          <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_primary }};">Gasoline Alternative Comparison</div>
-                          <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 2px;">
-                            Equivalent ICE Fuel Cost: ${{ "{:,.2f}".format(charging.gas_savings.gas_spend_equivalent) }} 
-                            <span style="font-size: 11px;">(@ ${{ rates.gas_price_per_gal }}/gal, {{ rates.baseline_ice_mpg }} MPG)</span>
+                        <td style="vertical-align: middle;">
+                          <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_primary }};">Gasoline Alternative Comparison</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 3px;">
+                            Equivalent ICE Fuel Cost: <strong>${{ "{:,.2f}".format(charging.gas_savings.gas_spend_equivalent) }}</strong>
+                            <span style="font-size: 12px;">(@ ${{ rates.gas_price_per_gal }}/gal, {{ rates.baseline_ice_mpg }} MPG)</span>
                           </div>
                         </td>
                         <td align="right" style="vertical-align: middle;">
-                          <span style="font-size: 18px; font-weight: 800; color: {{ theme.accent_green }};">+${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</span>
+                          <span style="font-size: 20px; font-weight: 800; color: {{ theme.accent_green }}; font-variant-numeric: tabular-nums;">+${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</span>
                         </td>
                       </tr>
                     </table>
@@ -495,23 +625,29 @@
                 </div>
                 {% endif %}
 
-                <!-- SECTION: SOLAR GENERATION & CLEAN EV CHARGING -->
+                <!-- CARD: SOLAR GENERATION & CLEAN EV CHARGING -->
                 {% if modules.solar_production and solar and solar.has_data %}
-                <div class="card">
-                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 14px;">
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
                     <tr>
                       <td style="vertical-align: middle;">
-                        <div class="section-title" style="margin: 0;">
-                          <span style="margin-right: 8px;">☀️</span> Solar Production &amp; Clean Charging
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">☀️</span> Solar Production &amp; Clean Charging
                         </div>
                       </td>
                       {% if homeassistant_url %}
                       <td align="right" class="section-header-link-td" style="vertical-align: middle;">
-                        <a href="{{ homeassistant_url }}/energy" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">🏡 Home Assistant &rarr;</a>
+                        <a href="{{ homeassistant_url }}/energy" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap; display: inline-block;">Home Assistant &rarr;</a>
                       </td>
                       {% endif %}
                     </tr>
                   </table>
+
+                  {% if solar.is_partial_period %}
+                  <div style="background-color: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; padding: 6px 12px; margin-bottom: 12px; font-size: 12px; color: {{ theme.text_secondary }};">
+                    ℹ️ Solar data available for <strong>{{ solar.days_tracked }} of {{ solar.total_days }} days</strong> in this report period.
+                  </div>
+                  {% endif %}
 
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                     <tr>
@@ -520,23 +656,23 @@
                         <table class="grid-col-half" cellpadding="0" cellspacing="0" align="left" style="width: 50%; max-width: 50%; border-collapse: separate;">
                           <tr>
                             <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                              <table width="100%" height="76" cellpadding="0" cellspacing="0" style="height: 76px; min-height: 76px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid #f59e0b; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                                 <tr>
                                   <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: #f59e0b; font-weight: 700;">Solar Generated</div>
-                                    <div style="font-size: 16px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ "{:,.1f}".format(solar.total_solar_kwh) }} <span style="font-size: 10px; font-weight: 600;">kWh</span></div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">${{ "{:,.2f}".format(solar.solar_savings) }} value</div>
+                                    <div style="font-size: 12px; color: #f59e0b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Solar</div>
+                                    <div style="font-size: 17px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0; font-variant-numeric: tabular-nums;">{{ "{:,.1f}".format(solar.total_solar_kwh) }} <span style="font-size: 11px; font-weight: 600;">kWh</span></div>
+                                    <div style="font-size: 12px; color: {{ theme.text_muted }};">${{ "{:,.2f}".format(solar.solar_savings) }} value</div>
                                   </td>
                                 </tr>
                               </table>
                             </td>
                             <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                              <table width="100%" height="76" cellpadding="0" cellspacing="0" style="height: 76px; min-height: 76px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_green }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                                 <tr>
                                   <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 700;">EV Solar Offset</div>
-                                    <div style="font-size: 16px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">{{ "{:,.0f}".format(solar.solar_ev_coverage_pct) }}%</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ solar.clean_miles_covered }} clean mi</div>
+                                    <div style="font-size: 12px; color: {{ theme.accent_green }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">EV Offset</div>
+                                    <div style="font-size: 17px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0; font-variant-numeric: tabular-nums;">{{ "{:,.0f}".format(solar.solar_ev_coverage_pct) }}%</div>
+                                    <div style="font-size: 12px; color: {{ theme.text_muted }};">{{ solar.clean_miles_covered }} clean mi</div>
                                   </td>
                                 </tr>
                               </table>
@@ -547,23 +683,23 @@
                         <table class="grid-col-half" cellpadding="0" cellspacing="0" align="left" style="width: 50%; max-width: 50%; border-collapse: separate;">
                           <tr>
                             <td width="50%" class="kpi-cell" style="padding: 0 4px 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                              <table width="100%" height="76" cellpadding="0" cellspacing="0" style="height: 76px; min-height: 76px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_blue }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                                 <tr>
                                   <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.accent_blue }}; font-weight: 700;">Grid Flow</div>
-                                    <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_primary }}; margin: 2px 0;">+{{ "{:,.0f}".format(solar.grid_export_kwh) }} / -{{ "{:,.0f}".format(solar.grid_import_kwh) }}</div>
-                                    <div style="font-size: 10px; color: {{ theme.text_muted }};">Exp / Imp (kWh)</div>
+                                    <div style="font-size: 12px; color: {{ theme.accent_blue }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Grid Flow</div>
+                                    <div style="font-size: 14px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0; font-variant-numeric: tabular-nums;">{{ "{:,.0f}".format(solar.grid_export_kwh) }} exp / {{ "{:,.0f}".format(solar.grid_import_kwh) }} imp</div>
+                                    <div style="font-size: 12px; color: {{ theme.text_muted }};">kWh interaction</div>
                                   </td>
                                 </tr>
                               </table>
                             </td>
                             <td width="50%" class="kpi-cell" style="padding: 0 0 6px 0; vertical-align: top;">
-                              <table width="100%" height="74" cellpadding="0" cellspacing="0" style="height: 74px; min-height: 74px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                              <table width="100%" height="76" cellpadding="0" cellspacing="0" style="height: 76px; min-height: 76px; box-sizing: border-box; width: 100%; border-collapse: separate; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid #fbbf24; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                                 <tr>
                                   <td align="center" valign="middle" style="vertical-align: middle; text-align: center; padding: 8px 4px;">
-                                    <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 700;">Peak Output</div>
-                                    <div style="font-size: 16px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ "{:,.1f}".format(solar.peak_solar_kw) }} <span style="font-size: 10px; font-weight: 600;">kW</span></div>
-                                    <div style="font-size: 10px; color: {{ theme.accent_green }};">{{ "{:,.0f}".format(solar.self_consumption_pct) }}% self-use</div>
+                                    <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Peak Power</div>
+                                    <div style="font-size: 17px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0; font-variant-numeric: tabular-nums;">{{ "{:,.1f}".format(solar.peak_solar_kw) }} <span style="font-size: 11px; font-weight: 600;">kW</span></div>
+                                    <div style="font-size: 12px; color: {{ theme.accent_green }};">{{ "{:,.0f}".format(solar.self_consumption_pct) }}% self-use</div>
                                   </td>
                                 </tr>
                               </table>
@@ -574,11 +710,11 @@
                     </tr>
                   </table>
 
-                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; border: 1px solid {{ theme.card_inner_border }}; font-size: 12px; color: {{ theme.text_muted }}; line-height: 1.5;">
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; padding: 12px 16px; margin-bottom: 10px; border: 1px solid {{ theme.card_inner_border }}; border-left: 3px solid #f59e0b; box-shadow: 0 2px 6px rgba(0,0,0,0.06); font-size: 13px; color: {{ theme.text_secondary }}; line-height: 1.5;">
                     <span style="color: #f59e0b; font-weight: 700;">🌞 Solar Coverage:</span> 
                     Rooftop solar generated <b style="color: {{ theme.text_primary }};">{{ "{:,.1f}".format(solar.total_solar_kwh) }} kWh</b>, covering <b style="color: {{ theme.accent_green }};">{{ "{:,.0f}".format(solar.solar_ev_coverage_pct) }}%</b> of your home vehicle charging (<span style="color: {{ theme.text_primary }};">{{ "{:,.1f}".format(solar.home_charging_kwh) }} kWh</span> charged).
                     {% if solar.solar_surplus_kwh > 0 %}
-                    You produced <b style="color: {{ theme.accent_green }};">+{{ "{:,.1f}".format(solar.solar_surplus_kwh) }} kWh</b> of clean surplus energy beyond your EV charging needs!
+                    Clean surplus of <b style="color: {{ theme.accent_green }};">+{{ "{:,.1f}".format(solar.solar_surplus_kwh) }} kWh</b> fed to grid or home.
                     {% endif %}
                   </div>
 
@@ -596,19 +732,105 @@
                 </div>
                 {% endif %}
 
-                <!-- SECTION: DRIVING EFFICIENCY & WH/MI CONSUMPTION -->
-                {% if modules.driving_efficiency and efficiency %}
-                <div class="card">
-                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 14px;">
+                <!-- CARD: SUPERCHARGER EXPLORER (COLLAPSED WHEN 0 SESSIONS) -->
+                {% if modules.supercharger_explorer %}
+                {% if superchargers.month_sessions_count == 0 %}
+                <!-- Collapsed Single Line Zero-State -->
+                <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 8px; padding: 12px 16px; margin-bottom: 22px; font-size: 13px; color: {{ theme.text_secondary }};">
+                  ⚡ <strong>Superchargers:</strong> No visits this period &bull; <span style="color: {{ theme.text_muted }};">{{ superchargers.lifetime_unique_stations }} lifetime stations visited</span>
+                  {% if grafana_charges_url %}
+                  <a href="{{ grafana_charges_url }}" target="_blank" style="float: right; color: {{ theme.footer_link }}; text-decoration: none; font-size: 12px; font-weight: 700;">Live Charges &rarr;</a>
+                  {% endif %}
+                </div>
+                {% else %}
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
                     <tr>
                       <td style="vertical-align: middle;">
-                        <div class="section-title" style="margin: 0;">
-                          <span style="margin-right: 8px;">📊</span> Driving Efficiency &amp; Consumption
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">⚡</span> Supercharger Explorer
+                        </div>
+                      </td>
+                      {% if grafana_charges_url %}
+                      <td align="right" class="section-header-link-td" style="vertical-align: middle;">
+                        <a href="{{ grafana_charges_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap; display: inline-block;">Live Charges &rarr;</a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  </table>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 12px;">
+                    <tr>
+                      <td width="50%" class="stack-mobile" style="padding-right: 6px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_blue }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 26px; font-weight: 800; color: {{ theme.text_primary }}; font-variant-numeric: tabular-nums;">{{ superchargers.lifetime_unique_stations }}</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Tracked Stations</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }};">logged in TeslaMate</div>
+                        </div>
+                      </td>
+                      <td width="50%" class="stack-mobile" style="padding-left: 6px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_green }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 26px; font-weight: 800; color: {{ theme.accent_green }}; font-variant-numeric: tabular-nums;">{{ superchargers.month_sessions_count }}</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Sessions This Period</div>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  {% if superchargers.new_stations_this_month %}
+                  <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_primary }}; margin-bottom: 6px;">🎉 New Supercharger Stations Unlocked:</div>
+                  {% for s in superchargers.new_stations_this_month %}
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid {{ theme.card_inner_border }}; font-size: 12px; color: {{ theme.text_primary }};">
+                    <strong>{{ s.name }}</strong> ({{ s.date }}) &bull; Peak: {{ s.power_kw }} kW &bull; +{{ s.kwh }} kWh
+                  </div>
+                  {% endfor %}
+                  {% elif superchargers.recent_visits %}
+                  <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_primary }}; margin-bottom: 6px;">⚡ Supercharger Sessions This Period:</div>
+                  {% for s in superchargers.recent_visits %}
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid {{ theme.card_inner_border }}; font-size: 12px; color: {{ theme.text_primary }};">
+                    <strong>{{ s.name }}</strong> ({{ s.date }}) &bull; Peak: {{ s.power_kw }} kW &bull; +{{ s.kwh }} kWh
+                  </div>
+                  {% endfor %}
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% endif %}
+
+                <!-- =================================================================== -->
+                <!-- PILLAR 2: DRIVING & FLEET ACTIVITY -->
+                <!-- =================================================================== -->
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="section-demarcation" style="margin: 20px 0 16px 0;">
+                  <tr>
+                    <td style="vertical-align: middle;">
+                      <table cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                        <tr>
+                          <td style="padding-right: 12px; vertical-align: middle; white-space: nowrap;">
+                            <span class="demarcation-badge" style="display: inline-block; padding: 5px 14px; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: {{ theme.text_primary }}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+                              🚘 DRIVING &amp; ACTIVITY
+                            </span>
+                          </td>
+                          <td width="100%" style="vertical-align: middle;">
+                            <div style="height: 1px; background-color: {{ theme.card_border }}; width: 100%; line-height: 1px; font-size: 1px;">&nbsp;</div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- CARD: DRIVING EFFICIENCY & CONSUMPTION -->
+                {% if modules.driving_efficiency and efficiency %}
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">📊</span> Driving Efficiency &amp; Consumption
                         </div>
                       </td>
                       {% if grafana_efficiency_url %}
                       <td align="right" class="section-header-link-td" style="vertical-align: middle;">
-                        <a href="{{ grafana_efficiency_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
+                        <a href="{{ grafana_efficiency_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap; display: inline-block;">Open in Grafana &rarr;</a>
                       </td>
                       {% endif %}
                     </tr>
@@ -616,50 +838,50 @@
                   <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 12px;">
                     <tr>
                       <td width="33%" class="stack-mobile" style="padding-right: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
-                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Avg Consumption</div>
-                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_blue }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Avg Consumption</div>
+                          <div style="font-size: 21px; font-weight: 800; color: {{ theme.text_primary }}; margin: 3px 0; font-variant-numeric: tabular-nums;">
                             {% if units and units.is_metric %}
-                            {{ efficiency.avg_wh_per_km }} <span style="font-size: 12px; font-weight: 500;">Wh/km</span>
+                            {{ efficiency.avg_wh_per_km }} <span style="font-size: 12px; font-weight: 600;">Wh/km</span>
                             {% else %}
-                            {{ efficiency.avg_wh_per_mile }} <span style="font-size: 12px; font-weight: 500;">Wh/mi</span>
+                            {{ efficiency.avg_wh_per_mile }} <span style="font-size: 12px; font-weight: 600;">Wh/mi</span>
                             {% endif %}
                           </div>
-                          <div style="font-size: 10px; color: {{ theme.text_muted }};">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">
                             {% if units and units.is_metric %}
-                            {{ efficiency.avg_wh_per_mile }} Wh/mi
+                            equiv. {{ efficiency.avg_wh_per_mile }} Wh/mi
                             {% else %}
-                            {{ efficiency.avg_wh_per_km }} Wh/km
+                            equiv. {{ efficiency.avg_wh_per_km }} Wh/km
                             {% endif %}
                           </div>
                         </div>
                       </td>
                       <td width="33%" class="stack-mobile" style="padding: 0 3px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
-                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Rated vs Actual</div>
-                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">{{ efficiency.efficiency_pct }}%</div>
-                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ efficiency.grade }} rating</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_green }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Rated vs Actual</div>
+                          <div style="font-size: 21px; font-weight: 800; color: {{ theme.accent_green }}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ efficiency.efficiency_pct }}%</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 600;">{{ efficiency.grade }} rating</div>
                         </div>
                       </td>
                       <td width="34%" class="stack-mobile" style="padding-left: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
-                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Net Driving Energy</div>
-                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{{ efficiency.net_energy_kwh }} <span style="font-size: 12px; font-weight: 500;">kWh</span></div>
-                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ efficiency.total_drives }} recorded drives</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid #8b5cf6; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Net Energy</div>
+                          <div style="font-size: 21px; font-weight: 800; color: {{ theme.text_primary }}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ efficiency.net_energy_kwh }} <span style="font-size: 12px; font-weight: 600;">kWh</span></div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">{{ efficiency.total_drives }} recorded drives</div>
                         </div>
                       </td>
                     </tr>
                   </table>
 
                   {% if efficiency.cars_breakdown|length > 1 %}
-                  <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_secondary }}; margin: 10px 0 6px 0;">Per-Vehicle Consumption Breakdown:</div>
+                  <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_secondary }}; margin: 10px 0 6px 0;">Per-Vehicle Consumption Breakdown:</div>
                   <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 12px; border-top: 1px solid {{ theme.card_border }};">
                     {% for c in efficiency.cars_breakdown %}
                     <tr style="border-bottom: 1px solid {{ theme.card_inner_border }};">
                       <td style="color: {{ theme.text_primary }}; font-weight: 700;">{{ c.name }} (Model {{ c.model }})</td>
                       <td align="right" style="color: {{ theme.text_muted }};">{% if units and units.is_metric %}{{ c.actual_km }} km{% else %}{{ c.actual_miles }} mi{% endif %}</td>
                       <td align="right" style="font-weight: 700; color: {{ theme.text_primary }};">{% if units and units.is_metric %}{{ c.wh_per_km }} Wh/km{% else %}{{ c.wh_per_mile }} Wh/mi{% endif %}</td>
-                      <td align="right" style="font-weight: 700; color: {{ theme.accent_green }};">{{ c.efficiency_pct }}% eff</td>
+                      <td align="right" style="font-weight: 700; color: {{ theme.accent_green }};">{{ c.efficiency_pct }}% vs rated</td>
                     </tr>
                     {% endfor %}
                   </table>
@@ -667,92 +889,119 @@
                 </div>
                 {% endif %}
 
-                <!-- SECTION: CHARGE LIMIT COMPLIANCE & PACK STRESS -->
-                {% if modules.charge_limit_compliance and compliance %}
-                <div class="card">
-                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 14px;">
+                <!-- CARD: DRIVING HIGHLIGHTS & TOP DESTINATIONS -->
+                {% if modules.top_locations or modules.driving_milestones %}
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
                     <tr>
                       <td style="vertical-align: middle;">
-                        <div class="section-title" style="margin: 0;">
-                          <span style="margin-right: 8px;">🛡️</span> Charge Limit Compliance &amp; Pack Stress
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">📍</span> Driving Highlights &amp; Top Destinations
                         </div>
                       </td>
-                      {% if grafana_charge_level_url %}
+                      {% if grafana_drives_url %}
                       <td align="right" class="section-header-link-td" style="vertical-align: middle;">
-                        <a href="{{ grafana_charge_level_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
+                        <a href="{{ grafana_drives_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap; display: inline-block;">Live Drives &rarr;</a>
                       </td>
                       {% endif %}
                     </tr>
                   </table>
-                  <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 10px;">
-                    Tracks battery dwell time outside the recommended 20% - 80% SoC zone to minimize chemical cell stress and capacity degradation.
-                  </div>
-                  <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 12px;">
+
+                  <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 14px;">
                     <tr>
                       <td width="33%" class="stack-mobile" style="padding-right: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
-                          <div style="font-size: 11px; color: #f87171; font-weight: 700;">High Stress (&gt;80%)</div>
-                          <div style="font-size: 18px; font-weight: 800; color: #f87171; margin: 2px 0;">{{ compliance.hours_above_80 }} hrs</div>
-                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ compliance.pct_above_80 }}% of time</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_blue }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total Drives</div>
+                          <div style="font-size: 18px; font-weight: 800; color: {{ theme.text_primary }}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ trips.drives_count }} trip{{ 's' if trips.drives_count != 1 else '' }}</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">{{ trips.total_duration_hours }} hrs on road</div>
                         </div>
                       </td>
                       <td width="33%" class="stack-mobile" style="padding: 0 3px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center; border-color: rgba(16, 185, 129, 0.4);">
-                          <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 700;">Optimal Zone (20-80%)</div>
-                          <div style="font-size: 18px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">{{ compliance.hours_optimal }} hrs</div>
-                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ compliance.pct_optimal }}% preserved</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid #8b5cf6; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Average Trip</div>
+                          <div style="font-size: 18px; font-weight: 800; color: {{ theme.text_primary }}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ trips.avg_trip_km if (units and units.is_metric) else trips.avg_trip_miles }} {{ units.length if units else "mi" }}</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">Top: {{ trips.top_speed_kmh if (units and units.is_metric) else trips.top_speed_mph }} {{ units.speed if units else "mph" }}</div>
                         </div>
                       </td>
                       <td width="34%" class="stack-mobile" style="padding-left: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
-                          <div style="font-size: 11px; color: #fbbf24; font-weight: 700;">Low SoC (&lt;20%)</div>
-                          <div style="font-size: 18px; font-weight: 800; color: #fbbf24; margin: 2px 0;">{{ compliance.hours_below_20 }} hrs</div>
-                          <div style="font-size: 10px; color: {{ theme.text_muted }};">{{ compliance.pct_below_20 }}% deep drain</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_green }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Elevation Climbed</div>
+                          <div style="font-size: 18px; font-weight: 800; color: {{ theme.accent_blue }}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ "{:,.0f}".format(trips.elevation.ascent_m if (units and units.is_metric) else trips.elevation.ascent_ft) }} {{ units.elevation if units else "ft" }}</div>
+                          <div style="font-size: 12px; color: {{ theme.accent_green }}; font-weight: 600;">~{{ trips.elevation.regen_kwh_recaptured }} kWh regen</div>
                         </div>
                       </td>
                     </tr>
                   </table>
 
-                  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; border: 1px solid {{ theme.card_inner_border }};">
+                  <!-- LONGEST DRIVE -->
+                  {% if trips.longest_drive %}
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; padding: 14px 16px; margin-bottom: 12px; border: 1px solid {{ theme.card_inner_border }}; border-left: 3px solid {{ theme.accent_blue }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+                    <div style="font-size: 12px; text-transform: uppercase; color: {{ theme.accent_blue }}; font-weight: 700; margin-bottom: 4px;">Longest Journey</div>
+                    <div style="font-size: 14px; font-weight: 700; color: {{ theme.text_primary }};">{{ trips.longest_drive.start_location }} &rarr; {{ trips.longest_drive.end_location }}</div>
+                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 3px;">
+                      {% if units and units.is_metric %}{{ trips.longest_drive.distance_km }} km{% else %}{{ trips.longest_drive.distance_mi }} miles{% endif %} &bull; {{ trips.longest_drive.duration_min }} mins &bull; {{ trips.longest_drive.date }}
+                      &bull; Ascent: {{ "{:,.0f}".format(trips.longest_drive.ascent_m if (units and units.is_metric) else trips.longest_drive.ascent_ft) }} {{ units.elevation if units else "ft" }}
+                    </div>
+                  </div>
+                  {% endif %}
+
+                  <!-- TOP DESTINATIONS (FILTERED TO TOP 3 NOTABLE WITH MULTIPLE VISITS) -->
+                  {% if trips.top_places %}
+                  {% set notable_places = trips.top_places | selectattr('visits', 'defined') | list %}
+                  {% if notable_places and notable_places|length > 0 %}
+                  <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_secondary }}; margin-bottom: 8px;">Top Visited Places</div>
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    {% for p in notable_places[:3] %}
                     <tr>
-                      <td style="padding: 10px 14px; font-size: 12px; color: {{ theme.text_secondary }}; vertical-align: middle;">
-                        Pack Preservation Score: <strong style="color: {{ theme.accent_green }}; font-size: 14px;">{{ compliance.compliance_score }}%</strong>
-                        <span style="color: {{ theme.text_muted }}; margin-left: 6px;">({{ compliance.compliance_rating }} &bull; {{ compliance.stress_level }} Stress)</span>
+                      <td style="padding: 5px 0; font-size: 13px; color: {{ theme.text_primary }};">
+                        &bull; <strong>{{ p.name }}</strong>{% if p.city %}, {{ p.city }}{% endif %}
+                      </td>
+                      <td align="right" style="padding: 5px 0; font-size: 13px; color: {{ theme.accent_green }}; font-weight: 700;">
+                        {{ p.visits }} visit{{ 's' if p.visits != 1 else '' }}
                       </td>
                     </tr>
+                    {% endfor %}
                   </table>
+                  {% endif %}
+                  {% endif %}
                 </div>
                 {% endif %}
 
-                <!-- SECTION: WORK & COMMUTE MILEAGE LOGGING -->
-                {% if modules.work_mileage and work_mileage and work_mileage.has_routes %}
-                <div class="card">
-                  <div class="section-title">
-                    <span style="margin-right: 8px;">💼</span> Work & Commute Mileage Tracker
-                    {% if work_mileage.target_car_name and not car_id %}
-                    <span style="font-size: 11px; font-weight: normal; color: {{ theme.text_muted }}; margin-left: 6px;">({{ work_mileage.target_car_name }})</span>
-                    {% endif %}
-                  </div>
+                <!-- CARD: WORK & COMMUTE MILEAGE LOGGING (COLLAPSED/HIDDEN IF 0 TRIPS) -->
+                {% if modules.work_mileage and work_mileage and work_mileage.has_routes and work_mileage.total_trips and work_mileage.total_trips > 0 %}
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">💼</span> Work &amp; Commute Mileage Tracker
+                          {% if work_mileage.target_car_name and not car_id %}
+                          <span style="font-size: 12px; font-weight: normal; color: {{ theme.text_muted }}; margin-left: 6px;">({{ work_mileage.target_car_name }})</span>
+                          {% endif %}
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
                   <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 12px;">
                     <tr>
                       <td width="50%" class="stack-mobile" style="padding-right: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                          <div style="font-size: 11px; color: {{ theme.text_muted }}; font-weight: 600;">Total Business {{ "Distance" if (units and units.is_metric) else "Miles" }}</div>
-                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0;">{% if units and units.is_metric %}{{ work_mileage.total_km }} km{% else %}{{ work_mileage.total_miles }} mi{% endif %}</div>
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">{{ work_mileage.total_trips }} matching trips</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_blue }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total Business {{ "Distance" if (units and units.is_metric) else "Miles" }}</div>
+                          <div style="font-size: 21px; font-weight: 800; color: {{ theme.text_primary }}; margin: 2px 0; font-variant-numeric: tabular-nums;">{% if units and units.is_metric %}{{ work_mileage.total_km }} km{% else %}{{ work_mileage.total_miles }} mi{% endif %}</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">{{ work_mileage.total_trips }} matching trip{{ 's' if work_mileage.total_trips != 1 else '' }}</div>
                         </div>
                       </td>
                       <td width="50%" class="stack-mobile" style="padding-left: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; border-color: rgba(16, 185, 129, 0.4);">
-                          <div style="font-size: 11px; color: {{ theme.accent_green }}; font-weight: 600;">Est. Mileage Deduction</div>
-                          <div style="font-size: 20px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0;">{{ units.currency if units else "$" }}{{ "{:,.2f}".format(work_mileage.total_irs_deduction) }}</div>
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">@ {{ units.currency if units else "$" }}{{ work_mileage.irs_rate }}/{{ units.length if units else "mi" }} standard rate</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_green }}; border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+                          <div style="font-size: 12px; color: {{ theme.accent_green }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Est. Mileage Deduction</div>
+                          <div style="font-size: 21px; font-weight: 800; color: {{ theme.accent_green }}; margin: 2px 0; font-variant-numeric: tabular-nums;">{{ units.currency if units else "$" }}{{ "{:,.2f}".format(work_mileage.total_irs_deduction) }}</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">@ {{ units.currency if units else "$" }}{{ work_mileage.irs_rate }}/{{ units.length if units else "mi" }} standard rate</div>
                         </div>
                       </td>
                     </tr>
                   </table>
 
-                  <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_secondary }}; margin-bottom: 6px;">Tracked Route Pairs:</div>
+                  <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_secondary }}; margin-bottom: 6px;">Tracked Route Pairs:</div>
                   <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 12px; border-top: 1px solid {{ theme.card_border }};">
                     {% for r in work_mileage.routes %}
                     <tr style="border-bottom: 1px solid {{ theme.card_inner_border }};">
@@ -760,7 +1009,7 @@
                         <strong>{{ r.label }}</strong><br>
                         <span style="font-size: 11px; color: {{ theme.text_muted }};">{{ r.point_a }} &harr; {{ r.point_b }}</span>
                       </td>
-                      <td align="right" style="color: {{ theme.text_muted }};">{{ r.trip_count }} trips</td>
+                      <td align="right" style="color: {{ theme.text_muted }};">{{ r.trip_count }} trip{{ 's' if r.trip_count != 1 else '' }}</td>
                       <td align="right" style="font-weight: 700; color: {{ theme.text_primary }};">{% if units and units.is_metric %}{{ r.total_km }} km{% else %}{{ r.total_miles }} mi{% endif %}</td>
                       <td align="right" style="font-weight: 700; color: {{ theme.accent_green }};">+{{ units.currency if units else "$" }}{{ "{:,.2f}".format(r.irs_deduction) }}</td>
                     </tr>
@@ -769,19 +1018,43 @@
                 </div>
                 {% endif %}
 
-                <!-- SECTION 2: BATTERY HEALTH (MONTHLY DIGEST ONLY) -->
+                <!-- =================================================================== -->
+                <!-- PILLAR 3: HEALTH & FLEET MAINTENANCE -->
+                <!-- =================================================================== -->
+                {% if (modules.battery_health and show_battery_health and battery.cars) or (modules.charge_limit_compliance and compliance) or modules.maintenance_alerts or modules.vampire_drain %}
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="section-demarcation" style="margin: 20px 0 16px 0;">
+                  <tr>
+                    <td style="vertical-align: middle;">
+                      <table cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                        <tr>
+                          <td style="padding-right: 12px; vertical-align: middle; white-space: nowrap;">
+                            <span class="demarcation-badge" style="display: inline-block; padding: 5px 14px; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: {{ theme.accent_green }}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+                              🛡️ HEALTH &amp; MAINTENANCE
+                            </span>
+                          </td>
+                          <td width="100%" style="vertical-align: middle;">
+                            <div style="height: 1px; background-color: {{ theme.card_border }}; width: 100%; line-height: 1px; font-size: 1px;">&nbsp;</div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+                {% endif %}
+
+                <!-- CARD: BATTERY HEALTH (MONTHLY DIGEST ONLY) -->
                 {% if modules.battery_health and show_battery_health and battery.cars %}
-                <div class="card">
-                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 14px;">
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
                     <tr>
                       <td style="vertical-align: middle;">
-                        <div class="section-title" style="margin: 0;">
-                          <span style="margin-right: 8px;">🔋</span> Battery Health &amp; Range Degradation (Monthly Review)
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">🔋</span> Battery Health
                         </div>
                       </td>
                       {% if grafana_battery_url %}
                       <td align="right" class="section-header-link-td" style="vertical-align: middle;">
-                        <a href="{{ grafana_battery_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
+                        <a href="{{ grafana_battery_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap; display: inline-block;">Open in Grafana &rarr;</a>
                       </td>
                       {% endif %}
                     </tr>
@@ -790,7 +1063,7 @@
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                     {% for c in battery.cars %}
                     <tr>
-                      <td style="padding: 10px 0; border-bottom: 1px solid {{ theme.card_border }};">
+                      <td style="padding: 10px 0; {% if not loop.last %}border-bottom: 1px solid {{ theme.card_border }};{% endif %}">
                         <table width="100%" cellpadding="0" cellspacing="0" class="battery-header-table">
                           <tr>
                             <td>
@@ -798,7 +1071,7 @@
                               <span style="font-size: 12px; color: {{ theme.text_muted }}; margin-left: 6px;">Model {{ c.model }} &bull; {{ "{:,.0f}".format(c.latest_odometer if c.latest_odometer is defined else (c.latest_odometer_km if (units and units.is_metric) else c.latest_odometer_mi)) }} {{ units.length if units else "mi" }}</span>
                             </td>
                             <td align="right" class="battery-badge-td" style="vertical-align: middle;">
-                              <span class="badge" style="background-color: rgba(16, 185, 129, 0.2); color: {{ c.health_color }}; border: 1px solid {{ c.health_color }};">
+                              <span class="badge" style="background-color: {{ theme.card_inner_bg }}; color: {{ c.health_color }}; border: 1px solid {{ c.health_color }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; display: inline-block; padding: 4px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
                                 {{ c.capacity_retained_pct }}% Capacity &bull; {{ c.health_grade }}
                               </span>
                             </td>
@@ -807,7 +1080,7 @@
                             <td colspan="2" style="padding-top: 6px;">
                               <div style="font-size: 13px; color: {{ theme.text_secondary }};">
                                 100% Rated Range: <strong style="color: {{ theme.text_primary }};">{{ c.current_estimated_range if c.current_estimated_range is defined else (c.current_estimated_range_km if (units and units.is_metric) else c.current_estimated_range_mi) }} {{ units.length if units else "mi" }}</strong>
-                                <span style="color: {{ theme.text_muted }}; font-size: 12px; margin-left: 8px;">(Original Max: {{ c.factory_baseline_range if c.factory_baseline_range is defined else (c.factory_baseline_range_km if (units and units.is_metric) else c.factory_baseline_range_mi) }} {{ units.length if units else "mi" }} &bull; Degradation: -{{ c.degradation_pct }}%)</span>
+                                <span style="color: {{ theme.text_muted }}; font-size: 12px; margin-left: 8px;">(Original Baseline: {{ c.factory_baseline_range if c.factory_baseline_range is defined else (c.factory_baseline_range_km if (units and units.is_metric) else c.factory_baseline_range_mi) }} {{ units.length if units else "mi" }} &bull; Degradation: -{{ c.degradation_pct }}%)</span>
                               </div>
                             </td>
                           </tr>
@@ -827,151 +1100,234 @@
                 </div>
                 {% endif %}
 
-                <!-- SECTION 3: DRIVING HIGHLIGHTS & TOP DESTINATIONS -->
-                {% if modules.top_locations or modules.driving_milestones %}
-                <div class="card">
-                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 14px;">
+                <!-- CARD: VEHICLE HEALTH, TPMS & TIRE ROTATION -->
+                {% if modules.maintenance_alerts %}
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
                     <tr>
                       <td style="vertical-align: middle;">
-                        <div class="section-title" style="margin: 0;">
-                          <span style="margin-right: 8px;">📍</span> Driving Highlights &amp; Top Destinations
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">🛠️</span> Vehicle Telemetry &amp; Maintenance Tracker
                         </div>
                       </td>
-                      {% if grafana_drives_url %}
+                    </tr>
+                  </table>
+
+                  {% for car_h in health.cars %}
+                  <div style="{% if not loop.last %}margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_border }}; padding-bottom: 14px;{% endif %}">
+                    <div style="font-weight: 700; font-size: 15px; color: {{ theme.text_primary }}; margin-bottom: 6px;">
+                      {{ car_h.car_name }} (Model {{ car_h.model }})
+                    </div>
+
+                    <!-- TPMS READINGS WITH EXPLICIT TARGET AND LEGEND -->
+                    {% if car_h.tpms %}
+                    <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_secondary }}; margin-bottom: 6px;">
+                      Cold Tire Pressure (Target: 42.0 PSI / 2.9 bar):
+                      {% if car_h.tpms.has_alert %}
+                      <span style="color: #ef4444; font-weight: 700; margin-left: 6px;">⚠️ {{ car_h.tpms.alert_msg }}</span>
+                      {% endif %}
+                    </div>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 8px;">
+                      <tr>
+                        <td width="48%" style="padding-right: 4px;">
+                          <div class="tpms-box" style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; padding: 10px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }}; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.fl_info.color }}; box-shadow: 0 0 6px {{ car_h.tpms.fl_info.color }}; margin-right: 6px; vertical-align: middle;"></span>
+                            Front Left: <strong style="color: {{ theme.text_primary }}; font-size: 13px;">{{ car_h.tpms.front_left }} {{ car_h.tpms.unit }}</strong>
+                          </div>
+                        </td>
+                        <td width="48%" style="padding-left: 4px;">
+                          <div class="tpms-box" style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; padding: 10px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }}; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.fr_info.color }}; box-shadow: 0 0 6px {{ car_h.tpms.fr_info.color }}; margin-right: 6px; vertical-align: middle;"></span>
+                            Front Right: <strong style="color: {{ theme.text_primary }}; font-size: 13px;">{{ car_h.tpms.front_right }} {{ car_h.tpms.unit }}</strong>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr><td colspan="2" style="height: 6px;"></td></tr>
+                      <tr>
+                        <td width="48%" style="padding-right: 4px;">
+                          <div class="tpms-box" style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; padding: 10px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }}; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.rl_info.color }}; box-shadow: 0 0 6px {{ car_h.tpms.rl_info.color }}; margin-right: 6px; vertical-align: middle;"></span>
+                            Rear Left: <strong style="color: {{ theme.text_primary }}; font-size: 13px;">{{ car_h.tpms.rear_left }} {{ car_h.tpms.unit }}</strong>
+                          </div>
+                        </td>
+                        <td width="48%" style="padding-left: 4px;">
+                          <div class="tpms-box" style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; padding: 10px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }}; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.rr_info.color }}; box-shadow: 0 0 6px {{ car_h.tpms.rr_info.color }}; margin-right: 6px; vertical-align: middle;"></span>
+                            Rear Right: <strong style="color: {{ theme.text_primary }}; font-size: 13px;">{{ car_h.tpms.rear_right }} {{ car_h.tpms.unit }}</strong>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                    <div style="font-size: 11px; color: {{ theme.text_muted }}; margin-bottom: 12px;">
+                      <span style="color: #10b981;">● Optimal (40–44)</span> &bull; 
+                      <span style="color: #f59e0b;">● Watch (38–40 or 44–46.5)</span> &bull; 
+                      <span style="color: #ef4444;">● Alert (&lt;38 or &gt;46.5)</span>
+                    </div>
+                    {% else %}
+                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 12px; text-align: center; padding: 10px 0; background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }};">
+                      No tire pressure readings recorded yet for this vehicle.
+                    </div>
+                    {% endif %}
+
+                    <!-- TIRE ROTATION PROGRESS (NON-INVERTED: USED ACCUMULATES TOWARDS INTERVAL) -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 4px; font-size: 12px; color: {{ theme.text_muted }};">
+                      <tr>
+                        <td align="left" style="font-weight: 600;">Tire Rotation Progress ({{ "{:,.0f}".format(car_h.tire_rotation.interval) }} {{ car_h.tire_rotation.unit }} interval)</td>
+                        <td align="right"><strong style="color: {{ theme.text_primary }};">{{ "{:,.0f}".format(car_h.tire_rotation.dist_driven_since) }} / {{ "{:,.0f}".format(car_h.tire_rotation.interval) }} {{ car_h.tire_rotation.unit }} used</strong></td>
+                      </tr>
+                    </table>
+                    <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 999px; height: 10px; width: 100%; overflow: hidden; margin-bottom: 6px; border: 1px solid {{ theme.card_inner_border }};">
+                      <div style="background: {{ car_h.tire_rotation.gradient or car_h.tire_rotation.color }}; background-color: {{ car_h.tire_rotation.color }}; width: {{ car_h.tire_rotation.pct_progress }}%; height: 100%; border-radius: 999px;"></div>
+                    </div>
+                    {% if not car_h.tire_rotation.is_due and car_h.tire_rotation.last_rotation_odometer != 0 %}
+                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 8px;">
+                      {{ "{:,.0f}".format(car_h.tire_rotation.dist_remaining) }} {{ car_h.tire_rotation.unit }} remaining until next {{ "{:,.0f}".format(car_h.tire_rotation.interval) }} {{ car_h.tire_rotation.unit }} rotation interval.
+                    </div>
+                    {% endif %}
+                    {% if car_h.tire_rotation.is_due %}
+                    <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; padding: 8px 12px; color: #f87171; font-weight: 700; font-size: 12px; margin-bottom: 8px;">
+                      ⚠️ Tire rotation recommended now! ({{ "{:,.0f}".format(car_h.tire_rotation.dist_driven_since) }} {{ car_h.tire_rotation.unit }} driven since last rotation)
+                    </div>
+                    {% elif car_h.tire_rotation.last_rotation_odometer == 0 %}
+                    <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; padding: 10px 14px; color: #fbbf24; font-size: 12px; margin-bottom: 8px;">
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="vertical-align: middle;">
+                            <strong>⚠️ Calibration Recommended:</strong> No rotation odometer recorded yet{% if car_h.tire_rotation.current_odometer and car_h.tire_rotation.current_odometer > 0 %} at {{ "{:,.0f}".format(car_h.tire_rotation.current_odometer) }} {{ car_h.tire_rotation.unit }}{% endif %}.
+                          </td>
+                          <td align="right" style="vertical-align: middle; white-space: nowrap; padding-left: 8px;">
+                            <a href="{{ dashboard_url }}#maintenance-settings" target="_blank" class="action-pill" style="font-size: 11px; font-weight: 700; color: #fbbf24; text-decoration: none; padding: 4px 10px; border-radius: 6px; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); display: inline-block;">Set rotation history &rarr;</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- CARD: CHARGE LIMIT COMPLIANCE & PACK STRESS (COLLAPSED IF 100% OPTIMAL) -->
+                {% if modules.charge_limit_compliance and compliance %}
+                {% if compliance.is_all_optimal or (compliance.pct_optimal and compliance.pct_optimal >= 99.5 and compliance.hours_above_80 == 0 and compliance.hours_below_20 == 0) %}
+                <!-- Collapsed Single Line Zero-Stress State -->
+                <div style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 8px; padding: 12px 16px; margin-bottom: 22px; font-size: 13px; color: {{ theme.text_secondary }};">
+                  🛡️ <strong>Pack Stress:</strong> 100% optimal dwell time (20–80% SoC) &bull; <span style="color: {{ theme.accent_green }}; font-weight: 700;">Score: 100% Optimal</span>
+                </div>
+                {% else %}
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">🛡️</span> Charge Limit Compliance &amp; Pack Stress
+                        </div>
+                      </td>
+                      {% if grafana_charge_level_url %}
                       <td align="right" class="section-header-link-td" style="vertical-align: middle;">
-                        <a href="{{ grafana_drives_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Drives &rarr;</a>
+                        <a href="{{ grafana_charge_level_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap; display: inline-block;">Open in Grafana &rarr;</a>
                       </td>
                       {% endif %}
                     </tr>
                   </table>
-
-                  <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 14px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 12px;">
                     <tr>
                       <td width="33%" class="stack-mobile" style="padding-right: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Total Drives</div>
-                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.text_primary }}; margin: 3px 0;">{{ trips.drives_count }} trips</div>
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">{{ trips.total_duration_hours }} hrs on road</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {% if compliance.hours_above_80 and compliance.hours_above_80 > 0 %}#f87171{% else %}{{ theme.card_inner_border }}{% endif %}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {% if compliance.hours_above_80 and compliance.hours_above_80 > 0 %}#f87171{% else %}{{ theme.text_muted }}{% endif %}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">High (&gt;80%)</div>
+                          <div style="font-size: 19px; font-weight: 800; color: {% if compliance.hours_above_80 and compliance.hours_above_80 > 0 %}#f87171{% else %}{{ theme.text_primary }}{% endif %}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ compliance.hours_above_80 }} hrs</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">{{ compliance.pct_above_80 }}% of time</div>
                         </div>
                       </td>
                       <td width="33%" class="stack-mobile" style="padding: 0 3px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Average Trip</div>
-                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.text_primary }}; margin: 3px 0;">{{ trips.avg_trip_km if (units and units.is_metric) else trips.avg_trip_miles }} {{ units.length if units else "mi" }}</div>
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Top speed: {{ trips.top_speed_kmh if (units and units.is_metric) else trips.top_speed_mph }} {{ units.speed if units else "mph" }}</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.accent_green }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.accent_green }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Optimal (20-80%)</div>
+                          <div style="font-size: 19px; font-weight: 800; color: {{ theme.accent_green }}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ compliance.hours_optimal }} hrs</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">{{ compliance.pct_optimal }}% optimal</div>
                         </div>
                       </td>
                       <td width="34%" class="stack-mobile" style="padding-left: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 10px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }};">
-                          <div style="font-size: 11px; color: {{ theme.text_muted }};">Elevation Climbed</div>
-                          <div style="font-size: 17px; font-weight: 700; color: {{ theme.accent_blue }}; margin: 3px 0;">{{ "{:,.0f}".format(trips.elevation.ascent_m if (units and units.is_metric) else trips.elevation.ascent_ft) }} {{ units.elevation if units else "ft" }}</div>
-                          <div style="font-size: 11px; color: {{ theme.accent_green }};">~{{ trips.elevation.regen_kwh_recaptured }} kWh regen</div>
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {% if compliance.hours_below_20 and compliance.hours_below_20 > 0 %}#fbbf24{% else %}{{ theme.card_inner_border }}{% endif %}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {% if compliance.hours_below_20 and compliance.hours_below_20 > 0 %}#fbbf24{% else %}{{ theme.text_muted }}{% endif %}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Deep (&lt;20%)</div>
+                          <div style="font-size: 19px; font-weight: 800; color: {% if compliance.hours_below_20 and compliance.hours_below_20 > 0 %}#fbbf24{% else %}{{ theme.text_primary }}{% endif %}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ compliance.hours_below_20 }} hrs</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">{{ compliance.pct_below_20 }}% low SoC</div>
                         </div>
                       </td>
                     </tr>
                   </table>
 
-                  <!-- LONGEST DRIVE -->
-                  {% if trips.longest_drive %}
-                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; border: 1px solid {{ theme.card_inner_border }};">
-                    <div style="font-size: 12px; text-transform: uppercase; color: {{ theme.accent_blue }}; font-weight: 700; margin-bottom: 4px;">Longest Journey</div>
-                    <div style="font-size: 14px; font-weight: 700; color: {{ theme.text_primary }};">{{ trips.longest_drive.start_location }} &rarr; {{ trips.longest_drive.end_location }}</div>
-                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 3px;">
-                      {% if units and units.is_metric %}{{ trips.longest_drive.distance_km }} km{% else %}{{ trips.longest_drive.distance_mi }} miles{% endif %} &bull; {{ trips.longest_drive.duration_min }} mins &bull; {{ trips.longest_drive.date }}
-                      &bull; Ascent: {{ "{:,.0f}".format(trips.longest_drive.ascent_m if (units and units.is_metric) else trips.longest_drive.ascent_ft) }} {{ units.elevation if units else "ft" }}
-                    </div>
-                  </div>
-                  {% endif %}
-
-                  <!-- TOP DESTINATIONS -->
-                  {% if trips.top_places %}
-                  <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_secondary }}; margin-bottom: 8px;">Top Visited Places</div>
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    {% for p in trips.top_places %}
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: {{ theme.card_inner_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}10px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-left: 3px solid {{ compliance.score_color or '#10b981' }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
                     <tr>
-                      <td style="padding: 5px 0; font-size: 13px; color: {{ theme.text_primary }};">
-                        &bull; <strong>{{ p.name }}</strong>{% if p.city %}, {{ p.city }}{% endif %}
-                      </td>
-                      <td align="right" style="padding: 5px 0; font-size: 13px; color: {{ theme.accent_green }}; font-weight: 700;">
-                        {{ p.visits }} visits
+                      <td style="padding: 12px 16px; font-size: 13px; color: {{ theme.text_secondary }}; vertical-align: middle;">
+                        Pack Preservation Score: <strong style="color: {{ compliance.score_color or '#10b981' }}; font-size: 15px;">{{ compliance.compliance_score }}%</strong>
+                        <span style="color: {{ theme.text_muted }}; margin-left: 6px;">({{ compliance.compliance_rating }} &bull; {{ compliance.stress_level }} Stress)</span>
                       </td>
                     </tr>
-                    {% endfor %}
                   </table>
-                  {% endif %}
                 </div>
                 {% endif %}
+                {% endif %}
 
-                <!-- SECTION 4: SUPERCHARGER EXPLORER -->
-                {% if modules.supercharger_explorer %}
-                <div class="card">
-                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 14px;">
+                <!-- CARD: VAMPIRE / PHANTOM STANDBY DRAIN (UNDER HEALTH & MAINTENANCE) -->
+                {% if modules.vampire_drain %}
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
                     <tr>
                       <td style="vertical-align: middle;">
-                        <div class="section-title" style="margin: 0;">
-                          <span style="margin-right: 8px;">⚡</span> Supercharger Explorer
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">🌙</span> Phantom / Standby Drain
                         </div>
                       </td>
-                      {% if grafana_charges_url %}
+                      {% if grafana_vampire_url %}
                       <td align="right" class="section-header-link-td" style="vertical-align: middle;">
-                        <a href="{{ grafana_charges_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Charges &rarr;</a>
+                        <a href="{{ grafana_vampire_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap; display: inline-block;">Open in Grafana &rarr;</a>
                       </td>
                       {% endif %}
                     </tr>
                   </table>
-
-                  <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive" style="margin-bottom: 12px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive">
                     <tr>
-                      <td width="50%" class="stack-mobile" style="padding-right: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
-                          <div style="font-size: 26px; font-weight: 800; color: {{ theme.accent_red }};">{{ superchargers.lifetime_unique_stations }}</div>
-                          <div style="font-size: 11px; color: {{ theme.text_muted }}; text-transform: uppercase;">Lifetime Stations Visited</div>
+                      <td width="33%" class="stack-mobile" style="padding-right: 6px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid #8b5cf6; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Parked Idle</div>
+                          <div style="font-size: 18px; font-weight: 800; color: {{ theme.text_primary }}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ vampire.total_idle_hours }} hrs</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">Standby monitoring</div>
                         </div>
                       </td>
-                      <td width="50%" class="stack-mobile" style="padding-left: 6px; vertical-align: top;">
-                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 12px; border-radius: 6px; border: 1px solid {{ theme.card_inner_border }}; text-align: center;">
-                          <div style="font-size: 26px; font-weight: 800; color: {{ theme.accent_green }};">{{ superchargers.month_sessions_count }}</div>
-                          <div style="font-size: 11px; color: {{ theme.text_muted }}; text-transform: uppercase;">Sessions This Period</div>
+                      <td width="33%" class="stack-mobile" style="padding: 0 3px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid #a855f7; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Standby Loss</div>
+                          <div style="font-size: 18px; font-weight: 800; color: {{ theme.text_primary }}; margin: 3px 0; font-variant-numeric: tabular-nums;">{{ vampire.estimated_loss_kwh }} kWh</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">Vampire loss</div>
+                        </div>
+                      </td>
+                      <td width="34%" class="stack-mobile" style="padding-left: 6px; vertical-align: top;">
+                        <div style="background-color: {{ theme.card_inner_bg }}; padding: 14px 10px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; border: 1px solid {{ theme.card_inner_border }}; border-top: 2px solid {{ theme.card_inner_border }}; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align: center;">
+                          <div style="font-size: 12px; color: {{ theme.text_muted }}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Standby Cost</div>
+                          <div style="font-size: 18px; font-weight: 800; color: {{ theme.text_primary }}; margin: 3px 0; font-variant-numeric: tabular-nums;">${{ "{:,.2f}".format(vampire.estimated_cost) }}</div>
+                          <div style="font-size: 12px; color: {{ theme.text_muted }};">Idle expense</div>
                         </div>
                       </td>
                     </tr>
                   </table>
-
-                  {% if superchargers.new_stations_this_month %}
-                  <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_primary }}; margin-bottom: 6px;">🎉 New Supercharger Stations Unlocked:</div>
-                  {% for s in superchargers.new_stations_this_month %}
-                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid {{ theme.card_inner_border }}; font-size: 12px; color: {{ theme.text_primary }};">
-                    <strong>{{ s.name }}</strong> ({{ s.date }}) &bull; Peak: {{ s.power_kw }} kW &bull; +{{ s.kwh }} kWh
-                  </div>
-                  {% endfor %}
-                  {% elif superchargers.recent_visits %}
-                  <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_primary }}; margin-bottom: 6px;">⚡ Supercharger Sessions This Period:</div>
-                  {% for s in superchargers.recent_visits %}
-                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; border: 1px solid {{ theme.card_inner_border }}; font-size: 12px; color: {{ theme.text_primary }};">
-                    <strong>{{ s.name }}</strong> ({{ s.date }}) &bull; Peak: {{ s.power_kw }} kW &bull; +{{ s.kwh }} kWh
-                  </div>
-                  {% endfor %}
-                  {% else %}
-                  <div style="font-size: 12px; color: {{ theme.text_muted }}; text-align: center; padding: 6px 0;">
-                    No Supercharger visits recorded during this reporting period.
-                  </div>
-                  {% endif %}
                 </div>
                 {% endif %}
 
-                <!-- SECTION 4B: DRIVING ACHIEVEMENTS & TROPHY ROOM -->
+                <!-- =================================================================== -->
+                <!-- SECTION: ACHIEVEMENTS & TROPHY ROOM -->
+                <!-- =================================================================== -->
                 {% if modules.achievements and achievements and achievements.has_data %}
-                <div class="card">
-                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 14px;">
+                <div class="card" style="background-color: {{ theme.card_bg }}; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}12px{% endif %}; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }}; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.08);">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_inner_border }}; padding-bottom: 12px;">
                     <tr>
                       <td style="vertical-align: middle;">
-                        <div class="section-title" style="margin: 0;">
-                          <span style="margin-right: 8px;">🏆</span> Driving Achievements & Badges
+                        <div class="section-title" style="margin: 0; font-size: 16px; font-weight: 700; color: {{ theme.text_primary }}; letter-spacing: -0.01em; font-family: {{ theme.header_font or 'inherit' }};">
+                          <span class="section-icon" style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}8px{% endif %}; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; margin-right: 10px; font-size: 14px; vertical-align: middle;">🏆</span> Driving Achievements &amp; Badges
                         </div>
                       </td>
                       {% if grafana_achievements_url %}
                       <td align="right" class="section-header-link-td" style="vertical-align: middle;">
-                        <a href="{{ grafana_achievements_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Trophy Room &rarr;</a>
+                        <a href="{{ grafana_achievements_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 4px 12px; border-radius: {% if theme.id == 'cybertruck' %}0px{% else %}20px{% endif %}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap; display: inline-block;">Trophy Room &rarr;</a>
                       </td>
                       {% endif %}
                     </tr>
@@ -982,14 +1338,14 @@
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="vertical-align: middle;">
-                          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: {{ theme.text_muted }}; font-weight: 700;">Gamification Progress</div>
+                          <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: {{ theme.text_muted }}; font-weight: 700;">Gamification Progress</div>
                           <div style="font-size: 22px; font-weight: 800; color: {{ theme.text_primary }}; margin-top: 2px;">
                             {{ achievements.total_unlocked }} <span style="font-size: 14px; font-weight: 500; color: {{ theme.text_muted }};">/ {{ achievements.total_achievements }} Badges Unlocked</span>
                           </div>
                         </td>
                         <td align="right" style="vertical-align: middle;">
                           <div style="font-size: 24px; font-weight: 800; color: {{ theme.accent_green }};">{{ achievements.unlocked_pct }}%</div>
-                          <div style="font-size: 10px; color: {{ theme.text_muted }}; text-transform: uppercase;">Completed</div>
+                          <div style="font-size: 11px; color: {{ theme.text_muted }}; text-transform: uppercase;">Completed</div>
                         </td>
                       </tr>
                     </table>
@@ -999,27 +1355,9 @@
                     </div>
                   </div>
 
-                  <!-- Category Breakdown Chips -->
-                  {% if achievements.categories %}
-                  <div style="margin-bottom: 12px;">
-                    <div style="font-size: 11px; font-weight: 700; color: {{ theme.text_muted }}; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Categories</div>
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 11px; color: {{ theme.text_secondary }}; line-height: 1.8;">
-                          {% for c in achievements.categories %}
-                          <span style="display: inline-block; background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 4px; padding: 2px 7px; margin: 2px 3px 2px 0;">
-                            <strong>{{ c.icon }} {{ c.name }}:</strong> {{ c.unlocked }}/{{ c.total }} ({{ c.pct }}%)
-                          </span>
-                          {% endfor %}
-                        </td>
-                      </tr>
-                    </table>
-                  </div>
-                  {% endif %}
-
-                  <!-- Badges Earned This Period vs Fallback Status -->
+                  <!-- Badges Earned This Period vs Clean Fallback -->
                   {% if achievements.earned_this_period and achievements.earned_this_period|length > 0 %}
-                  <div style="font-size: 11px; font-weight: 700; color: {{ theme.text_muted }}; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">🎖️ Badges Earned This Period ({{ achievements.earned_this_period|length }})</div>
+                  <div style="font-size: 12px; font-weight: 700; color: {{ theme.text_muted }}; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">🎖️ Badges Earned This Period ({{ achievements.earned_this_period|length }})</div>
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 6px;">
                     {% for b in achievements.earned_this_period %}
                     <tr>
@@ -1030,12 +1368,12 @@
                             <td style="vertical-align: middle; padding-left: 6px;">
                               <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_primary }};">
                                 {{ b.name }}
-                                <span style="font-size: 9px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.accent_green }}; padding: 1px 6px; border-radius: 999px; margin-left: 6px; text-transform: uppercase;">Earned This Period</span>
+                                <span style="font-size: 10px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.accent_green }}; padding: 1px 6px; border-radius: 999px; margin-left: 6px; text-transform: uppercase;">Earned</span>
                               </div>
-                              <div style="font-size: 11px; color: {{ theme.text_muted }}; margin-top: 1px;">{{ b.description }}</div>
+                              <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 1px;">{{ b.description }}</div>
                             </td>
                             <td align="right" class="mobile-hide" style="vertical-align: middle; white-space: nowrap;">
-                              <span style="font-size: 11px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.accent_green }}; padding: 2px 7px; border-radius: 4px;">🏆 Unlocked</span>
+                              <span style="font-size: 12px; font-weight: 700; color: {{ theme.accent_green }}; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.accent_green }}; padding: 2px 7px; border-radius: 4px;">🏆 Unlocked</span>
                             </td>
                           </tr>
                         </table>
@@ -1044,20 +1382,15 @@
                     {% endfor %}
                   </table>
                   {% else %}
-                  <!-- Fallback Status when no badges were earned this period -->
-                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 14px; border: 1px solid {{ theme.card_inner_border }}; text-align: center; margin-bottom: 6px;">
-                    <div style="font-size: 14px; font-weight: 800; color: {{ theme.text_primary }};">
-                      🏁 No New Badges Earned This Period
-                    </div>
-                    <div style="font-size: 11px; color: {{ theme.text_muted }}; margin-top: 4px; line-height: 1.5;">
-                      You currently hold <strong>{{ achievements.total_unlocked }}</strong> lifetime trophies ({{ achievements.unlocked_pct }}% of all badges). No new badge milestones were crossed during this digest cycle.
-                    </div>
+                  <!-- Clean Fallback Status when no badges were earned this period -->
+                  <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; padding: 12px 14px; border: 1px solid {{ theme.card_inner_border }}; font-size: 12px; color: {{ theme.text_muted }}; line-height: 1.5;">
+                    <strong style="color: {{ theme.text_primary }};">No New Badges Earned This Period:</strong> Holding <strong>{{ achievements.total_unlocked }}</strong> lifetime trophies ({{ achievements.unlocked_pct }}%).
                     {% if achievements.next_milestones %}
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed {{ theme.card_inner_border }}; font-size: 11px; color: {{ theme.text_secondary }};">
-                      <span style="text-transform: uppercase; font-weight: 700; color: {{ theme.text_muted }}; font-size: 10px; display: block; margin-bottom: 6px;">Next Milestone Targets</span>
-                      {% for m in achievements.next_milestones %}
-                      <span style="display: inline-block; background-color: {{ theme.table_row_alt }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 5px; padding: 3px 8px; margin: 2px 3px;">
-                        {{ m.icon }} <strong>{{ m.name }}</strong> ({{ m.progress_text }})
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed {{ theme.card_inner_border }};">
+                      <strong style="color: {{ theme.text_primary }};">Next Milestone Targets:</strong>
+                      {% for m in achievements.next_milestones[:2] %}
+                      <span style="display: inline-block; background-color: {{ theme.table_row_alt }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 4px; padding: 2px 7px; margin: 2px 3px 2px 0;">
+                        {{ m.icon }} {{ m.name }} ({{ m.progress_text }})
                       </span>
                       {% endfor %}
                     </div>
@@ -1067,129 +1400,13 @@
                 </div>
                 {% endif %}
 
-                <!-- SECTION 5: VEHICLE HEALTH, TPMS & TIRE ROTATION -->
-                {% if modules.maintenance_alerts %}
-                <div class="card">
-                  <div class="section-title">
-                    <span style="margin-right: 8px;">🛠️</span> Vehicle Telemetry & Maintenance Tracker
-                  </div>
-
-                  {% for car_h in health.cars %}
-                  <div style="margin-bottom: 16px; border-bottom: 1px solid {{ theme.card_border }}; padding-bottom: 14px;">
-                    <div style="font-weight: 700; font-size: 15px; color: {{ theme.text_primary }}; margin-bottom: 8px;">
-                      {{ car_h.car_name }} (Model {{ car_h.model }})
-                    </div>
-
-                    <!-- TPMS READINGS -->
-                    {% if car_h.tpms %}
-                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 6px;">
-                      Tire Pressure Telemetry ({{ car_h.tpms.unit | upper }}):
-                      {% if car_h.tpms.has_alert %}
-                      <span style="color: #ef4444; font-weight: 700; margin-left: 6px;">⚠️ {{ car_h.tpms.alert_msg }}</span>
-                      {% endif %}
-                    </div>
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
-                      <tr>
-                        <td width="48%" style="padding-right: 4px;">
-                          <div class="tpms-box" style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
-                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.fl_info.color }}; margin-right: 4px;"></span>
-                            Front Left: <strong>{{ car_h.tpms.front_left }} {{ car_h.tpms.unit }}</strong>
-                          </div>
-                        </td>
-                        <td width="48%" style="padding-left: 4px;">
-                          <div class="tpms-box" style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
-                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.fr_info.color }}; margin-right: 4px;"></span>
-                            Front Right: <strong>{{ car_h.tpms.front_right }} {{ car_h.tpms.unit }}</strong>
-                          </div>
-                        </td>
-                      </tr>
-                      <tr><td colspan="2" style="height: 6px;"></td></tr>
-                      <tr>
-                        <td width="48%" style="padding-right: 4px;">
-                          <div class="tpms-box" style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
-                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.rl_info.color }}; margin-right: 4px;"></span>
-                            Rear Left: <strong>{{ car_h.tpms.rear_left }} {{ car_h.tpms.unit }}</strong>
-                          </div>
-                        </td>
-                        <td width="48%" style="padding-left: 4px;">
-                          <div class="tpms-box" style="background-color: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; border-radius: 6px; padding: 6px 10px; font-size: 12px; text-align: center; color: {{ theme.text_primary }};">
-                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: {{ car_h.tpms.rr_info.color }}; margin-right: 4px;"></span>
-                            Rear Right: <strong>{{ car_h.tpms.rear_right }} {{ car_h.tpms.unit }}</strong>
-                          </div>
-                        </td>
-                      </tr>
-                    </table>
-                    {% else %}
-                    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-bottom: 12px; text-align: center; padding: 6px 0; background-color: {{ theme.card_inner_bg }}; border-radius: 6px;">
-                      No tire pressure readings recorded yet for this vehicle.
-                    </div>
-                    {% endif %}
-
-                    <!-- TIRE ROTATION PROGRESS -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 4px; font-size: 12px; color: {{ theme.text_muted }};">
-                      <tr>
-                        <td align="left">Tire Rotation Status</td>
-                        <td align="right"><strong style="color: {{ theme.text_primary }};">{{ "{:,.0f}".format(car_h.tire_rotation.dist_driven_since) }} / {{ "{:,.0f}".format(car_h.tire_rotation.interval) }} {{ car_h.tire_rotation.unit }}</strong></td>
-                      </tr>
-                    </table>
-                    <div style="background-color: {{ theme.card_inner_bg }}; border-radius: 8px; height: 10px; width: 100%; overflow: hidden; margin-bottom: 6px;">
-                      <div style="background-color: {{ car_h.tire_rotation.color }}; width: {{ car_h.tire_rotation.pct_progress }}%; height: 100%; border-radius: 8px;"></div>
-                    </div>
-                    <div style="font-size: 11px; color: {{ theme.text_muted }};">
-                      {% if car_h.tire_rotation.is_due %}
-                      <span style="color: #f87171; font-weight: 700;">⚠️ Tire rotation recommended now!</span> ({{ "{:,.0f}".format(car_h.tire_rotation.dist_remaining) }} {{ car_h.tire_rotation.unit }} remaining)
-                      {% else %}
-                      {{ "{:,.0f}".format(car_h.tire_rotation.dist_remaining) }} {{ car_h.tire_rotation.unit }} remaining until next {{ "{:,.0f}".format(car_h.tire_rotation.interval) }} {{ car_h.tire_rotation.unit }} interval.
-                      {% endif %}
-                    </div>
-                  </div>
-                  {% endfor %}
-                </div>
-                {% endif %}
-
-                <!-- SECTION 6: VAMPIRE / STANDBY DRAIN -->
-                {% if modules.vampire_drain %}
-                <div class="card">
-                  <table width="100%" cellpadding="0" cellspacing="0" class="section-header-table" style="margin-bottom: 14px;">
-                    <tr>
-                      <td style="vertical-align: middle;">
-                        <div class="section-title" style="margin: 0;">
-                          <span style="margin-right: 8px;">🌙</span> Phantom / Standby Loss
-                        </div>
-                      </td>
-                      {% if grafana_vampire_url %}
-                      <td align="right" class="section-header-link-td" style="vertical-align: middle;">
-                        <a href="{{ grafana_vampire_url }}" target="_blank" style="font-size: 11px; font-weight: 700; color: {{ theme.footer_link }}; text-decoration: none; padding: 3px 8px; border-radius: 4px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; white-space: nowrap;">📊 Live Dashboard &rarr;</a>
-                      </td>
-                      {% endif %}
-                    </tr>
-                  </table>
-                  <table width="100%" cellpadding="0" cellspacing="0" class="table-responsive">
-                    <tr>
-                      <td width="33%" class="stack-mobile" style="text-align: center; vertical-align: top;">
-                        <div style="font-size: 18px; font-weight: 700; color: {{ theme.text_primary }};">{{ vampire.total_idle_hours }} hrs</div>
-                        <div style="font-size: 11px; color: {{ theme.text_muted }};">Total Parked Time</div>
-                      </td>
-                      <td width="33%" class="stack-mobile" style="text-align: center; vertical-align: top;">
-                        <div style="font-size: 18px; font-weight: 700; color: #fbbf24;">{{ vampire.estimated_loss_kwh }} kWh</div>
-                        <div style="font-size: 11px; color: {{ theme.text_muted }};">Estimated Standby Loss</div>
-                      </td>
-                      <td width="34%" class="stack-mobile" style="text-align: center; vertical-align: top;">
-                        <div style="font-size: 18px; font-weight: 700; color: {{ theme.text_primary }};">${{ "{:,.2f}".format(vampire.estimated_cost) }}</div>
-                        <div style="font-size: 11px; color: {{ theme.text_muted }};">Standby Idle Cost</div>
-                      </td>
-                    </tr>
-                  </table>
-                </div>
-                {% endif %}
-
               </td>
             </tr>
 
             <!-- FOOTER -->
             <tr>
-              <td class="footer-td" style="padding: 18px 24px; background-color: {{ theme.footer_bg }}; border-top: 1px solid {{ theme.footer_border }}; text-align: center; color: {{ theme.footer_text }}; font-size: 12px;">
-                Generated by <strong>TeslaMate Digest</strong><br>
+              <td class="footer-td" style="padding: 20px 24px; background-color: {{ theme.footer_bg }}; border-top: 1px solid {{ theme.footer_border }}; text-align: center; color: {{ theme.footer_text }}; font-size: 12px; line-height: 1.6;">
+                Generated by <strong>TeslaMate Digest</strong>{% if generation_timestamp %} &bull; {{ generation_timestamp }}{% endif %}<br>
                 <div style="margin-top: 8px;">
                   {% if teslamate_url %}
                   <a href="{{ teslamate_url }}" target="_blank" style="color: {{ theme.footer_link }}; text-decoration: none; margin: 0 8px; font-weight: 600;">⚡ TeslaMate</a> &bull;

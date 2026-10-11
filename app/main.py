@@ -4,10 +4,12 @@ from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
 
 from fastapi import FastAPI, Request, Form, Query
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, PlainTextResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, PlainTextResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+import base64
+import secrets
 import os
 import re
 import json
@@ -45,6 +47,7 @@ from app.services.gas_prices import fetch_gas_price_details
 from app.services.electric_rates import fetch_electric_rates, search_electric_rate_plans
 from app.services.homeassistant import verify_ha_connection, discover_ha_solar_entities
 from app.services.units import get_effective_units
+from app import __version__
 from app.storage import get_recent_dispatches
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -57,6 +60,7 @@ if not CUSTOM_TEMPLATES_DIR.exists():
         CUSTOM_TEMPLATES_DIR = fallback_custom
 
 templates = Jinja2Templates(directory=str(WEB_TEMPLATES_DIR))
+templates.env.globals["app_version"] = __version__
 
 
 @asynccontextmanager
@@ -105,6 +109,36 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
+
+
+WEB_AUTH_USER = os.getenv("WEB_AUTH_USER", os.getenv("WEB_AUTH_USERNAME", "")).strip()
+WEB_AUTH_PASS = os.getenv("WEB_AUTH_PASS", os.getenv("WEB_AUTH_PASSWORD", "")).strip()
+
+
+@app.middleware("http")
+async def basic_auth_middleware(request: Request, call_next):
+    if WEB_AUTH_USER and WEB_AUTH_PASS:
+        path = request.url.path
+        if not path.startswith("/static") and path not in ("/favicon.ico", "/api/health"):
+            auth_header = request.headers.get("Authorization")
+            authenticated = False
+            if auth_header and auth_header.startswith("Basic "):
+                try:
+                    encoded_creds = auth_header.split(" ", 1)[1].strip()
+                    decoded = base64.b64decode(encoded_creds).decode("utf-8")
+                    if ":" in decoded:
+                        u, p = decoded.split(":", 1)
+                        if secrets.compare_digest(u, WEB_AUTH_USER) and secrets.compare_digest(p, WEB_AUTH_PASS):
+                            authenticated = True
+                except Exception:
+                    pass
+            if not authenticated:
+                return Response(
+                    content="Unauthorized - Access to TeslaMate Digest requires credentials.",
+                    status_code=401,
+                    headers={"WWW-Authenticate": 'Basic realm="TeslaMate Digest"'}
+                )
+    return await call_next(request)
 
 
 if STATIC_DIR.exists():
@@ -233,7 +267,7 @@ async def search_locations(request: Request, q: str = Query("", alias="q"), limi
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "service": "teslamate-digest"}
+    return {"status": "healthy", "service": "teslamate-digest", "version": __version__}
 
 
 @app.post("/api/geofences/sync")
@@ -747,39 +781,38 @@ def generate_theme_starter(theme_name: str) -> str:
     theme = get_theme(theme_name)
     is_cyber = (theme.get("id") == "cybertruck")
 
+    pat_ifelse = r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}((?:(?!\{%\s*if)[\s\S])*?)\{%\s*else\s*%\}((?:(?!\{%\s*if)[\s\S])*?)\{%\s*endif\s*%\}'
+    pat_if = r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}((?:(?!\{%\s*else)(?!\{%\s*if)[\s\S])*?)\{%\s*endif\s*%\}'
+
     if is_cyber:
-        content = re.sub(
-            r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}([^%]*?)\{%\s*else\s*%\}([^%]*?)\{%\s*endif\s*%\}',
-            r'\1',
-            content
-        )
-        content = re.sub(
-            r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}((?:(?!\{%\s*endif\s*%\})[\s\S])*?)\{%\s*endif\s*%\}',
-            r'\1',
-            content
-        )
+        content = re.sub(pat_ifelse, r'\1', content)
+        content = re.sub(pat_if, r'\1', content)
     else:
-        content = re.sub(
-            r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}([^%]*?)\{%\s*else\s*%\}([^%]*?)\{%\s*endif\s*%\}',
-            r'\2',
-            content
-        )
-        content = re.sub(
-            r'\{%\s*if\s+theme\.id\s*==\s*[\'"]cybertruck[\'"]\s*%\}((?:(?!\{%\s*endif\s*%\})[\s\S])*?)\{%\s*endif\s*%\}',
-            '',
-            content
-        )
+        content = re.sub(pat_ifelse, r'\2', content)
+        content = re.sub(pat_if, '', content)
 
-    for k, v in theme.items():
-        if isinstance(v, str):
-            content = content.replace(f"{{{{ theme.{k} }}}}", v)
-            content = content.replace(f"{{{{theme.{k}}}}}", v)
-
-    content = content.replace(
-        "{{ theme.font_family or '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif' }}",
-        theme.get("font_family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif")
+    # Replace font family and header font with fallback expressions
+    default_font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    content = re.sub(
+        r'\{\{\s*theme\.font_family(\s+or\s+.*?)?\}\}',
+        theme.get("font_family", default_font),
+        content
     )
-    content = content.replace("{{ theme.header_font or 'inherit' }}", theme.get("header_font", "inherit"))
+    content = re.sub(
+        r'\{\{\s*theme\.header_font(\s+or\s+.*?)?\}\}',
+        theme.get("header_font", "inherit"),
+        content
+    )
+
+    # Replace all individual theme variables
+    def replace_theme_var(match):
+        var_name = match.group(1)
+        val = theme.get(var_name)
+        if val is not None and isinstance(val, (str, int, float)):
+            return str(val)
+        return match.group(0)
+
+    content = re.sub(r'\{\{\s*theme\.([a-zA-Z0-9_]+)\s*\}\}', replace_theme_var, content)
 
     return content
 
@@ -837,14 +870,18 @@ async def get_theme_palette(theme: str = Query("pearl_white")):
         "card_bg": t.get("card_bg"),
         "card_border": t.get("card_border"),
         "card_inner_bg": t.get("card_inner_bg"),
+        "card_inner_border": t.get("card_inner_border", "#cbd5e1"),
         "text_primary": t.get("text_primary"),
+        "text_secondary": t.get("text_secondary", "#334155"),
         "text_muted": t.get("text_muted"),
         "accent_red": t.get("accent_red"),
-        "accent_green": t.get("accent_green"),
-        "accent_blue": t.get("accent_blue"),
+        "accent_green": t.get("accent_green", "#10b981"),
+        "accent_blue": t.get("accent_blue", "#38bdf8"),
         "badge_bg": t.get("badge_bg"),
         "badge_text": t.get("badge_text"),
         "badge_border": t.get("badge_border"),
+        "header_bg": t.get("header_bg"),
+        "main_bg": t.get("main_bg"),
     })
 
 

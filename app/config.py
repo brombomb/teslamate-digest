@@ -178,7 +178,7 @@ class HomeAssistantConfig(BaseModel):
     url: str = "http://homeassistant:8123"
     token: str = ""
     solar_energy_entity: str = "sensor.tesla_solar_production"
-    solar_power_entity: str = "sensor.1au_solar_power"
+    solar_power_entity: str = "sensor.solar_power"
     grid_import_entity: str = "sensor.current_grid_consumption"
     grid_export_entity: str = "sensor.current_grid_feed"
     home_load_entity: str = "sensor.total_load_energy"

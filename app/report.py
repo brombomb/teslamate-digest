@@ -20,6 +20,7 @@ from app.analytics.compliance import get_charge_compliance_analytics
 from app.analytics.work_mileage import get_work_mileage_analytics
 from app.analytics.wrapped import get_year_in_review_analytics
 from app.analytics.achievements import get_achievements_analytics
+from app.analytics.insights import generate_digest_insights
 from app.themes import get_theme
 from app.services.geofences import get_effective_service_urls, get_grafana_dashboard_urls
 from app.services.homeassistant import fetch_solar_summary
@@ -90,7 +91,11 @@ async def fetch_digest_telemetry(
     async def _get_gas_price():
         if config.rates.auto_gas_price:
             from app.services.gas_prices import fetch_live_gas_price
-            return await fetch_live_gas_price(config.rates.zip_code, config.rates.gas_price_per_gal)
+            return await fetch_live_gas_price(
+                config.rates.zip_code,
+                config.rates.gas_price_per_gal,
+                force_refresh=force_refresh
+            )
         return config.rates.gas_price_per_gal
 
     # 3. Achievements helper
@@ -230,7 +235,7 @@ async def build_digest_report(
         start_date=start_date,
         end_date=end_date,
         car_id=car_id,
-        force_refresh=force_refresh
+        force_refresh=(force_refresh or for_email)
     )
 
     units = telemetry["units"]
@@ -248,23 +253,125 @@ async def build_digest_report(
     cars = telemetry["cars"]
 
     car_name = "Fleet"
+    single_car_name = None
+    car_badge = None
     if car_id:
         for c in cars:
             if c["id"] == car_id:
-                car_name = f"{c['name']} (Model {c['model']})"
+                single_car_name = c["name"]
+                model_str = f"Model {c['model']}" if c.get("model") else ""
+                trim_str = c.get("trim_badging") or ""
+                if model_str and trim_str:
+                    car_badge = f"{model_str} · {trim_str}"
+                elif model_str:
+                    car_badge = model_str
+                elif trim_str:
+                    car_badge = trim_str
+                else:
+                    car_badge = "Tesla"
+                car_name = f"{c['name']} ({car_badge})"
                 break
-
-    # Determine titles
-    is_monthly = (end_date - start_date).days >= 27
-    if is_monthly:
-        report_title = start_date.strftime("%B %Y") + " Report"
+    elif len(cars) == 1:
+        c = cars[0]
+        single_car_name = c["name"]
+        model_str = f"Model {c['model']}" if c.get("model") else ""
+        trim_str = c.get("trim_badging") or ""
+        if model_str and trim_str:
+            car_badge = f"{model_str} · {trim_str}"
+        elif model_str:
+            car_badge = model_str
+        elif trim_str:
+            car_badge = trim_str
+        else:
+            car_badge = "Tesla"
+        car_name = f"{c['name']} ({car_badge})"
     else:
-        report_title = f"Report ({start_date.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')})"
+        car_badge = f"{len(cars)} Vehicles" if len(cars) > 1 else "All Vehicles"
 
-    date_subtitle = f"{start_date.strftime('%b %d, %Y')} to {end_date.strftime('%b %d, %Y')}"
+    car_display = single_car_name or "Your Fleet"
+
+    # Inclusive end date calculation for user display (e.g. Sep 1–30 rather than Sep 01 to Oct 01)
+    inclusive_end = end_date - timedelta(days=1) if end_date > start_date and (end_date.hour == 0 and end_date.minute == 0) else end_date
+    if inclusive_end < start_date:
+        inclusive_end = start_date
+
+    is_monthly = (end_date - start_date).days >= 27
+    is_single_day = (inclusive_end.date() == start_date.date())
+
+    if is_monthly:
+        period_label = "Monthly Review"
+    elif is_single_day:
+        period_label = "Daily Report"
+    elif (end_date - start_date).days <= 8:
+        period_label = "Weekly Report"
+    else:
+        period_label = "Fleet Review" if not single_car_name else "Vehicle Review"
+
+    def format_day(d: datetime) -> str:
+        return f"{d.strftime('%b')} {d.day}"
+
+    if is_monthly:
+        report_title = f"{car_display} · {start_date.strftime('%B %Y')}"
+        if start_date.year == inclusive_end.year:
+            date_subtitle = f"{format_day(start_date)}–{inclusive_end.day}, {start_date.year}"
+        else:
+            date_subtitle = f"{format_day(start_date)}, {start_date.year} – {format_day(inclusive_end)}, {inclusive_end.year}"
+    elif is_single_day:
+        report_title = f"{car_display} · {start_date.strftime('%a %b')} {start_date.day}"
+        date_subtitle = f"{start_date.strftime('%A, %B')} {start_date.day}, {start_date.year}"
+    else:
+        if start_date.month == inclusive_end.month and start_date.year == inclusive_end.year:
+            report_title = f"{car_display} · {format_day(start_date)}–{inclusive_end.day}"
+            date_subtitle = f"{format_day(start_date)}–{inclusive_end.day}, {start_date.year}"
+        else:
+            report_title = f"{car_display} · {format_day(start_date)} – {format_day(inclusive_end)}"
+            date_subtitle = f"{format_day(start_date)} – {format_day(inclusive_end)}, {inclusive_end.year}"
+
     car_subtitle = car_name
 
-    subject = f"⚡ TeslaMate Digest: {report_title} [{car_name}]"
+    # One-line summary and preheader
+    miles_val = trips.get("total_miles", 0.0)
+    spend_val = charging.get("total_spend", 0.0)
+    off_peak_pct = charging.get("off_peak_score_pct", 100.0)
+
+    summary_parts = [
+        f"{miles_val:,.0f} {units.get('length', 'mi')}",
+        f"${spend_val:,.2f}",
+        f"{off_peak_pct:.0f}% off-peak",
+    ]
+    gas_saved_val = charging.get("gas_savings", {}).get("net_savings", 0.0)
+    if gas_saved_val > 0:
+        summary_parts.append(f"${gas_saved_val:,.0f} saved")
+
+    one_line_summary = " · ".join(summary_parts)
+    preheader_text = f"{report_title}: {one_line_summary}"
+    subject = f"⚡ TeslaMate Digest: {report_title}"
+
+    # Fetch previous period telemetry for MoM deltas
+    prev_telemetry = None
+    period_duration = end_date - start_date
+    if period_duration.total_seconds() > 0:
+        prev_start = start_date - period_duration
+        prev_end = start_date
+        try:
+            prev_telemetry = await fetch_digest_telemetry(
+                db=db,
+                config=config,
+                start_date=prev_start,
+                end_date=prev_end,
+                car_id=car_id,
+                force_refresh=False
+            )
+        except Exception as e:
+            print(f"[Report] Error fetching previous period telemetry: {e}")
+
+    insights = generate_digest_insights(telemetry, config, prev_telemetry=prev_telemetry)
+
+    try:
+        tz = ZoneInfo(config.timezone)
+        generation_timestamp = datetime.now(tz).strftime("%b %d, %Y at %I:%M %p %Z")
+    except Exception:
+        generation_timestamp = datetime.now(timezone.utc).strftime("%b %d, %Y at %I:%M %p UTC")
 
     # Battery health is strictly monthly only per user requirement
     show_battery_health = bool(active_modules.battery_health and is_monthly)
@@ -360,6 +467,12 @@ async def build_digest_report(
         report_title=report_title,
         date_subtitle=date_subtitle,
         car_subtitle=car_subtitle,
+        car_badge=car_badge,
+        period_label=period_label,
+        one_line_summary=one_line_summary,
+        preheader_text=preheader_text,
+        generation_timestamp=generation_timestamp,
+        insights=insights,
         units=units,
         trips=trips,
         charging=charging,

@@ -149,7 +149,15 @@ async def fetch_gas_price_details(
     return fallback_data
 
 
-async def fetch_live_gas_price(zip_code: str = "", fallback: float = 3.50) -> float:
+async def fetch_live_gas_price(
+    zip_code: str = "",
+    fallback: float = 3.50,
+    force_refresh: bool = False
+) -> float:
     """Convenience helper returning just the float price."""
-    details = await fetch_gas_price_details(zip_code=zip_code, fallback=fallback)
+    details = await fetch_gas_price_details(
+        zip_code=zip_code,
+        fallback=fallback,
+        force_refresh=force_refresh
+    )
     return float(details.get("price", fallback))

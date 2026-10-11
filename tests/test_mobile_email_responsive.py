@@ -337,3 +337,30 @@ def test_standardized_chart_dimensions_and_export():
     img_tpms = Image.open(io.BytesIO(tpms_bytes))
     assert img_tpms.size == (1120, 392)
 
+
+def test_digest_template_section_demarcations_and_inline_theming():
+    env = get_jinja_env()
+    template = env.get_template("digest.html")
+    with open(template.filename, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # 1. Coherent Pillar Demarcation headers present
+    assert "🚘 DRIVING &amp; ACTIVITY" in content
+    assert "⚡ ENERGY &amp; CHARGING" in content
+    assert "🛡️ HEALTH &amp; MAINTENANCE" in content
+    assert "section-demarcation" in content
+    assert "demarcation-badge" in content
+
+    # 2. Resilient Inline Styles on critical outer elements to prevent theme loss in email clients
+    assert '<body style="margin: 0; padding: 0; background-color: {{ theme.body_bg }}' in content
+    assert '<center class="wrapper" style="width: 100%; table-layout: fixed; background-color: {{ theme.wrapper_bg }}' in content
+    assert '<table role="presentation" class="main-table" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 660px;' in content
+
+    # 3. All cards have inline background, borders, and shadows
+    assert 'class="card" style="background-color: {{ theme.card_bg }}' in content
+    assert 'box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16)' in content
+
+    # 4. Mobile responsiveness includes generous spacing to avoid stuffiness
+    assert ".content-td {\n        padding: 18px 14px 20px 14px !important;" in content or "padding: 18px 14px 20px 14px !important;" in content
+    assert ".card {\n        padding: 18px 16px !important;\n        margin-bottom: 18px !important;" in content or "margin-bottom: 18px !important;" in content
+

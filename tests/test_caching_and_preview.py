@@ -264,3 +264,105 @@ def test_mailer_crlf_stripping():
         assert "\r" not in from_arg and "\n" not in from_arg
         assert "\r" not in to_arg[0] and "\n" not in to_arg[0]
 
+
+def test_builder_view_and_theme_starter():
+    client = TestClient(app)
+
+    # 1. Builder UI renders properly with all module blocks & tabs
+    res = client.get("/builder")
+    assert res.status_code == 200
+    html = res.text
+    assert "Custom Template Builder" in html
+    assert "Quick Insert Module Cards" in html
+    assert "tab-btn-body" in html
+    assert "tab-btn-style" in html
+    assert "tab-btn-full" in html
+    assert "Battery Health" in html
+    assert "TPMS" in html
+    assert "Solar Production" in html
+    assert "Vampire Loss" in html
+
+    # 2. Starter generation produces valid CSS without truncated style block
+    res_starter = client.get("/builder/starter?theme=pearl_white")
+    assert res_starter.status_code == 200
+    starter_html = res_starter.text
+    assert "<style>" in starter_html
+    assert "body {" in starter_html
+    assert ".main-table {" in starter_html
+    assert "{{ theme.body_bg }}" not in starter_html
+    assert "{{ theme.card_bg }}" not in starter_html
+    assert "{{ theme.font_family" not in starter_html
+
+    # 3. Cybertruck theme starter produces 0px border radius
+    res_cyber = client.get("/builder/starter?theme=cybertruck")
+    assert res_cyber.status_code == 200
+    cyber_html = res_cyber.text
+    assert "0px" in cyber_html
+
+    # 4. Theme palette endpoint returns comprehensive tokens
+    res_pal = client.get("/api/theme-palette?theme=obsidian_black")
+    assert res_pal.status_code == 200
+    pal_data = res_pal.json()
+    assert pal_data["id"] == "obsidian_black"
+    assert "card_inner_border" in pal_data
+    assert "accent_green" in pal_data
+    assert "badge_bg" in pal_data
+
+
+def test_preview_page_view():
+    mock_db = MagicMock()
+    mock_db.get_cars = AsyncMock(return_value=[{"id": 1, "name": "Model 3", "model": "3"}])
+    app.state.db = mock_db
+
+    async def fake_build_digest(*args, **kwargs):
+        return ("Digest Report", "<html><body>Digest Body</body></html>", {})
+
+    with patch("app.main.build_digest_report", side_effect=fake_build_digest):
+        with TestClient(app) as client:
+            res = client.get("/preview")
+            assert res.status_code == 200
+            assert "Live Preview" in res.text
+
+
+@pytest.mark.anyio
+async def test_fetch_digest_telemetry_gas_price_refresh():
+    from app.report import fetch_digest_telemetry
+    mock_db = MagicMock()
+    def mock_fetchrow(query, *args):
+        if "ORDER BY d.distance DESC" in query:
+            return None
+        return {
+            "drives_count": 0,
+            "total_km": 0,
+            "total_duration_min": 0,
+            "top_speed_kmh": 0,
+            "total_ascent_m": 0,
+            "total_descent_m": 0
+        }
+
+    mock_db.fetchrow = AsyncMock(side_effect=mock_fetchrow)
+    mock_db.fetch = AsyncMock(return_value=[])
+    mock_db.get_units = AsyncMock(return_value={"unit_of_length": "mi", "unit_of_temperature": "F"})
+    mock_db.get_trips = AsyncMock(return_value=[])
+    mock_db.get_charging_sessions = AsyncMock(return_value=[])
+    mock_db.get_battery_health = AsyncMock(return_value=[])
+    mock_db.get_cars = AsyncMock(return_value=[{"id": 1, "name": "Test Car", "model": "Y"}])
+    mock_db.get_addresses = AsyncMock(return_value=[])
+    mock_db.get_charges_with_cost = AsyncMock(return_value=[])
+    cfg = load_config()
+    cfg.rates.auto_gas_price = True
+
+    with patch("app.services.gas_prices.fetch_live_gas_price", new_callable=AsyncMock) as mock_gas:
+        mock_gas.return_value = 3.89
+        tel = await fetch_digest_telemetry(
+            db=mock_db,
+            config=cfg,
+            start_date=datetime(2026, 8, 1),
+            end_date=datetime(2026, 8, 31),
+            car_id=1,
+            force_refresh=True
+        )
+        assert mock_gas.called
+        assert mock_gas.call_args[1]["force_refresh"] is True
+
+

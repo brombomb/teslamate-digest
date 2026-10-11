@@ -1,96 +1,39 @@
 # ⚡ TeslaMate Digest
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-red.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
-[![Docker Ready](https://img.shields.io/badge/docker-ready-2496ED.svg)](https://www.docker.com/)
+[![Python](https://img.shields.io/badge/python-3.12-blue?style=flat-square)](https://www.python.org/)
+[![Docker Ready](https://img.shields.io/badge/docker-ready-2496ED?style=flat-square)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-A modern, automated personal email digest service and annual retrospective built on top of your **TeslaMate** telemetry data.
+A modern, self-hosted Python web application and automated email digest service built on top of your [TeslaMate](https://github.com/teslamate-org/teslamate) telemetry data.
 
-Delivering utility financial clarity, rich travel storytelling, vehicle telemetry monitoring, and celebratory annual retrospective data badges.
-
----
-
-## ✨ Features & Modules
-
-### 1. ⚡ Electric Spend & Grid Analytics
-* **$ Spend on Charging**: Detailed financial breakdown by location (**Home Off-Peak**, **Home On-Peak**, **Superchargers**, **Public AC**).
-* **Time-of-Use (TOU) Engine**: Configure your off-peak and on-peak hours/rates; automatically calculates energy drawn hour-by-hour from the `charges` table.
-* **Off-Peak Score**: Shows what percentage of your home charging occurred during optimal overnight grid hours.
-* **Gas Savings & Environmental Offset**: Calculates exact money saved compared to fueling a baseline gas vehicle, gallons of gasoline avoided, and pounds of $\text{CO}_2$ prevented.
-
-### 2. 🔋 Battery Health & Degradation Tracker
-* **100% Rated Range Estimate**: Tracks capacity trends across charges (e.g. Model X ~286 mi, Model Y ~278 mi).
-* **Degradation % & Health Grade**: Calculates capacity retained over time with an automated health grade (*Excellent*, *Good*, *Fair*).
-* **High-Res Trendline**: Embeds a 6-month historical trendline directly into the email.
-
-### 3. 📍 Driving Highlights & Places (The Google Maps Module)
-* **Top Destinations**: Ranks your most frequently visited spots (using reverse-geocoded addresses and geofences) with visit counts.
-* **Longest Journey of the Month**: Highlights your biggest road trip (origin, destination, distance, duration, elevation profile).
-* **🏔️ Mountain Elevation & Regen**: Tracks total vertical feet climbed and descended, plus estimates kWh recaptured via regenerative braking on mountain descents.
- 
-### 4. ⚡ Supercharger Explorer
-* **Lifetime Unique Stations Counter**: Keeps track of every distinct Supercharger station you have ever plugged into.
-* **New Superchargers Unlocked**: Badges any new station visited during the reporting period with date, peak kW power, and energy added.
-
-### 5. 🛠️ Vehicle Telemetry & Maintenance Tracker
-* **4-Corner TPMS Graphic**: Visual tire pressure card (FL, FR, RL, RR in PSI or Bar) with color-coded status (Normal vs. Low vs. Left/Right Imbalance).
-* **Tire Rotation Reminder**: Counts miles driven since your last recorded rotation against Tesla's recommended 6,250-mile (10,000 km) interval with a visual progress bar.
-* **Firmware Updates**: Logs any new software releases installed on your vehicles during the period.
-
-### 6. 🌙 Vampire / Phantom Standby Loss
-* **Sleep Efficiency %**: Tracks hours parked asleep vs. awake/online (Sentry mode, standby polling).
-* **Standby Drain Cost**: Calculates estimated kWh and dollars spent on parked idle standby.
-
-### 7. 🎉 Spotify Wrapped "Year in Review" (Annual Retrospective)
-* Available on-demand or dispatched on New Year's Day.
-* Celebrates your year with driver archetype badges (e.g. *The Night Owl Charger*, *The Peak Bagger*, *The Road Warrior*, *The Wallet Defender*), total miles driven vs. Earth circumnavigations, and yearly top destinations.
-
-### 8. 💻 Interactive Web Dashboard & Live Previewer
-* Local web UI running on port **`8660`**.
-* **Interactive Live Preview**: Render any past month, week, day, or Year-in-Review directly in your browser with desktop and mobile simulator modes before emailing.
-* **One-Click Dispatch**: "Send Test to Inbox" button to test delivery instantly.
-* **Maintenance Logger**: Easily update tire rotation dates and odometers with one click.
-* **Template Customization**: Supports mounting your own Jinja2 template (`/app/custom_templates/digest.html`) to completely customize the email layout.
+Delivering financial charging clarity, battery health tracking, maintenance monitoring, and celebratory annual retrospectives directly to your inbox.
 
 ---
 
-## 🚀 Quickstart
+## 📸 Preview
 
-### Method 1: Add to Existing TeslaMate Stack (Recommended)
+![TeslaMate Digest Preview](docs/screenshots/preview.png)
 
-Simply add the `teslamate-digest` service to your existing `compose.yaml`:
+---
 
-```yaml
-services:
-  # ... your existing teslamate, database, grafana, etc ...
+## ✨ Features
 
-  teslamate-digest:
-    container_name: teslamate-digest
-    image: teslamate-digest:latest
-    build:
-      context: https://github.com/brombomb/teslamate-digest.git
-    restart: unless-stopped
-    ports:
-      - "8660:8660"
-    environment:
-      - TZ=UTC
-      - DATABASE_HOST=database
-      - DATABASE_PORT=5432
-      - DATABASE_USER=teslamate
-      - DATABASE_PASS=your_postgres_password
-      - DATABASE_NAME=teslamate
-      - DATA_DIR=/app/data
-    volumes:
-      - teslamate-digest-data:/app/data
-      - ./custom_templates:/app/custom_templates
-    depends_on:
-      - database
+- **⚡ Charging & Electric Spend Breakdown**: Detailed financial accounting of home charging across Time-of-Use (TOU) tiers (Off-Peak vs. Shoulder vs. On-Peak), Superchargers, and net savings vs. gasoline.
+- **🔋 Battery Health & Degradation**: 100% rated range tracking, BMS capacity degradation curves over time, and individual vehicle baselines for multi-car fleets.
+- **🛠️ Telemetry & Maintenance**: Visual 4-corner TPMS tire pressure monitoring with color-coded balance alerts, dynamic tire rotation progress bar, and firmware update logs.
+- **📍 Driving Highlights & Places**: Tracks your longest road trips, most-visited destinations, mountain elevation gain, and regenerative braking energy recapture.
+- **🌙 Phantom / Standby Loss**: Monitors parked sleep efficiency, vampire drain kWh, and idle costs.
+- **🏆 Gamification & Year in Review**: 45+ unlockable driving and charging milestone badges plus a celebratory Spotify-style **Year in Review (Wrapped)** retrospective.
+- **☀️ Solar & Home Assistant Sync**: Connect with Home Assistant to track solar charging coverage and self-consumption.
+- **💻 Interactive Web Dashboard & Previewer**: Clean browser UI on port `8660` with desktop and mobile email simulators, color themes, and one-click test sends.
 
-volumes:
-  teslamate-digest-data:
-```
+---
 
-### Method 2: Standalone Compose (Connecting to External Network)
+## 🚀 Usage
+
+### docker-compose (Recommended)
+
+Simply add the `teslamate-digest` service to your existing TeslaMate `docker-compose.yml`:
 
 ```yaml
 services:
@@ -103,115 +46,98 @@ services:
       - "8660:8660"
     environment:
       - TZ=America/Denver
-      - DATABASE_HOST=teslamate-db
+      - DATABASE_HOST=database
       - DATABASE_PORT=5432
       - DATABASE_USER=teslamate
       - DATABASE_PASS=your_postgres_password
       - DATABASE_NAME=teslamate
+      - GRAFANA_URL=http://grafana:3000
       - DATA_DIR=/app/data
     volumes:
       - ./data:/app/data
-    networks:
-      - teslamate_default
+      - ./custom_templates:/app/custom_templates
+    depends_on:
+      - database
+```
 
-networks:
-  teslamate_default:
-    external: true
+### docker cli
+
+```bash
+docker run -d \
+  --name=teslamate-digest \
+  -p 8660:8660 \
+  -e TZ=America/Denver \
+  -e DATABASE_HOST=database \
+  -e DATABASE_PORT=5432 \
+  -e DATABASE_USER=teslamate \
+  -e DATABASE_PASS=your_postgres_password \
+  -e DATABASE_NAME=teslamate \
+  -e GRAFANA_URL=http://grafana:3000 \
+  -e DATA_DIR=/app/data \
+  -v /path/to/data:/app/data \
+  --restart unless-stopped \
+  teslamate-digest:latest
 ```
 
 ---
 
-## ⚙️ Configuration & Delivery
+## ⚙️ Parameters
 
-Open **`http://<your-server-ip>:8660/settings`** in your browser:
+### Ports
 
-1. **Email Settings**:
-   * **SMTP Host**: `smtp.gmail.com`
-   * **SMTP Port**: `587`
-   * **Username**: `your_email@gmail.com`
-   * **Password**: 16-character [Google App Password](https://myaccount.google.com/apppasswords)
-   * **Recipient**: `your_email@gmail.com`
-2. **Electricity & Rates**:
-   * Set your average rate (e.g. `$0.11/kWh`) or configure Off-Peak (e.g. `$0.09`) and On-Peak (e.g. `$0.16`) hours.
-   * Customize baseline gas price and ICE vehicle MPG for savings calculations.
-3. **Schedule**:
-   * Choose **Monthly** (1st of month), **Weekly** (Mondays), or **Daily**.
-   * Toggle individual modules on or off as desired.
+| Port | Description |
+| :--- | :--- |
+| `8660` | Web UI, Live Previewer, and Settings Dashboard |
 
----
+### Environment Variables
 
-## 🛠️ Architecture
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `DATABASE_HOST` | `database` | Hostname or IP of your TeslaMate PostgreSQL database |
+| `DATABASE_PORT` | `5432` | Port of your PostgreSQL database |
+| `DATABASE_USER` | `teslamate` | TeslaMate database username |
+| `DATABASE_PASS` | `your_postgres_password` | TeslaMate database password |
+| `DATABASE_NAME` | `teslamate` | Database name |
+| `TZ` | `UTC` | Timezone for reports and schedules (e.g. `America/Denver`, `Europe/London`) |
+| `PORT` | `8660` | Application web port inside container |
+| `GRAFANA_URL` | `http://grafana:3000` | Optional Grafana URL for deep-linking in emails |
+| `DATA_DIR` | `/app/data` | Internal persistent storage directory |
+| `WEB_AUTH_USERNAME` | *(Optional)* | HTTP Basic Auth username for web dashboard access |
+| `WEB_AUTH_PASSWORD` | *(Optional)* | HTTP Basic Auth password for web dashboard access |
 
-```mermaid
-flowchart LR
-    DB[(teslamate-db\nPostgreSQL)] -->|Telemetry Queries| AGG[Analytics Engine\nTrips, Spend, Battery, TPMS]
-    AGG --> CHARTS[Matplotlib Engine\nDark-Themed Inline Charts]
-    AGG --> JINJA[Jinja2 Engine\nResponsive HTML]
-    CHARTS --> JINJA
-    JINJA --> WEB[FastAPI Web UI\nPort 8660]
-    JINJA --> SCHED[APScheduler\nDaily / Weekly / Monthly]
-    SCHED --> SMTP[SMTP Client\nGmail App Password]
-    SMTP --> INBOX[User Inbox]
-```
+### Volume Mappings
+
+| Volume | Description |
+| :--- | :--- |
+| `/app/data` | Persistent storage for settings, maintenance records, and dispatch history |
+| `/app/custom_templates` | *(Optional)* Directory to mount custom Jinja2 email templates |
 
 ---
 
-## 🔒 Security & Hardening
+## 🏁 Getting Started
 
-TeslaMate Digest manages sensitive credentials (SMTP passwords, Home Assistant Long-Lived Access Tokens, Grafana API keys) as well as vehicle telemetry and visit histories. It has been built with defensive security best practices for open-source self-hosting:
+1. **Access the Dashboard**: Open `http://<your-server-ip>:8660` in your web browser.
+2. **Configure Delivery**:
+   - Go to **Settings $\rightarrow$ Delivery**.
+   - Enter your SMTP credentials (e.g., Gmail with a 16-character [Google App Password](https://myaccount.google.com/apppasswords)) and your recipient email.
+   - Click **Send Test Email** to verify your inbox receives the digest.
+3. **Configure Electricity Rates**:
+   - In **Settings $\rightarrow$ Integrations**, select your utility tariff (Time-of-Use or Tiered/Flat rates) and your local ZIP code for automatic gas price comparisons.
+   - *(Optional)* Connect your Home Assistant instance to track solar production and grid flow.
+4. **Schedule & Enjoy**:
+   - Choose your preferred frequency (Monthly, Semi-Monthly, Weekly, or Daily) and theme.
+   - Click **Live Preview** anytime to view your generated reports across desktop and mobile simulator modes!
 
-### 1. Non-Root Container Execution
-The Docker image runs as an unprivileged system user (`appuser`, UID `1000`, GID `1000`) within an isolated virtual environment (`/opt/venv`). It does not require root privileges or Linux capabilities at runtime, making it safe for locked-down NAS environments (Synology, TrueNAS, Unraid).
-* **Restricted File Permissions**: Runtime databases (`teslamate_digest.db`) and backups (`config.json`) are strictly written with `chmod 600` permissions under a secure `027` umask.
-* **Volume Mount Alignment**: When binding `./data:/app/data`, ensure the directory on your host is owned by UID `1000` (`chown -R 1000:1000 ./data`).
+---
 
-### 2. Reverse Proxy & Authentication
-TeslaMate Digest is designed for internal networks. **If exposing the web dashboard outside your trusted local network, always place it behind a reverse proxy (e.g. Caddy, Traefik, Nginx Proxy Manager) with TLS and an authentication layer (Authelia, Authentik, or HTTP Basic Auth).**
+## 🔒 Security
 
-#### Example Caddyfile with Authelia Forward Auth:
-```caddy
-digest.yourdomain.com {
-    # Forward auth verification
-    forward_auth authelia:9091 {
-        uri /api/verify?rd=https://auth.yourdomain.com
-        copy_headers Remote-User Remote-Groups Remote-Email
-    }
-
-    reverse_proxy teslamate-digest:8660
-}
-```
-
-#### Example Nginx with HTTP Basic Authentication:
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name digest.yourdomain.com;
-
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-
-    auth_basic "Restricted Access - TeslaMate Digest";
-    auth_basic_user_file /etc/nginx/.htpasswd;
-
-    location / {
-        proxy_pass http://teslamate-digest:8660;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-### 3. Secret Isolation
-* Keep your `.env` configuration file isolated and unreadable by unauthorized users:
-  ```bash
-  chmod 600 .env
-  ```
-* Cleartext passwords are never reflected back into HTML form fields; sensitive fields use masked placeholders and retain existing secrets on empty submission.
+- **Non-Root Execution**: Runs as an unprivileged user (`appuser`, UID `1000`, GID `1000`) with restrictive `0600` file permissions.
+- **Zero-Exposure Credentials**: Passwords and access tokens are never reflected back in plaintext and are preserved securely across saves.
+- **Optional Native Auth**: Protect your dashboard with `WEB_AUTH_USERNAME` and `WEB_AUTH_PASSWORD` without requiring an upstream reverse proxy.
 
 ---
 
 ## 📄 License
-This project is open-source under the [MIT License](LICENSE).
 
+This project is open-source under the [MIT License](LICENSE).

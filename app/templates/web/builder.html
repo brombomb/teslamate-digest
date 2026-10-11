@@ -11,13 +11,13 @@
       <h2 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
         <span>🎨</span> Custom Template Builder
       </h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Design, customize, and save your own personal HTML email digest using Jinja2 syntax and live TeslaMate data.</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Design, customize, and save your own personal HTML email digest using Jinja2 syntax and live TeslaMate telemetry data.</p>
     </div>
     <div class="flex items-center gap-2">
-      <a href="/preview?theme=custom" target="_blank" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition">
+      <a href="/preview?theme=custom" target="_blank" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition shadow-sm">
         <span>👁️</span> Test Custom in Preview
       </a>
-      <button onclick="document.getElementById('template-form').submit();" class="px-5 py-2 bg-tesla hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow flex items-center gap-1.5 transition">
+      <button onclick="submitTemplateForm()" class="px-5 py-2 bg-tesla hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow flex items-center gap-1.5 transition">
         <span>💾</span> Save Template
       </button>
     </div>
@@ -32,14 +32,14 @@
   <!-- WORKSPACE GRID -->
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-    <!-- LEFT COLUMN: THEME STARTER / TWEAKER & CHEAT SHEET (5 COLS) -->
+    <!-- LEFT COLUMN: THEME STARTER, COLOR TWEAKER, MODULE CARDS & CHEAT SHEET (5 COLS) -->
     <div class="lg:col-span-5 space-y-4">
 
-      <!-- THEME STARTER & COLOR TWEAKER CARD -->
+      <!-- 1. THEME STARTER & COLOR TWEAKER CARD -->
       <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div class="border-b border-slate-200 dark:border-slate-800 pb-3 flex justify-between items-center">
           <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-            <span>🎨</span> Theme Starter & Color Tweaker
+            <span>🎨</span> Theme Starter &amp; Color Tweaker
           </h3>
           <span class="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Live Palette</span>
         </div>
@@ -86,18 +86,18 @@
             </div>
 
             <div>
-              <label class="block text-[11px] text-slate-500 dark:text-slate-400 mb-0.5">Primary Accent</label>
-              <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-1">
-                <input type="color" id="tweak-accent_red" onchange="syncColorInput('accent_red', this.value)" class="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent">
-                <input type="text" id="hex-accent_red" onchange="syncColorInput('accent_red', this.value)" class="w-full bg-transparent font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none" value="#e82127">
-              </div>
-            </div>
-
-            <div>
               <label class="block text-[11px] text-slate-500 dark:text-slate-400 mb-0.5">Card Border</label>
               <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-1">
                 <input type="color" id="tweak-card_border" onchange="syncColorInput('card_border', this.value)" class="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent">
                 <input type="text" id="hex-card_border" onchange="syncColorInput('card_border', this.value)" class="w-full bg-transparent font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none" value="#e2e8f0">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] text-slate-500 dark:text-slate-400 mb-0.5">Inner Highlight</label>
+              <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-1">
+                <input type="color" id="tweak-card_inner_bg" onchange="syncColorInput('card_inner_bg', this.value)" class="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent">
+                <input type="text" id="hex-card_inner_bg" onchange="syncColorInput('card_inner_bg', this.value)" class="w-full bg-transparent font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none" value="#f8fafc">
               </div>
             </div>
 
@@ -117,104 +117,196 @@
               </div>
             </div>
 
-            <div class="col-span-2">
-              <label class="block text-[11px] text-slate-500 dark:text-slate-400 mb-0.5">Inner Card / Highlight</label>
+            <div>
+              <label class="block text-[11px] text-slate-500 dark:text-slate-400 mb-0.5">Primary Red</label>
               <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-1">
-                <input type="color" id="tweak-card_inner_bg" onchange="syncColorInput('card_inner_bg', this.value)" class="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent">
-                <input type="text" id="hex-card_inner_bg" onchange="syncColorInput('card_inner_bg', this.value)" class="w-full bg-transparent font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none" value="#f8fafc">
+                <input type="color" id="tweak-accent_red" onchange="syncColorInput('accent_red', this.value)" class="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent">
+                <input type="text" id="hex-accent_red" onchange="syncColorInput('accent_red', this.value)" class="w-full bg-transparent font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none" value="#e82127">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] text-slate-500 dark:text-slate-400 mb-0.5">Accent Green</label>
+              <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-1">
+                <input type="color" id="tweak-accent_green" onchange="syncColorInput('accent_green', this.value)" class="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent">
+                <input type="text" id="hex-accent_green" onchange="syncColorInput('accent_green', this.value)" class="w-full bg-transparent font-mono text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none" value="#10b981">
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- TAGS & BLOCKS REFERENCE CHEAT SHEET -->
+      <!-- 2. QUICK-INSERT MODULAR CARDS (ALL APP MODULES) -->
+      <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+        <div class="border-b border-slate-200 dark:border-slate-800 pb-2.5 flex justify-between items-center">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <span>⚡</span> Quick Insert Module Cards
+          </h3>
+          <span class="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">1-Click Insert</span>
+        </div>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">Click any card below to insert a complete, responsive Jinja2 HTML component directly at your cursor:</p>
+
+        <div class="grid grid-cols-2 gap-1.5 text-xs">
+          <button type="button" onclick="insertModuleSnippet('spend_breakdown')" class="snippet-btn">⚡ Charging &amp; Spend</button>
+          <button type="button" onclick="insertModuleSnippet('gas_savings')" class="snippet-btn">💰 Gas Savings &amp; CO₂</button>
+          <button type="button" onclick="insertModuleSnippet('driving_efficiency')" class="snippet-btn">📊 Driving Efficiency</button>
+          <button type="button" onclick="insertModuleSnippet('battery_health')" class="snippet-btn">🔋 Battery Health</button>
+          <button type="button" onclick="insertModuleSnippet('maintenance_alerts')" class="snippet-btn">🛠️ TPMS &amp; Rotation</button>
+          <button type="button" onclick="insertModuleSnippet('solar_production')" class="snippet-btn">☀️ Solar Production</button>
+          <button type="button" onclick="insertModuleSnippet('vampire_drain')" class="snippet-btn">🌙 Vampire Loss</button>
+          <button type="button" onclick="insertModuleSnippet('compliance')" class="snippet-btn">🛡️ Pack Compliance</button>
+          <button type="button" onclick="insertModuleSnippet('supercharger_explorer')" class="snippet-btn">⚡ Superchargers</button>
+          <button type="button" onclick="insertModuleSnippet('work_mileage')" class="snippet-btn">💼 Work Mileage</button>
+          <button type="button" onclick="insertModuleSnippet('top_locations')" class="snippet-btn">📍 Places Visited</button>
+          <button type="button" onclick="insertModuleSnippet('mountain_regen')" class="snippet-btn">🏔️ Mountain Regen</button>
+          <button type="button" onclick="insertModuleSnippet('achievements')" class="snippet-btn">🏆 Driving Badges</button>
+          <button type="button" onclick="insertModuleSnippet('embedded_charts')" class="snippet-btn">📊 Embedded Charts</button>
+        </div>
+      </div>
+
+      <!-- 3. TAGS & VARIABLES REFERENCE CHEAT SHEET (ALL 15 MODULES) -->
       <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 max-h-[580px] overflow-y-auto">
         <div class="border-b border-slate-200 dark:border-slate-800 pb-3 flex justify-between items-center">
           <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-            <span>🏷️</span> Jinja Tags & Variables
+            <span>🏷️</span> Jinja Tags &amp; Variables
           </h3>
-          <span class="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Click tag to insert at cursor</span>
+          <span class="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Click to insert</span>
         </div>
 
-        <!-- 1. Metadata -->
         {% raw %}
+        <!-- 1. Metadata -->
         <div class="space-y-1.5">
-          <div class="text-xs font-bold text-tesla uppercase">Report & Header Info</div>
+          <div class="text-xs font-bold text-tesla uppercase">Report &amp; Header Info</div>
           <div class="grid grid-cols-1 gap-1 text-xs">
-            <div class="tag-row" onclick="insertTag('{{ report_title }}')"><code>{{ report_title }}</code> <span>August 2026 Report</span></div>
-            <div class="tag-row" onclick="insertTag('{{ date_subtitle }}')"><code>{{ date_subtitle }}</code> <span>Aug 01 to Aug 31</span></div>
-            <div class="tag-row" onclick="insertTag('{{ car_subtitle }}')"><code>{{ car_subtitle }}</code> <span>Fleet / Car Name</span></div>
-            <div class="tag-row" onclick="insertTag('{{ dashboard_url }}')"><code>{{ dashboard_url }}</code> <span>Configured web link</span></div>
+            <div class="tag-row" onclick="insertTag('{{ report_title }}')"><code>{{ report_title }}</code> <span>Monthly Report Title</span></div>
+            <div class="tag-row" onclick="insertTag('{{ date_subtitle }}')"><code>{{ date_subtitle }}</code> <span>Date Range Subtitle</span></div>
+            <div class="tag-row" onclick="insertTag('{{ car_subtitle }}')"><code>{{ car_subtitle }}</code> <span>Vehicle Name / Fleet</span></div>
+            <div class="tag-row" onclick="insertTag('{{ one_line_summary }}')"><code>{{ one_line_summary }}</code> <span>Executive Summary Pill</span></div>
+            <div class="tag-row" onclick="insertTag('{{ dashboard_url }}')"><code>{{ dashboard_url }}</code> <span>Live Web URL</span></div>
           </div>
         </div>
 
-        <!-- 2. Efficiency & Wh/mi -->
+        <!-- 2. Charging & Spend -->
         <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div class="text-xs font-bold text-emerald-500 uppercase">Driving Efficiency & Wh/mi</div>
-          <div class="grid grid-cols-1 gap-1 text-xs">
-            <div class="tag-row" onclick="insertTag('{{ efficiency.avg_wh_per_mile }}')"><code>{{ efficiency.avg_wh_per_mile }}</code> <span>Avg Wh/mi</span></div>
-            <div class="tag-row" onclick="insertTag('{{ efficiency.avg_wh_per_km }}')"><code>{{ efficiency.avg_wh_per_km }}</code> <span>Avg Wh/km</span></div>
-            <div class="tag-row" onclick="insertTag('{{ efficiency.efficiency_pct }}')"><code>{{ efficiency.efficiency_pct }}</code> <span>Rated vs Actual %</span></div>
-            <div class="tag-row" onclick="insertTag('{{ efficiency.net_energy_kwh }}')"><code>{{ efficiency.net_energy_kwh }}</code> <span>Total kWh used</span></div>
-            <div class="tag-row" onclick="insertTag('{{ efficiency.grade }}')"><code>{{ efficiency.grade }}</code> <span>Excellent / Good</span></div>
-          </div>
-        </div>
-
-        <!-- 3. Pack Stress & Compliance -->
-        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div class="text-xs font-bold text-sky-500 uppercase">Charge Limit Compliance</div>
-          <div class="grid grid-cols-1 gap-1 text-xs">
-            <div class="tag-row" onclick="insertTag('{{ compliance.hours_above_80 }}')"><code>{{ compliance.hours_above_80 }}</code> <span>Hours &gt; 80% SoC</span></div>
-            <div class="tag-row" onclick="insertTag('{{ compliance.pct_above_80 }}')"><code>{{ compliance.pct_above_80 }}</code> <span>% Time &gt; 80%</span></div>
-            <div class="tag-row" onclick="insertTag('{{ compliance.hours_optimal }}')"><code>{{ compliance.hours_optimal }}</code> <span>Hours 20-80%</span></div>
-            <div class="tag-row" onclick="insertTag('{{ compliance.hours_below_20 }}')"><code>{{ compliance.hours_below_20 }}</code> <span>Hours &lt; 20% SoC</span></div>
-            <div class="tag-row" onclick="insertTag('{{ compliance.compliance_score }}')"><code>{{ compliance.compliance_score }}</code> <span>Score (0-100%)</span></div>
-          </div>
-        </div>
-
-        <!-- 4. Charging & Spend -->
-        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div class="text-xs font-bold text-amber-500 uppercase">⚡ Electric Spend & Savings</div>
+          <div class="text-xs font-bold text-amber-500 uppercase">⚡ Electric Spend &amp; Charging</div>
           <div class="grid grid-cols-1 gap-1 text-xs">
             <div class="tag-row" onclick="insertTag('{{ charging.total_spend }}')"><code>{{ charging.total_spend }}</code> <span>Total $ Electric</span></div>
             <div class="tag-row" onclick="insertTag('{{ charging.off_peak_spend }}')"><code>{{ charging.off_peak_spend }}</code> <span>Off-Peak Spend $</span></div>
             <div class="tag-row" onclick="insertTag('{{ charging.shoulder_spend }}')"><code>{{ charging.shoulder_spend }}</code> <span>Shoulder Spend $</span></div>
             <div class="tag-row" onclick="insertTag('{{ charging.supercharger_spend }}')"><code>{{ charging.supercharger_spend }}</code> <span>Supercharger $</span></div>
-            <div class="tag-row" onclick="insertTag('{{ charging.off_peak_score_pct }}')"><code>{{ charging.off_peak_score_pct }}</code> <span>Off-Peak % score</span></div>
+            <div class="tag-row" onclick="insertTag('{{ charging.off_peak_score_pct }}')"><code>{{ charging.off_peak_score_pct }}</code> <span>Off-Peak Discipline %</span></div>
             <div class="tag-row" onclick="insertTag('{{ charging.gas_savings.net_savings }}')"><code>{{ charging.gas_savings.net_savings }}</code> <span>$ Saved vs Gas</span></div>
+            <div class="tag-row" onclick="insertTag('{{ charging.gas_savings.co2_avoided_lbs }}')"><code>{{ charging.gas_savings.co2_avoided_lbs }}</code> <span>lbs CO₂ Avoided</span></div>
           </div>
         </div>
 
-        <!-- 5. Work Mileage -->
+        <!-- 3. Battery Health & Degradation -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-emerald-500 uppercase">🔋 Battery Health &amp; Degradation</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="insertTag('{{ c.capacity_retained_pct }}')"><code>{{ c.capacity_retained_pct }}</code> <span>Capacity Retained %</span></div>
+            <div class="tag-row" onclick="insertTag('{{ c.health_grade }}')"><code>{{ c.health_grade }}</code> <span>Grade (Excellent)</span></div>
+            <div class="tag-row" onclick="insertTag('{{ c.current_estimated_range }}')"><code>{{ c.current_estimated_range }}</code> <span>100% Rated Range</span></div>
+            <div class="tag-row" onclick="insertTag('{{ c.factory_baseline_range }}')"><code>{{ c.factory_baseline_range }}</code> <span>Original Range</span></div>
+            <div class="tag-row" onclick="insertTag('{{ c.degradation_pct }}')"><code>{{ c.degradation_pct }}</code> <span>Degradation %</span></div>
+          </div>
+        </div>
+
+        <!-- 4. Vehicle Telemetry & TPMS -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-blue-500 uppercase">🛠️ TPMS &amp; Maintenance</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="insertTag('{{ car_h.tpms.front_left }}')"><code>{{ car_h.tpms.front_left }}</code> <span>FL Pressure (psi/bar)</span></div>
+            <div class="tag-row" onclick="insertTag('{{ car_h.tpms.front_right }}')"><code>{{ car_h.tpms.front_right }}</code> <span>FR Pressure</span></div>
+            <div class="tag-row" onclick="insertTag('{{ car_h.rotation.miles_used }}')"><code>{{ car_h.rotation.miles_used }}</code> <span>Miles Since Rotation</span></div>
+            <div class="tag-row" onclick="insertTag('{{ car_h.rotation.miles_remaining }}')"><code>{{ car_h.rotation.miles_remaining }}</code> <span>Miles Until Rotation</span></div>
+            <div class="tag-row" onclick="insertTag('{{ car_h.rotation.used_pct }}')"><code>{{ car_h.rotation.used_pct }}</code> <span>Rotation Progress %</span></div>
+          </div>
+        </div>
+
+        <!-- 5. Solar & Home Assistant -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-yellow-500 uppercase">☀️ Solar &amp; Clean Charging</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="insertTag('{{ solar.solar_charging_kwh }}')"><code>{{ solar.solar_charging_kwh }}</code> <span>Solar EV Charging kWh</span></div>
+            <div class="tag-row" onclick="insertTag('{{ solar.solar_charging_pct }}')"><code>{{ solar.solar_charging_pct }}</code> <span>% Solar EV Charging</span></div>
+            <div class="tag-row" onclick="insertTag('{{ solar.solar_spend_avoided }}')"><code>{{ solar.solar_spend_avoided }}</code> <span>Avoided Grid Cost $</span></div>
+            <div class="tag-row" onclick="insertTag('{{ solar.home_solar_production_kwh }}')"><code>{{ solar.home_solar_production_kwh }}</code> <span>Total Home Solar kWh</span></div>
+          </div>
+        </div>
+
+        <!-- 6. Vampire Standby Loss -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-purple-500 uppercase">🌙 Standby &amp; Vampire Drain</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="insertTag('{{ vampire.total_idle_hours }}')"><code>{{ vampire.total_idle_hours }}</code> <span>Parked Idle Hours</span></div>
+            <div class="tag-row" onclick="insertTag('{{ vampire.estimated_loss_kwh }}')"><code>{{ vampire.estimated_loss_kwh }}</code> <span>Estimated Loss kWh</span></div>
+            <div class="tag-row" onclick="insertTag('{{ vampire.estimated_cost }}')"><code>{{ vampire.estimated_cost }}</code> <span>Standby Loss $</span></div>
+          </div>
+        </div>
+
+        <!-- 7. Efficiency & Wh/mi -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-teal-500 uppercase">📊 Driving Efficiency</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="insertTag('{{ efficiency.avg_wh_per_mile }}')"><code>{{ efficiency.avg_wh_per_mile }}</code> <span>Avg Wh/mi</span></div>
+            <div class="tag-row" onclick="insertTag('{{ efficiency.avg_wh_per_km }}')"><code>{{ efficiency.avg_wh_per_km }}</code> <span>Avg Wh/km</span></div>
+            <div class="tag-row" onclick="insertTag('{{ efficiency.efficiency_pct }}')"><code>{{ efficiency.efficiency_pct }}</code> <span>Rated vs Actual %</span></div>
+            <div class="tag-row" onclick="insertTag('{{ efficiency.net_energy_kwh }}')"><code>{{ efficiency.net_energy_kwh }}</code> <span>Total Energy kWh</span></div>
+            <div class="tag-row" onclick="insertTag('{{ efficiency.grade }}')"><code>{{ efficiency.grade }}</code> <span>Efficiency Grade</span></div>
+          </div>
+        </div>
+
+        <!-- 8. Supercharger Explorer -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-red-500 uppercase">⚡ Supercharger Explorer</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="insertTag('{{ superchargers.visited_count }}')"><code>{{ superchargers.visited_count }}</code> <span>Visits This Period</span></div>
+            <div class="tag-row" onclick="insertTag('{{ superchargers.lifetime_stations_visited }}')"><code>{{ superchargers.lifetime_stations_visited }}</code> <span>Lifetime Stations</span></div>
+            <div class="tag-row" onclick="insertTag('{{ superchargers.total_kwh }}')"><code>{{ superchargers.total_kwh }}</code> <span>Supercharging kWh</span></div>
+            <div class="tag-row" onclick="insertTag('{{ superchargers.avg_rate_per_kwh }}')"><code>{{ superchargers.avg_rate_per_kwh }}</code> <span>Avg $/kWh Rate</span></div>
+          </div>
+        </div>
+
+        <!-- 9. Pack Compliance -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="text-xs font-bold text-sky-500 uppercase">🛡️ Charge Limit Compliance</div>
+          <div class="grid grid-cols-1 gap-1 text-xs">
+            <div class="tag-row" onclick="insertTag('{{ compliance.hours_above_80 }}')"><code>{{ compliance.hours_above_80 }}</code> <span>Hours &gt; 80% SoC</span></div>
+            <div class="tag-row" onclick="insertTag('{{ compliance.pct_above_80 }}')"><code>{{ compliance.pct_above_80 }}</code> <span>% Time &gt; 80%</span></div>
+            <div class="tag-row" onclick="insertTag('{{ compliance.hours_optimal }}')"><code>{{ compliance.hours_optimal }}</code> <span>Hours 20-80%</span></div>
+            <div class="tag-row" onclick="insertTag('{{ compliance.compliance_score }}')"><code>{{ compliance.compliance_score }}</code> <span>Compliance Score %</span></div>
+          </div>
+        </div>
+
+        <!-- 10. Work Mileage -->
         <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div class="text-xs font-bold text-indigo-500 uppercase">💼 Work Mileage Logging</div>
           <div class="grid grid-cols-1 gap-1 text-xs">
-            <div class="tag-row" onclick="insertTag('{{ work_mileage.total_miles }}')"><code>{{ work_mileage.total_miles }}</code> <span>Total Business mi</span></div>
+            <div class="tag-row" onclick="insertTag('{{ work_mileage.total_miles }}')"><code>{{ work_mileage.total_miles }}</code> <span>Total Business Miles</span></div>
             <div class="tag-row" onclick="insertTag('{{ work_mileage.total_irs_deduction }}')"><code>{{ work_mileage.total_irs_deduction }}</code> <span>IRS Tax Deduction $</span></div>
-            <div class="tag-row" onclick="insertTag('{% for r in work_mileage.routes %}{{ r.label }}: {{ r.total_miles }} mi{% endfor %}')"><code>{% for r in work_mileage.routes %}</code> <span>Loop routes</span></div>
+            <div class="tag-row" onclick="insertTag('{{ work_mileage.total_trips }}')"><code>{{ work_mileage.total_trips }}</code> <span>Work Trip Count</span></div>
           </div>
         </div>
 
-        <!-- 6. Driving Highlights & Loops -->
+        <!-- 11. Driving Achievements -->
         <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div class="text-xs font-bold text-purple-500 uppercase">📍 Trips & Locations Loops</div>
+          <div class="text-xs font-bold text-amber-600 uppercase">🏆 Driving Badges &amp; Trophy</div>
           <div class="grid grid-cols-1 gap-1 text-xs">
-            <div class="tag-row" onclick="insertTag('{{ trips.total_miles }}')"><code>{{ trips.total_miles }}</code> <span>Total odometer miles</span></div>
-            <div class="tag-row" onclick="insertTag('{{ trips.drives_count }}')"><code>{{ trips.drives_count }}</code> <span>Count of drives</span></div>
-            <div class="tag-row" onclick="insertTag('{% for p in trips.top_places %}{{ p.name }}: {{ p.visits }} visits{% endfor %}')"><code>{% for p in trips.top_places %}</code> <span>Loop top places</span></div>
-            <div class="tag-row" onclick="insertTag('{{ trips.longest_drive.start_location }}')"><code>{{ trips.longest_drive.start_location }}</code> <span>Longest trip start</span></div>
+            <div class="tag-row" onclick="insertTag('{{ achievements.unlocked_badges }}')"><code>{{ achievements.unlocked_badges }}</code> <span>Unlocked Badges</span></div>
+            <div class="tag-row" onclick="insertTag('{{ achievements.total_badges }}')"><code>{{ achievements.total_badges }}</code> <span>Total Badge Count</span></div>
+            <div class="tag-row" onclick="insertTag('{{ achievements.points }}')"><code>{{ achievements.points }}</code> <span>Total Points</span></div>
           </div>
         </div>
 
-        <!-- 7. Theme Palettes -->
+        <!-- 12. Embedded Charts -->
         <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div class="text-xs font-bold text-rose-500 uppercase">🎨 Theme Colors</div>
+          <div class="text-xs font-bold text-pink-500 uppercase">📊 Embedded Chart Images</div>
           <div class="grid grid-cols-1 gap-1 text-xs">
-            <div class="tag-row" onclick="insertTag('{{ theme.body_bg }}')"><code>{{ theme.body_bg }}</code> <span>Page background</span></div>
-            <div class="tag-row" onclick="insertTag('{{ theme.card_bg }}')"><code>{{ theme.card_bg }}</code> <span>Card background</span></div>
-            <div class="tag-row" onclick="insertTag('{{ theme.text_primary }}')"><code>{{ theme.text_primary }}</code> <span>Heading text color</span></div>
-            <div class="tag-row" onclick="insertTag('{{ theme.accent_red }}')"><code>{{ theme.accent_red }}</code> <span>Primary accent</span></div>
+            <div class="tag-row" onclick="insertTag('{{ chart_spend }}')"><code>{{ chart_spend }}</code> <span>Base64 Spend Chart</span></div>
+            <div class="tag-row" onclick="insertTag('{{ chart_tou }}')"><code>{{ chart_tou }}</code> <span>Base64 TOU Chart</span></div>
+            <div class="tag-row" onclick="insertTag('{{ chart_battery }}')"><code>{{ chart_battery }}</code> <span>Base64 Battery Degradation</span></div>
+            <div class="tag-row" onclick="insertTag('{{ chart_solar }}')"><code>{{ chart_solar }}</code> <span>Base64 Solar Generation</span></div>
           </div>
         </div>
         {% endraw %}
@@ -222,29 +314,56 @@
       </div>
     </div>
 
-    <!-- CODE EDITOR (7 COLS) -->
+    <!-- RIGHT COLUMN: SMART SPLIT-VIEW CODE EDITOR (7 COLS) -->
     <div class="lg:col-span-7 space-y-4">
       <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full transition-colors">
-        <div class="flex justify-between items-center mb-3">
+        
+        <!-- EDITOR TOOLBAR WITH SECTION SWITCHER TABS -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-slate-200 dark:border-slate-800 gap-3">
           <div>
             <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <span>📝</span> custom_digest.html
             </h3>
-            <span class="text-[11px] text-slate-500 dark:text-slate-400">Saved in <code>custom_templates/custom_digest.html</code></span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">Editing <code>custom_templates/custom_digest.html</code></span>
           </div>
-          <button type="button" onclick="loadSelectedThemeStarter()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold rounded border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition">
-            Load Starter Code
-          </button>
+
+          <!-- TAB SWITCHER: BODY vs CSS vs FULL -->
+          <div class="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-semibold">
+            <button type="button" id="tab-btn-body" onclick="switchEditorView('body')" class="px-3 py-1 rounded-md transition bg-white dark:bg-slate-800 text-tesla shadow-sm">
+              📄 Body &amp; Cards
+            </button>
+            <button type="button" id="tab-btn-style" onclick="switchEditorView('style')" class="px-3 py-1 rounded-md transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+              🎨 Stylesheet (&lt;style&gt;)
+            </button>
+            <button type="button" id="tab-btn-full" onclick="switchEditorView('full')" class="px-3 py-1 rounded-md transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+              📜 Full Source
+            </button>
+          </div>
         </div>
 
-        <form id="template-form" method="POST" action="/builder/save" class="flex-1 flex flex-col">
-          <textarea id="template_content" name="template_content" rows="28" spellcheck="false" class="w-full flex-1 bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-800 dark:text-slate-200 p-4 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-tesla transition leading-relaxed">{{ template_content }}</textarea>
+        <!-- EDITOR HELPER CALLOUT -->
+        <div id="editor-hint-bar" class="my-2.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex justify-between items-center text-[11px] text-slate-500">
+          <span id="editor-hint-text">Editing <strong>HTML Body Layout</strong> (CSS styles safely tucked in the Stylesheet tab).</span>
+          <span class="text-[10px] text-slate-400 font-mono" id="editor-cursor-pos">Line 1, Col 1</span>
+        </div>
+
+        <form id="template-form" method="POST" action="/builder/save" class="flex-1 flex flex-col" onsubmit="prepareSave()">
+          <!-- Hidden input storing the full compiled HTML document -->
+          <input type="hidden" id="template_content" name="template_content" value="">
           
-          <div class="mt-4 flex justify-between items-center pt-2">
-            <span class="text-[11px] text-slate-500">To use this template for scheduled deliveries, select <strong>"Custom User Template"</strong> in Settings.</span>
-            <button type="submit" class="px-5 py-2 bg-tesla hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow transition">
-              Save Custom Template
-            </button>
+          <!-- Active textarea for current view -->
+          <textarea id="editor_textarea" rows="28" spellcheck="false" class="w-full flex-1 bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-800 dark:text-slate-200 p-4 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-tesla transition leading-relaxed"></textarea>
+          
+          <div class="mt-4 flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">To dispatch with this template, select <strong>"Custom User Template"</strong> in Delivery settings.</span>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="loadSelectedThemeStarter()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold rounded border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition">
+                Reset from Starter
+              </button>
+              <button type="submit" class="px-5 py-2 bg-tesla hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow transition">
+                Save Custom Template
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -260,6 +379,27 @@
 </div>
 
 <style>
+  .snippet-btn {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background-color: rgba(241, 245, 249, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+    color: #334155;
+    transition: all 0.15s ease;
+  }
+  .dark .snippet-btn {
+    background-color: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(51, 65, 85, 0.6);
+    color: #cbd5e1;
+  }
+  .snippet-btn:hover {
+    background-color: rgba(232, 33, 39, 0.1);
+    border-color: rgba(232, 33, 39, 0.4);
+    color: #e82127;
+  }
   .tag-row {
     display: flex;
     justify-content: space-between;
@@ -291,16 +431,316 @@
 </style>
 
 <script>
+  // Initial Raw Template Content from Server
+  let rawFullTemplate = {{ template_content | tojson }};
+
+  // Structured Multi-Part Document Store
+  let docModel = {
+    prefix: '',
+    style: '',
+    middle: '',
+    body: '',
+    suffix: '',
+    isFullDoc: false
+  };
+
+  let currentView = 'body'; // 'body', 'style', 'full'
+
   let activePalette = {
     body_bg: '#f1f5f9',
     card_bg: '#ffffff',
     card_border: '#e2e8f0',
     card_inner_bg: '#f8fafc',
+    card_inner_border: '#cbd5e1',
     text_primary: '#0f172a',
     text_muted: '#64748b',
-    accent_red: '#e82127'
+    accent_red: '#e82127',
+    accent_green: '#10b981'
   };
 
+  // Modular Component Snippets for All Modules
+  {% raw %}
+  const MODULE_SNIPPETS = {
+    spend_breakdown: `<!-- CARD: CHARGING SPEND BREAKDOWN -->
+{% if modules.spend_breakdown %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">⚡</span> Charging &amp; Electric Spend</div>
+      </td>
+    </tr>
+  </table>
+  <div class="kpi-box" style="padding: 16px; text-align: center; background-color: {{ theme.card_inner_bg }}; border-radius: 10px;">
+    <div class="kpi-val" style="font-size: 26px; font-weight: 800; color: {{ theme.text_primary }};">\${{ "{:,.2f}".format(charging.total_spend) }}</div>
+    <div class="kpi-lbl" style="font-size: 12px; color: {{ theme.text_muted }};">Total Electric Spend &bull; {{ charging.off_peak_score_pct }}% Off-Peak Charging Discipline</div>
+  </div>
+  {% if chart_spend %}
+  <div class="chart-container" style="margin-top: 14px;"><img src="{{ chart_spend }}" width="100%" class="chart-img" alt="Spend Breakdown" /></div>
+  {% endif %}
+</div>
+{% endif %}`,
+
+    gas_savings: `<!-- CARD: GAS SAVINGS & CO2 -->
+{% if modules.gas_savings %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 18px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <div class="kpi-box" style="padding: 14px; text-align: center; border-left: 4px solid #10b981; background-color: {{ theme.card_inner_bg }}; border-radius: 8px;">
+    <div class="kpi-val" style="color: #10b981; font-size: 24px; font-weight: 800;">\${{ "{:,.2f}".format(charging.gas_savings.net_savings) }}</div>
+    <div class="kpi-lbl" style="font-size: 12px; color: {{ theme.text_muted }};">Net Gas Savings vs \${{ rates.gas_price_per_gal }}/gal Gas &bull; {{ "{:,.0f}".format(charging.gas_savings.co2_avoided_lbs) }} lbs CO₂ Avoided</div>
+  </div>
+</div>
+{% endif %}`,
+
+    driving_efficiency: `<!-- CARD: DRIVING EFFICIENCY -->
+{% if modules.driving_efficiency and efficiency %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">📊</span> Driving Efficiency</div>
+      </td>
+    </tr>
+  </table>
+  <div class="kpi-box" style="padding: 16px; text-align: center; background-color: {{ theme.card_inner_bg }}; border-radius: 10px;">
+    <div class="kpi-val" style="font-size: 26px; font-weight: 800; color: {{ theme.text_primary }};">{{ efficiency.avg_wh_per_mile }} Wh/mi</div>
+    <div class="kpi-lbl" style="font-size: 12px; color: {{ theme.text_muted }};">{{ efficiency.efficiency_pct }}% Rated Efficiency &bull; Grade: {{ efficiency.grade }} ({{ efficiency.net_energy_kwh }} kWh Total Used)</div>
+  </div>
+</div>
+{% endif %}`,
+
+    battery_health: `<!-- CARD: BATTERY HEALTH & DEGRADATION -->
+{% if modules.battery_health and show_battery_health and battery.cars %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">🔋</span> Battery Health</div>
+      </td>
+      {% if grafana_battery_url %}
+      <td align="right" style="vertical-align: middle;">
+        <a href="{{ grafana_battery_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; padding: 4px 12px; border-radius: 20px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; text-decoration: none;">Open in Grafana &rarr;</a>
+      </td>
+      {% endif %}
+    </tr>
+  </table>
+  {% for c in battery.cars %}
+  <div style="padding: 10px 0; border-bottom: 1px solid {{ theme.card_inner_border }};">
+    <div style="font-weight: 700; font-size: 15px; color: {{ theme.text_primary }};">{{ c.car_name }} (Model {{ c.model }}): {{ c.capacity_retained_pct }}% Retained ({{ c.health_grade }})</div>
+    <div style="font-size: 13px; color: {{ theme.text_muted }}; margin-top: 4px;">100% Rated Range: <strong>{{ c.current_estimated_range }} {{ units.length if units else "mi" }}</strong> (Original: {{ c.factory_baseline_range }} &bull; Degradation: -{{ c.degradation_pct }}%)</div>
+  </div>
+  {% endfor %}
+  {% if chart_battery %}
+  <div class="chart-container" style="margin-top: 14px;"><img src="{{ chart_battery }}" width="100%" class="chart-img" alt="Battery Range Trend" /></div>
+  {% endif %}
+</div>
+{% endif %}`,
+
+    maintenance_alerts: `<!-- CARD: VEHICLE HEALTH & TPMS -->
+{% if modules.maintenance_alerts %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">🛠️</span> Vehicle Telemetry &amp; Maintenance</div>
+      </td>
+    </tr>
+  </table>
+  {% for car_h in health.cars %}
+  <div style="margin-bottom: 14px;">
+    <div style="font-weight: 700; font-size: 14px; color: {{ theme.text_primary }};">{{ car_h.car_name }} (Model {{ car_h.model }})</div>
+    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 3px;">Cold TPMS Pressures: FL {{ car_h.tpms.front_left }} | FR {{ car_h.tpms.front_right }} | RL {{ car_h.tpms.rear_left }} | RR {{ car_h.tpms.rear_right }} {{ car_h.tpms.unit }}</div>
+    <div style="font-size: 12px; color: {{ theme.text_muted }}; margin-top: 3px;">Tire Rotation: {{ car_h.rotation.miles_used }} / {{ car_h.rotation.interval_mi }} mi used ({{ car_h.rotation.miles_remaining }} mi remaining)</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}`,
+
+    solar_production: `<!-- CARD: SOLAR & CLEAN EV CHARGING -->
+{% if modules.solar_production and solar and solar.has_data %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">☀️</span> Solar Production &amp; Clean EV Charging</div>
+      </td>
+    </tr>
+  </table>
+  <div class="kpi-box" style="padding: 16px; text-align: center; background-color: {{ theme.card_inner_bg }}; border-radius: 10px;">
+    <div class="kpi-val" style="font-size: 26px; font-weight: 800; color: {{ theme.text_primary }};">{{ "{:,.1f}".format(solar.solar_charging_kwh) }} kWh</div>
+    <div class="kpi-lbl" style="font-size: 12px; color: {{ theme.text_muted }};">{{ "{:,.0f}".format(solar.solar_charging_pct) }}% Solar-Powered EV Charging (\${{ "{:,.2f}".format(solar.solar_spend_avoided) }} Avoided Grid Cost)</div>
+  </div>
+  {% if chart_solar %}
+  <div class="chart-container" style="margin-top: 14px;"><img src="{{ chart_solar }}" width="100%" class="chart-img" alt="Solar Overlay" /></div>
+  {% endif %}
+</div>
+{% endif %}`,
+
+    vampire_drain: `<!-- CARD: PHANTOM / STANDBY DRAIN -->
+{% if modules.vampire_drain %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">🌙</span> Phantom / Standby Drain</div>
+      </td>
+    </tr>
+  </table>
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="33%" style="padding-right: 6px; text-align: center;">
+        <div class="kpi-box" style="padding: 12px; background-color: {{ theme.card_inner_bg }}; border-radius: 8px;">
+          <div style="font-size: 18px; font-weight: 800; color: {{ theme.text_primary }};">{{ vampire.total_idle_hours }} hrs</div>
+          <div style="font-size: 11px; color: {{ theme.text_muted }}; text-transform: uppercase;">Parked Idle</div>
+        </div>
+      </td>
+      <td width="33%" style="padding: 0 3px; text-align: center;">
+        <div class="kpi-box" style="padding: 12px; background-color: {{ theme.card_inner_bg }}; border-radius: 8px;">
+          <div style="font-size: 18px; font-weight: 800; color: {{ theme.text_primary }};">{{ vampire.estimated_loss_kwh }} kWh</div>
+          <div style="font-size: 11px; color: {{ theme.text_muted }}; text-transform: uppercase;">Standby Loss</div>
+        </div>
+      </td>
+      <td width="34%" style="padding-left: 6px; text-align: center;">
+        <div class="kpi-box" style="padding: 12px; background-color: {{ theme.card_inner_bg }}; border-radius: 8px;">
+          <div style="font-size: 18px; font-weight: 800; color: {{ theme.text_primary }};">\${{ "{:,.2f}".format(vampire.estimated_cost) }}</div>
+          <div style="font-size: 11px; color: {{ theme.text_muted }}; text-transform: uppercase;">Idle Cost</div>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+{% endif %}`,
+
+    compliance: `<!-- CARD: CHARGE LIMIT COMPLIANCE -->
+{% if modules.charge_limit_compliance and compliance %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">🛡️</span> Charge Limit Compliance</div>
+      </td>
+    </tr>
+  </table>
+  <div class="kpi-box" style="padding: 16px; text-align: center; background-color: {{ theme.card_inner_bg }}; border-radius: 10px;">
+    <div class="kpi-val" style="font-size: 26px; font-weight: 800; color: {{ theme.text_primary }};">{{ compliance.compliance_score }}%</div>
+    <div class="kpi-lbl" style="font-size: 12px; color: {{ theme.text_muted }};">Optimal 20-80% Pack Health Discipline &bull; {{ compliance.hours_above_80 }} hrs above 80% SoC</div>
+  </div>
+</div>
+{% endif %}`,
+
+    supercharger_explorer: `<!-- CARD: SUPERCHARGER EXPLORER -->
+{% if modules.supercharger_explorer %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">⚡</span> Supercharger Explorer</div>
+      </td>
+    </tr>
+  </table>
+  <div class="kpi-box" style="padding: 16px; background-color: {{ theme.card_inner_bg }}; border-radius: 10px; font-size: 13px; color: {{ theme.text_primary }};">
+    <strong>{{ superchargers.visited_count }} visits</strong> this period &bull; <strong>{{ superchargers.lifetime_stations_visited }} lifetime stations</strong> visited across North America.<br>
+    <span style="font-size: 12px; color: {{ theme.text_muted }};">Total Energy: {{ superchargers.total_kwh }} kWh &bull; Spend: \${{ "{:,.2f}".format(superchargers.total_cost) }} (Avg \${{ "{:,.3f}".format(superchargers.avg_rate_per_kwh) }}/kWh)</span>
+  </div>
+</div>
+{% endif %}`,
+
+    work_mileage: `<!-- CARD: WORK & COMMUTE MILEAGE -->
+{% if modules.work_mileage and work_mileage and work_mileage.has_routes %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">💼</span> Work &amp; Commute Mileage</div>
+      </td>
+    </tr>
+  </table>
+  <div class="kpi-box" style="padding: 16px; background-color: {{ theme.card_inner_bg }}; border-radius: 10px; font-size: 13px; color: {{ theme.text_primary }};">
+    <strong>Business Commute:</strong> {{ work_mileage.total_miles }} miles across {{ work_mileage.total_trips }} trips<br>
+    <strong style="color: #10b981;">Estimated IRS Tax Deduction:</strong> \${{ "{:,.2f}".format(work_mileage.total_irs_deduction) }}
+  </div>
+</div>
+{% endif %}`,
+
+    top_locations: `<!-- CARD: TOP DESTINATIONS -->
+{% if modules.top_locations %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">📍</span> Places Visited</div>
+      </td>
+    </tr>
+  </table>
+  {% for p in trips.top_places %}
+  <div style="font-size: 13px; color: {{ theme.text_secondary }}; padding: 6px 0;">
+    <strong>{{ p.name }}</strong>: {{ p.visits }} visits ({{ p.total_miles }} mi)
+  </div>
+  {% endfor %}
+</div>
+{% endif %}`,
+
+    mountain_regen: `<!-- CARD: MOUNTAIN ELEVATION & REGEN -->
+{% if modules.mountain_regen and trips.elevation %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">🏔️</span> Mountain Elevation &amp; Regen Recapture</div>
+      </td>
+    </tr>
+  </table>
+  <div class="kpi-box" style="padding: 16px; text-align: center; background-color: {{ theme.card_inner_bg }}; border-radius: 10px;">
+    <div class="kpi-val" style="font-size: 26px; font-weight: 800; color: {{ theme.text_primary }};">{{ "{:,.0f}".format(trips.elevation.total_gain_ft) }} ft</div>
+    <div class="kpi-lbl" style="font-size: 12px; color: {{ theme.text_muted }};">Cumulative Elevation Gain &bull; {{ trips.elevation.regen_kwh }} kWh Recaptured via Regen Braking</div>
+  </div>
+</div>
+{% endif %}`,
+
+    achievements: `<!-- CARD: DRIVING ACHIEVEMENTS & BADGES -->
+{% if modules.achievements and achievements and achievements.has_data %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="section-title"><span class="section-icon">🏆</span> Driving Achievements &amp; Badges</div>
+      </td>
+      {% if grafana_achievements_url %}
+      <td align="right" style="vertical-align: middle;">
+        <a href="{{ grafana_achievements_url }}" target="_blank" class="dashboard-pill" style="font-size: 12px; font-weight: 700; color: {{ theme.footer_link }}; padding: 4px 12px; border-radius: 20px; background: {{ theme.card_inner_bg }}; border: 1px solid {{ theme.card_inner_border }}; text-decoration: none;">Trophy Room &rarr;</a>
+      </td>
+      {% endif %}
+    </tr>
+  </table>
+  <div class="kpi-box" style="padding: 14px; background-color: {{ theme.card_inner_bg }}; border-radius: 8px;">
+    <div style="font-size: 13px; font-weight: 700; color: {{ theme.text_primary }};">{{ achievements.unlocked_badges }} / {{ achievements.total_badges }} Badges Unlocked ({{ achievements.points }} Total Points)</div>
+    <div style="margin-top: 8px;">
+      {% for b in achievements.period_unlocked %}
+      <span class="badge" style="background-color: rgba(232,33,39,0.15); color: #e82127; border: 1px solid rgba(232,33,39,0.3); margin-right: 6px;">{{ b.icon }} {{ b.name }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}`,
+
+    embedded_charts: `<!-- EMBEDDED HIGH-RES CHARTS -->
+{% if chart_spend or chart_battery or chart_solar %}
+<div class="card" style="background-color: {{ theme.card_bg }}; border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; border: 1px solid {{ theme.card_border }};">
+  <div class="section-title" style="margin-bottom: 12px;"><span class="section-icon">📊</span> Telemetry Visualizations</div>
+  {% if chart_spend %}
+  <div class="chart-container" style="margin-bottom: 12px;"><img src="{{ chart_spend }}" width="100%" class="chart-img" alt="Spend Chart" /></div>
+  {% endif %}
+  {% if chart_battery %}
+  <div class="chart-container" style="margin-bottom: 12px;"><img src="{{ chart_battery }}" width="100%" class="chart-img" alt="Battery Chart" /></div>
+  {% endif %}
+  {% if chart_solar %}
+  <div class="chart-container"><img src="{{ chart_solar }}" width="100%" class="chart-img" alt="Solar Overlay" /></div>
+  {% endif %}
+</div>
+{% endif %}`
+  };
+  {% endraw %}
+
+  // Toast Helper
   function showToast(msg) {
     const toast = document.getElementById('builder-toast');
     const toastText = document.getElementById('builder-toast-text');
@@ -312,8 +752,98 @@
     }, 2200);
   }
 
+  // Parse HTML into { prefix, style, middle, body, suffix }
+  function parseTemplateDocument(doc) {
+    const styleStart = doc.indexOf('<style');
+    const styleEnd = doc.indexOf('</style>');
+    const bodyStart = doc.indexOf('<body');
+    const bodyEnd = doc.lastIndexOf('</body>');
+
+    if (styleStart !== -1 && styleEnd !== -1 && bodyStart !== -1 && bodyEnd !== -1) {
+      const styleTagEnd = doc.indexOf('>', styleStart) + 1;
+      const bodyTagEnd = doc.indexOf('>', bodyStart) + 1;
+
+      return {
+        prefix: doc.substring(0, styleTagEnd),
+        style: doc.substring(styleTagEnd, styleEnd),
+        middle: doc.substring(styleEnd, bodyTagEnd),
+        body: doc.substring(bodyTagEnd, bodyEnd),
+        suffix: doc.substring(bodyEnd),
+        isFullDoc: true
+      };
+    } else {
+      // Snippet without complete html head/body wrappers
+      return {
+        prefix: '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="utf-8">\n  <title>TeslaMate Digest</title>\n  <style>\n',
+        style: '',
+        middle: '\n  </style>\n</head>\n<body>\n',
+        body: doc,
+        suffix: '\n</body>\n</html>',
+        isFullDoc: false
+      };
+    }
+  }
+
+  // Recombine model into a full valid document
+  function assembleFullDocument() {
+    if (currentView === 'body') {
+      docModel.body = document.getElementById('editor_textarea').value;
+    } else if (currentView === 'style') {
+      docModel.style = document.getElementById('editor_textarea').value;
+    } else if (currentView === 'full') {
+      return document.getElementById('editor_textarea').value;
+    }
+    return docModel.prefix + docModel.style + docModel.middle + docModel.body + docModel.suffix;
+  }
+
+  // Switch Editor Views (Body, Style, Full)
+  function switchEditorView(targetView) {
+    const textarea = document.getElementById('editor_textarea');
+    if (!textarea) return;
+
+    // 1. Save current content into model
+    if (currentView === 'body') {
+      docModel.body = textarea.value;
+    } else if (currentView === 'style') {
+      docModel.style = textarea.value;
+    } else if (currentView === 'full') {
+      // Re-parse the full document to sync parts
+      docModel = parseTemplateDocument(textarea.value);
+    }
+
+    currentView = targetView;
+
+    // 2. Update UI Tab Buttons
+    ['body', 'style', 'full'].forEach(v => {
+      const btn = document.getElementById('tab-btn-' + v);
+      if (btn) {
+        if (v === targetView) {
+          btn.className = "px-3 py-1 rounded-md transition bg-white dark:bg-slate-800 text-tesla shadow-sm font-bold";
+        } else {
+          btn.className = "px-3 py-1 rounded-md transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+        }
+      }
+    });
+
+    // 3. Populate textarea for active view
+    const hint = document.getElementById('editor-hint-text');
+    if (targetView === 'body') {
+      textarea.value = docModel.body;
+      hint.innerHTML = 'Editing <strong>HTML Body Layout</strong> (CSS styles safely tucked in the Stylesheet tab).';
+    } else if (targetView === 'style') {
+      textarea.value = docModel.style;
+      hint.innerHTML = 'Editing <strong>CSS Stylesheet (&lt;style&gt;)</strong> (Responsive styles &amp; custom overrides).';
+    } else {
+      textarea.value = docModel.prefix + docModel.style + docModel.middle + docModel.body + docModel.suffix;
+      hint.innerHTML = 'Editing <strong>Full Document Source</strong> (Complete HTML, head, styles &amp; body).';
+    }
+
+    textarea.focus();
+  }
+
+  // Insert Jinja Tag at Cursor
   function insertTag(tagText) {
-    const textarea = document.getElementById('template_content');
+    const textarea = document.getElementById('editor_textarea');
     if (!textarea) return;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
@@ -329,8 +859,31 @@
     showToast('Inserted ' + tagText);
   }
 
-  const copyTag = insertTag;
+  // Insert Module Snippet Card at Cursor
+  function insertModuleSnippet(modKey) {
+    const snippet = MODULE_SNIPPETS[modKey];
+    if (!snippet) return;
 
+    if (currentView === 'style') {
+      switchEditorView('body');
+    }
+
+    const textarea = document.getElementById('editor_textarea');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const val = textarea.value;
+
+    const formatted = '\n\n' + snippet.trim() + '\n\n';
+    textarea.value = val.substring(0, start) + formatted + val.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + formatted.length;
+    textarea.focus();
+
+    showToast('Inserted ' + modKey.replace('_', ' ') + ' card!');
+  }
+
+  // Color Tweaker Sync
   function syncColorInput(key, colorVal) {
     activePalette[key] = colorVal;
     const picker = document.getElementById('tweak-' + key);
@@ -339,32 +892,34 @@
     if (hex) hex.value = colorVal;
   }
 
-  function replaceColorInEditor(oldColor, newColor) {
-    if (!oldColor || !newColor || oldColor.toLowerCase() === newColor.toLowerCase()) return;
-    const textarea = document.getElementById('template_content');
-    if (!textarea) return;
+  function replaceColorInActiveText(oldColor, newColor) {
+    if (!oldColor || !newColor || oldColor.toLowerCase() === newColor.toLowerCase()) return 0;
+    const textarea = document.getElementById('editor_textarea');
+    if (!textarea) return 0;
 
     const escapedOld = oldColor.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     const reg = new RegExp(escapedOld, 'gi');
+    const matches = (textarea.value.match(reg) || []).length;
     textarea.value = textarea.value.replace(reg, newColor);
+    return matches;
   }
 
   function applyTweakedColors() {
-    const keys = ['body_bg', 'card_bg', 'card_border', 'card_inner_bg', 'text_primary', 'text_muted', 'accent_red'];
+    const keys = ['body_bg', 'card_bg', 'card_border', 'card_inner_bg', 'text_primary', 'text_muted', 'accent_red', 'accent_green'];
     let count = 0;
     keys.forEach(k => {
       const hex = document.getElementById('hex-' + k);
       if (!hex) return;
       const val = hex.value.trim();
       if (activePalette[k] && val && activePalette[k].toLowerCase() !== val.toLowerCase()) {
-        replaceColorInEditor(activePalette[k], val);
+        count += replaceColorInActiveText(activePalette[k], val);
         activePalette[k] = val;
-        count++;
       }
     });
-    showToast(count > 0 ? `Applied ${count} color tweak(s)!` : 'Template colors are up to date.');
+    showToast(count > 0 ? `Applied ${count} color tweak(s)!` : 'Colors are up to date.');
   }
 
+  // Load Selected Theme Starter
   async function loadSelectedThemeStarter() {
     const sel = document.getElementById('theme-starter-select');
     const themeId = sel.value;
@@ -380,9 +935,15 @@
       const code = await starterRes.text();
       const palette = await paletteRes.json();
 
-      document.getElementById('template_content').value = code;
-      
-      const keys = ['body_bg', 'card_bg', 'card_border', 'card_inner_bg', 'text_primary', 'text_muted', 'accent_red'];
+      rawFullTemplate = code;
+      docModel = parseTemplateDocument(code);
+
+      const textarea = document.getElementById('editor_textarea');
+      if (currentView === 'body') textarea.value = docModel.body;
+      else if (currentView === 'style') textarea.value = docModel.style;
+      else textarea.value = code;
+
+      const keys = ['body_bg', 'card_bg', 'card_border', 'card_inner_bg', 'text_primary', 'text_muted', 'accent_red', 'accent_green'];
       keys.forEach(k => {
         if (palette[k]) syncColorInput(k, palette[k]);
       });
@@ -392,30 +953,41 @@
     }
   }
 
-  function loadStarterTemplate() {
-    loadSelectedThemeStarter();
+  // Form Submission Preparation
+  function prepareSave() {
+    const fullHtml = assembleFullDocument();
+    document.getElementById('template_content').value = fullHtml;
   }
 
-  // Pre-populate palette when theme dropdown changes
-  document.getElementById('theme-starter-select')?.addEventListener('change', async (e) => {
-    try {
-      const res = await fetch('/api/theme-palette?theme=' + encodeURIComponent(e.target.value));
-      const palette = await res.json();
-      const keys = ['body_bg', 'card_bg', 'card_border', 'card_inner_bg', 'text_primary', 'text_muted', 'accent_red'];
-      keys.forEach(k => {
-        if (palette[k]) syncColorInput(k, palette[k]);
-      });
-    } catch (_) {}
+  function submitTemplateForm() {
+    prepareSave();
+    document.getElementById('template-form').submit();
+  }
+
+  // Track cursor position
+  document.getElementById('editor_textarea')?.addEventListener('keyup', (e) => {
+    const pos = e.target.selectionStart;
+    const lines = e.target.value.substring(0, pos).split('\n');
+    const lineNum = lines.length;
+    const colNum = lines[lines.length - 1].length + 1;
+    const el = document.getElementById('editor-cursor-pos');
+    if (el) el.textContent = `Line ${lineNum}, Col ${colNum}`;
   });
 
-  // Init initial palette from first theme on load
+  // Initialize on DOM Ready
   document.addEventListener('DOMContentLoaded', () => {
+    docModel = parseTemplateDocument(rawFullTemplate);
+    const textarea = document.getElementById('editor_textarea');
+    if (textarea) {
+      textarea.value = docModel.body;
+    }
+
     const sel = document.getElementById('theme-starter-select');
     if (sel) {
       fetch('/api/theme-palette?theme=' + encodeURIComponent(sel.value))
         .then(r => r.json())
         .then(palette => {
-          const keys = ['body_bg', 'card_bg', 'card_border', 'card_inner_bg', 'text_primary', 'text_muted', 'accent_red'];
+          const keys = ['body_bg', 'card_bg', 'card_border', 'card_inner_bg', 'text_primary', 'text_muted', 'accent_red', 'accent_green'];
           keys.forEach(k => {
             if (palette[k]) syncColorInput(k, palette[k]);
           });

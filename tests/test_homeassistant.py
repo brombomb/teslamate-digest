@@ -40,7 +40,7 @@ def test_verify_ha_connection_mocked():
 def test_discover_ha_solar_entities_mocked():
     mock_states = [
         {"entity_id": "sensor.tesla_solar_production", "state": "17000", "attributes": {"friendly_name": "1AU Tesla Solar Production", "device_class": "energy", "unit_of_measurement": "kWh"}},
-        {"entity_id": "sensor.1au_solar_power", "state": "1500", "attributes": {"friendly_name": "1AU Solar power", "device_class": "power", "unit_of_measurement": "W"}},
+        {"entity_id": "sensor.solar_power", "state": "1500", "attributes": {"friendly_name": "1AU Solar power", "device_class": "power", "unit_of_measurement": "W"}},
         {"entity_id": "sensor.current_grid_consumption", "state": "26000", "attributes": {"friendly_name": "Current Grid Consumption", "device_class": "energy", "unit_of_measurement": "kWh"}},
         {"entity_id": "sensor.current_grid_feed", "state": "7000", "attributes": {"friendly_name": "Current Grid Feed", "device_class": "energy", "unit_of_measurement": "kWh"}},
         {"entity_id": "sensor.total_load_energy", "state": "1500", "attributes": {"friendly_name": "Total Load Energy", "device_class": "energy", "unit_of_measurement": "kWh"}},
@@ -56,7 +56,7 @@ def test_discover_ha_solar_entities_mocked():
         disc = asyncio.run(discover_ha_solar_entities("http://localhost:8123", "test_token"))
         assert disc["success"] is True
         assert disc["suggested"]["solar_energy_entity"] == "sensor.tesla_solar_production"
-        assert disc["suggested"]["solar_power_entity"] == "sensor.1au_solar_power"
+        assert disc["suggested"]["solar_power_entity"] == "sensor.solar_power"
         assert disc["suggested"]["grid_import_entity"] == "sensor.current_grid_consumption"
         assert disc["suggested"]["grid_export_entity"] == "sensor.current_grid_feed"
         assert disc["suggested"]["home_load_entity"] == "sensor.total_load_energy"
@@ -68,7 +68,7 @@ def test_fetch_solar_summary_mocked():
         url = "http://localhost:8123"
         token = "test_token"
         solar_energy_entity = "sensor.tesla_solar_production"
-        solar_power_entity = "sensor.1au_solar_power"
+        solar_power_entity = "sensor.solar_power"
         grid_import_entity = "sensor.current_grid_consumption"
         grid_export_entity = "sensor.current_grid_feed"
         home_load_entity = "sensor.total_load_energy"
@@ -93,8 +93,8 @@ def test_fetch_solar_summary_mocked():
             {"entity_id": "sensor.total_load_energy", "state": "1220.0"},
         ],
         [
-            {"entity_id": "sensor.1au_solar_power", "state": "2500.0"},
-            {"entity_id": "sensor.1au_solar_power", "state": "5200.0"},
+            {"entity_id": "sensor.solar_power", "state": "2500.0"},
+            {"entity_id": "sensor.solar_power", "state": "5200.0"},
         ]
     ]
 
@@ -123,6 +123,75 @@ def test_fetch_solar_summary_mocked():
         assert summary["solar_surplus_kwh"] == 20.0
         assert summary["solar_savings"] == 13.0
         assert len(summary["daily_breakdown"]) == 2
+
+
+def test_fetch_solar_summary_lts_websocket_fallback():
+    class MockConfig:
+        enabled = True
+        url = "http://localhost:8123"
+        token = "test_token"
+        solar_energy_entity = "sensor.tesla_solar_production"
+        solar_power_entity = "sensor.solar_power"
+        grid_import_entity = "sensor.current_grid_consumption"
+        grid_export_entity = "sensor.current_grid_feed"
+        home_load_entity = "sensor.total_load_energy"
+
+    # REST returns only 3 days (simulating 10-day raw purge)
+    mock_history_payload = [
+        [
+            {"entity_id": "sensor.tesla_solar_production", "state": "17000.0", "last_updated": "2026-09-28T12:00:00+00:00"},
+            {"entity_id": "sensor.tesla_solar_production", "state": "17045.0", "last_updated": "2026-09-30T18:00:00+00:00"},
+        ]
+    ]
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = mock_history_payload
+
+    # Mocked LTS response with full 30 days (start in ms)
+    base_ts = 1788242400000  # 2026-09-01 local
+    mock_lts_result = {
+        "sensor.tesla_solar_production": [
+            {"start": base_ts + i * 86400000, "change": 25.0} for i in range(30)
+        ],
+        "sensor.current_grid_consumption": [
+            {"start": base_ts + i * 86400000, "change": 30.0} for i in range(30)
+        ],
+        "sensor.current_grid_feed": [
+            {"start": base_ts + i * 86400000, "change": 10.0} for i in range(30)
+        ],
+        "sensor.total_load_energy": [
+            {"start": base_ts + i * 86400000, "change": 45.0} for i in range(30)
+        ],
+        "sensor.solar_power": [
+            {"start": base_ts + i * 86400000, "max": 6500.0} for i in range(30)
+        ]
+    }
+
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get, \
+         patch("app.services.homeassistant._fetch_lts_via_websocket", new_callable=AsyncMock) as mock_ws:
+        mock_get.return_value = mock_resp
+        mock_ws.return_value = mock_lts_result
+
+        start = datetime(2026, 9, 1, 0, 0, 0)
+        end = datetime(2026, 10, 1, 0, 0, 0)
+        summary = asyncio.run(fetch_solar_summary(
+            MockConfig(),
+            start,
+            end,
+            home_charging_kwh=400.0,
+            kwh_cost=0.13
+        ))
+
+        assert summary["has_data"] is True
+        assert summary["total_solar_kwh"] == 750.0  # 30 * 25.0
+        assert summary["days_tracked"] == 30
+        assert summary["is_partial_period"] is False
+        assert summary["peak_solar_kw"] == 6.5
+        assert summary["solar_ev_coverage_pct"] == 100.0
+        assert summary["grid_import_kwh"] == 900.0
+        assert summary["grid_export_kwh"] == 300.0
+        assert summary["home_load_kwh"] == 1350.0
 
 
 def test_generate_solar_chart_output():

@@ -44,7 +44,7 @@ async def get_year_in_review_analytics(
         badges.append({
             "title": "Colorado Peak Bagger",
             "icon": "🏔️",
-            "desc": f"Climbed {ascent_ft:,} vertical feet in the mountains ({everest_equivalents}x Mt. Everest!)."
+            "desc": f"Climbed {ascent_ft:,} vertical feet in the mountains ({everest_equivalents}x Mt. Everest in the Himalayas!)."
         })
 
     if trips["longest_drive"] and trips["longest_drive"]["distance_mi"] >= 80.0:
